@@ -26,31 +26,17 @@ package dev;
 
 import static js.base.Tools.*;
 
-import dev.gen.ExperimentConfig;
-import js.app.AppOper;
+import js.base.BaseObject;
 
-public class ExperimentOper extends AppOper {
+public class Ngrok extends BaseObject {
 
-  @Override
-  public String userCommand() {
-    loadTools();
-    return "exp";
+  public static Ngrok sharedInstance() {
+    if (sSharedInstance == null) {
+      loadTools();
+      sSharedInstance = new Ngrok();
+    }
+    return sSharedInstance;
   }
 
-  @Override
-  public String getHelpDescription() {
-    return "quick experiment";
-  }
-
-  @Override
-  public void perform() {
-    Ngrok ng = Ngrok.sharedInstance();
-    pr("ngrok:", INDENT, ng.toJson());
-  }
-
-  @Override
-  public ExperimentConfig defaultArgs() {
-    return ExperimentConfig.DEFAULT_INSTANCE;
-  }
-
+  private static Ngrok sSharedInstance;
 }
