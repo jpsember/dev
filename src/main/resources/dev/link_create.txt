@@ -1,0 +1,14 @@
+
+
+
+
+##################################################
+# Create a symbolic link to the driver script
+##################################################
+
+if [ "$DRIVER" -ne "0" ]; then
+  if [ ! -f $LINK ]; then
+    DIR=$(pwd)
+    ln -sf $DIR/driver.sh $LINK
+  fi
+fi

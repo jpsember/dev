@@ -1,0 +1,30 @@
+# OSX files
+#
+.DS_Store
+
+# Files marked for later removal, or temporary omission
+#
+_OLD_*
+_SKIP_*
+
+# Sublime text editor
+#
+*.sublime-project
+*.sublime-workspace
+
+# PyCharm (and other JetBrains) IDE
+#
+.idea
+
+# Eclipse IDE
+#
+.classpath
+.project
+.settings
+eclipse_preferences.epf
+
+# Compile output
+#
+target
+
+src/main/java/dev/gen

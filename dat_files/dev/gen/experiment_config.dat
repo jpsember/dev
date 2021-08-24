@@ -1,0 +1,6 @@
+fields {
+  File file_arg;
+  string string_arg = "hello";
+  bool bool_arg;
+  int int_arg = 42;
+}

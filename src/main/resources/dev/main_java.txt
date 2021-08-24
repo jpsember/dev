@@ -1,0 +1,28 @@
+package [!package_name];
+
+import static js.base.Tools.*;
+
+import js.app.App;
+
+import [!package_name].[!main_oper_name];
+
+public class [!main_class_name] extends App {
+
+  public static void main(String[] args) {
+    loadTools();
+    [!main_class_name] app = new [!main_class_name]();
+    app.startApplication(args);
+    app.exitWithReturnCode();
+  }
+
+  @Override
+  public String getVersion() {
+    return "1.0";
+  }
+
+  @Override
+  protected void registerOperations() {
+    registerOper(new [!main_oper_name]());
+  }
+
+}

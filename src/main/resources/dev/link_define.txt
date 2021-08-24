@@ -1,0 +1,3 @@
+if [ "$DRIVER" -ne "0" ]; then
+  LINK=/usr/local/bin/$APP
+fi

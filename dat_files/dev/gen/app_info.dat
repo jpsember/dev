@@ -1,0 +1,8 @@
+fields {
+  File dir;
+  File pom_file;
+  File main_file;
+  string name;
+  string main_package;
+  string main_class_name;
+}

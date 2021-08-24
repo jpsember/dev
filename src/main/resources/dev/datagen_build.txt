@@ -1,0 +1,4 @@
+if [ "$DATAGEN" -ne "0" ]; then
+  echo "...generating data classes"
+  datagen
+fi
