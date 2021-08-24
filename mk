@@ -9,7 +9,13 @@ DATAGEN=1
 ###### Flags end   ##### ~}
 
 if [ "$DRIVER" -ne "0" ]; then
-  LINK=/usr/local/bin/$APP
+  BINDIR="$HOME/bin"
+  if [ ! -d $BINDIR ] 
+  then
+    echo "Directory doesn't exist: $BINDIR"
+    exit 1
+  fi
+  LINK=$BINDIR/$APP
 fi
 
 
