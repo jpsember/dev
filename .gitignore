@@ -28,3 +28,7 @@ eclipse_preferences.epf
 target
 
 src/main/java/dev/gen
+
+# Ignore any 'secrets' directory, which may be here temporarily for development purposes
+#
+secrets

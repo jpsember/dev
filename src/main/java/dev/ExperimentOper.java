@@ -26,6 +26,8 @@ package dev;
 
 import static js.base.Tools.*;
 
+import java.io.File;
+
 import dev.gen.ExperimentConfig;
 import js.app.AppOper;
 
@@ -46,6 +48,8 @@ public class ExperimentOper extends AppOper {
   public void perform() {
     Ngrok ng = Ngrok.sharedInstance();
     pr("ngrok:", INDENT, ng.toJson());
+    pr("find:", Ngrok.locateFileWithinParents(new File("src"), ".git"));
+    pr("tunnels",INDENT,ng.tunnels());
   }
 
   @Override

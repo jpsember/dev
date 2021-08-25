@@ -2,7 +2,7 @@ if [ "$DRIVER" -ne "0" ]; then
   BINDIR="$HOME/bin"
   if [ ! -d $BINDIR ] 
   then
-    echo "Directory doesn't exist: $BINDIR"
+    echo "Directory doesn't exist; please create it: $BINDIR"
     exit 1
   fi
   LINK=$BINDIR/$APP

@@ -41,6 +41,14 @@
       <scope>test</scope>
     </dependency>
 
+	<!--  I thought I needed this, but for now just calling curl
+    <dependency>
+      <groupId>com.jsbase</groupId>
+      <artifactId>webtools</artifactId>
+      <version>1.0</version>
+    </dependency>
+	-->
+	
     <!--  Custom dependencies end   ~}              -->
 
   </dependencies>
