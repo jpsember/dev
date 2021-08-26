@@ -17,20 +17,20 @@ public final class Utils {
    *          directory to start search within, or null for current directory
    * @param filename
    *          name of file (or directory) to look for
-   * @param errorMessages
-   *          if nonempty, and file isn't found, throws exception with these
-   *          arguments
+   * @param errorContext
+   *          if nonempty, and file isn't found, throws exception, displaying a
+   *          message with these arguments
    * @return found file, or Files.DEFAULT
    */
   public static File getFileWithinParents(File startParentDirectoryOrNull, String filename,
-      Object... errorMessages) {
-    File dir;
+      Object... errorContext) {
+    File startDir;
     if (startParentDirectoryOrNull == null)
-      dir = Files.currentDirectory();
+      startDir = Files.currentDirectory();
     else
-      dir = Files.absolute(startParentDirectoryOrNull);
-    File startDir = dir;
+      startDir = Files.absolute(startParentDirectoryOrNull);
     File result = Files.DEFAULT;
+    File dir = startDir;
     while (true) {
       File candidate = new File(dir, filename);
       if (candidate.exists()) {
@@ -41,9 +41,9 @@ public final class Utils {
       if (dir == null)
         break;
     }
-    if (Files.empty(result) && errorMessages.length > 0)
+    if (Files.empty(result) && errorContext.length > 0)
       throw badArg("Cannot find file", filename, "within", startDir, "; context:",
-          BasePrinter.toString(errorMessages));
+          BasePrinter.toString(errorContext));
     return result;
   }
 
