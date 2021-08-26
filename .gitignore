@@ -29,6 +29,7 @@ target
 
 src/main/java/dev/gen
 
-# Ignore any 'secrets' directory, which may be here temporarily for development purposes
+# Ignore these directories, which may be here temporarily for development purposes
 #
 secrets
+project_config

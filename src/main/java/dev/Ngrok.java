@@ -50,34 +50,6 @@ public class Ngrok extends BaseObject {
   private static Ngrok sSharedInstance;
 
   /**
-   * Find a file within a project directory structure, by ascending to a parent
-   * directory until found (or we run out of parents)
-   * 
-   * @param startParentDirectoryOrNull
-   *          directory to start search within, or null for current directory
-   * @param filename
-   *          name of file (or directory) to look for
-   * @return found file, or null
-   */
-  public static File locateFileWithinParents(File startParentDirectoryOrNull, String filename) {
-    todo("move this to a utility class");
-    File dir;
-    if (startParentDirectoryOrNull == null)
-      dir = Files.currentDirectory();
-    else
-      dir = Files.absolute(startParentDirectoryOrNull);
-    while (true) {
-      File candidate = new File(dir, filename);
-      pr("candidate:", Files.infoMap(candidate));
-      if (candidate.exists())
-        return candidate;
-      dir = dir.getParentFile();
-      if (dir == null)
-        return null;
-    }
-  }
-
-  /**
    * Call the ngrok API, with a particular endpoint appended to their url.
    * 
    * @param endpoint
@@ -103,8 +75,7 @@ public class Ngrok extends BaseObject {
 
   private String getNgrokToken() {
     if (mToken == null) {
-      File secretsDir = locateFileWithinParents(null, "secrets");
-      checkState(!Files.empty(secretsDir), "can't locate secrets dir");
+      File secretsDir = Utils.getFileWithinParents(null, "secrets");
       File tokenFile = new File(secretsDir, "ngrok_token.txt");
       checkState(tokenFile.exists(), "no such file:", tokenFile);
       mToken = Files.readString(tokenFile).trim();
