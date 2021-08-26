@@ -37,12 +37,7 @@ public class Ngrok extends BaseObject {
 
   public static Ngrok sharedInstance() {
     if (sSharedInstance == null) {
-      loadTools();
       sSharedInstance = new Ngrok();
-      todo(
-          "we need to support a 'secrets' directory where we can store things like the ngrok password, something not tracked by .git");
-      todo(
-          "we need to support a 'project_config' directory where we can store non-secret things like cached remote system information");
     }
     return sSharedInstance;
   }
@@ -75,7 +70,7 @@ public class Ngrok extends BaseObject {
 
   private String getNgrokToken() {
     if (mToken == null) {
-      File secretsDir = Utils.getFileWithinParents(null, "secrets");
+      File secretsDir = Utils.getFileWithinParents(null, "secrets", "secrets directory");
       File tokenFile = new File(secretsDir, "ngrok_token.txt");
       checkState(tokenFile.exists(), "no such file:", tokenFile);
       mToken = Files.readString(tokenFile).trim();
