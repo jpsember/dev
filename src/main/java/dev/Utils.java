@@ -22,6 +22,7 @@ public final class Utils {
    *          message with these arguments
    * @return found file, or Files.DEFAULT
    */
+  @Deprecated
   public static File getFileWithinParents(File startParentDirectoryOrNull, String filename,
       Object... errorContext) {
     File startDir;

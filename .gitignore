@@ -33,3 +33,4 @@ src/main/java/dev/gen
 #
 secrets
 project_config
+!project_config/ngrok_config.yml

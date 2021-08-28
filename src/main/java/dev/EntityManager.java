@@ -21,8 +21,7 @@ public class EntityManager {
 
   public RemoteEntityMap entityMap() {
     if (mEntityMap == null) {
-      File config = Utils.getFileWithinParents(null, "project_config","project_config directory");
-      File entityFile = new File(config, "entity_map.json");
+      File entityFile = new File(Files.S.projectConfigDirectory(), "entity_map.json");
       mEntityMap = Files.parseAbstractData(RemoteEntityMap.DEFAULT_INSTANCE, entityFile);
     }
     return mEntityMap;

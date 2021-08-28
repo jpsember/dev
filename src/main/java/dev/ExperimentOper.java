@@ -30,6 +30,7 @@ import java.io.File;
 
 import dev.gen.ExperimentConfig;
 import js.app.AppOper;
+import js.file.Files;
 
 public class ExperimentOper extends AppOper {
 
@@ -48,9 +49,10 @@ public class ExperimentOper extends AppOper {
   public void perform() {
     Ngrok ng = Ngrok.sharedInstance();
     pr("ngrok:", INDENT, ng.toJson());
-    pr("find:", Utils.getFileWithinParents(new File("src"), ".git"));
+    pr("find:", Files.getFileWithinParents(new File("src"), ".git"));
     pr("tunnels", INDENT, ng.tunnels());
-    pr("entity map:", INDENT, EntityManager.sharedInstance().entityMap());
+    pr("tunnel_sessions", INDENT, ng.tunnelSessions());
+     pr("entity map:", INDENT, EntityManager.sharedInstance().entityMap());
   }
 
   @Override

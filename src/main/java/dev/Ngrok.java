@@ -68,10 +68,21 @@ public class Ngrok extends BaseObject {
     return callAPI("tunnels");
   }
 
+  /**
+   * This doesn't output much; probably a feature we're not using
+   */
+  public JSMap endpoints() {
+    return callAPI("endpoint_configurations");
+  }
+
+  public JSMap tunnelSessions() {
+    return callAPI("tunnel_sessions");
+
+  }
+
   private String getNgrokToken() {
     if (mToken == null) {
-      File secretsDir = Utils.getFileWithinParents(null, "secrets", "secrets directory");
-      File tokenFile = new File(secretsDir, "ngrok_token.txt");
+      File tokenFile = new File(Files.S.projectSecretsDirectory(), "ngrok_token.txt");
       checkState(tokenFile.exists(), "no such file:", tokenFile);
       mToken = Files.readString(tokenFile).trim();
     }
@@ -79,4 +90,5 @@ public class Ngrok extends BaseObject {
   }
 
   private String mToken;
+
 }
