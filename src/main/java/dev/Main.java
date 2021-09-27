@@ -50,6 +50,7 @@ public class Main extends App {
     registerOper(new ResetTestOper());
     registerOper(new CopyrightOper());
     registerOper(new ExperimentOper());
+    registerOper(new RsyncOper());
   }
 
 }
