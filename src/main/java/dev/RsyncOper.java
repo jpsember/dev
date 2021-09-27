@@ -37,9 +37,10 @@ import js.json.JSMap;
 
 public class RsyncOper extends AppOper {
 
+  private static final boolean ACT_VERBOSE = true && alert("always verbose for some things");
+
   @Override
   public String userCommand() {
-    loadTools();
     return "rsync";
   }
 
@@ -74,49 +75,34 @@ public class RsyncOper extends AppOper {
     SystemCall s = new SystemCall();
     s.withVerbose(verbose());
     s.arg("rsync", "--archive");
-    if (verbose() || alert("always verbose"))
+    if (verbose() || ACT_VERBOSE)
       s.arg("--verbose");
     if (dryRun() || alert("always dry run"))
       s.arg("--dry-run");
 
-    if (true) {
-      
+    // Construct an exclude list within a temporary file, and pass that as an argument
+    //
+    {
+      File tempFile;
+      if (verbose() || ACT_VERBOSE)
+        tempFile = new File(Files.homeDirectory(), "_SKIP_RsyncOper_excludes.txt");
+      else {
+        tempFile = Files.createTempFile("RsyncExcludes", ".txt");
+        tempFile.deleteOnExit();
+      }
+
       StringBuilder sb = new StringBuilder();
-   //   int cursor = -1;
       for (String expr : excludeExpressionList()) {
         sb.append("- ");
         sb.append(expr);
         sb.append('\n');
-       }
-      File temp = new File(Files.getDesktopDirectory(),"_SKIP_excludes.txt");
-      Files.S.writeString(temp, sb.toString());
-      s.arg("--exclude-from="+temp);
-      pr("exclude file:",INDENT,sb);
-//      sb.append("}");
-    } else
-    if (true) {
-      for (String expr : excludeExpressionList()) {
-       s.arg("--exclude='"+expr+"'");
-//        sb.append('\'');
-//        sb.append(expr);
-//        sb.append('\'');
-//       }
       }
-    } else
-    {
-      StringBuilder sb = new StringBuilder("--exclude={");
-      int cursor = -1;
-      for (String expr : excludeExpressionList()) {
-        cursor++;
-        if (cursor > 0)
-          sb.append(',');
-        sb.append('\'');
-        sb.append(expr);
-        sb.append('\'');
-       }
-      sb.append("}");
-      s.arg(sb);
-  }
+
+      Files.S.writeString(tempFile, sb.toString());
+      s.arg("--exclude-from=" + tempFile);
+      if (false && ACT_VERBOSE)
+        pr("exclude file:", INDENT, sb);
+    }
 
     s.arg(sourceDir());
 
@@ -139,13 +125,11 @@ public class RsyncOper extends AppOper {
 
     s.arg(remotePrefix + targetBaseDir().toString() + "/" + rp);
     s.call();
-    
+
     {
-      JSMap z = s.toJson();
- //   pr(z);
-    pr("Output:",INDENT,z.get("system_out"));
-    pr("Command:",INDENT,z.get("args"));
-    
+      m = s.toJson();
+      pr("Output:", INDENT, m.get("system_out"));
+      pr("Command:", INDENT, m.get("args"));
     }
   }
 
@@ -198,22 +182,21 @@ public class RsyncOper extends AppOper {
   }
 
   private List<String> excludeExpressionList() {
-    if (mEx == null) {
-      List<String> x = arrayList();
-      mEx = x;
-
-      x.add(".DS_Store");
-      //      x.add("classes");
-      x.add("target/");
-
-      x.add("*.foo");
-      x.add(".sample_dot");
-
+    if (mExcludeExpressionsList == null) {
+      List<String> strings = arrayList();
+      mExcludeExpressionsList = strings;
+      String script = Files.readString(getClass(), "rsync_excludes.txt");
+      for (String s : split(script, '\n')) {
+        s = s.trim();
+        if (s.isEmpty() || s.startsWith("#"))
+          continue;
+        strings.add(s);
+      }
     }
-    return mEx;
+    return mExcludeExpressionsList;
   }
 
-  private List<String> mEx;
+  private List<String> mExcludeExpressionsList;
   private File mSourceDir;
   private File mSourceBaseDir;
   private String mRelPath;
