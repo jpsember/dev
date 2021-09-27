@@ -29,6 +29,7 @@ import static js.base.Tools.*;
 import java.io.File;
 import java.util.List;
 
+import dev.gen.RemoteEntityInfo;
 import js.app.AppOper;
 import js.app.CmdLineArgs;
 import js.base.SystemCall;
@@ -106,7 +107,10 @@ public class RsyncOper extends AppOper {
 
     s.arg(sourceDir());
 
-    s.arg("-e", "ssh -p19646");
+    RemoteEntityInfo ent = EntityManager.sharedInstance().activeEntity();
+    checkArgument(ent.port() > 0, "bad port:", INDENT, ent);
+
+    s.arg("-e", "ssh -p" + ent.port());
 
     String rp = relPath();
     // Trim the last path element (everything from the last '/' onward)
@@ -117,10 +121,12 @@ public class RsyncOper extends AppOper {
       else
         rp = rp.substring(0, i);
     }
-    String remotePrefix = "ubuntu@6.tcp.ngrok.io:";
 
-    // remotePrefix += "~/";
-    //    remotePrefix = remotePrefix + "19646:";
+    checkArgument(nonEmpty(ent.user()),"no user:",INDENT,ent);
+    checkArgument(nonEmpty(ent.url()), "no url:", INDENT, ent);
+
+    String remotePrefix = ent.user()+"@"+ent.url() + ":"; // + ""ubuntu@6.tcp.ngrok.io:";
+
     todo("fetch remote prefix from local config files");
 
     s.arg(remotePrefix + targetBaseDir().toString() + "/" + rp);

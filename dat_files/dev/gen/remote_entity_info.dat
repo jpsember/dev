@@ -6,4 +6,5 @@ fields {
   OsType os_type;
   string url;
   int port;
+  string user;
 }

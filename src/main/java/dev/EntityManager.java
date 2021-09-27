@@ -4,6 +4,7 @@ import static js.base.Tools.*;
 
 import java.io.File;
 
+import dev.gen.RemoteEntityInfo;
 import dev.gen.RemoteEntityMap;
 import js.file.Files;
 
@@ -25,6 +26,24 @@ public class EntityManager {
       mEntityMap = Files.parseAbstractData(RemoteEntityMap.DEFAULT_INSTANCE, entityFile);
     }
     return mEntityMap;
+  }
+
+  public RemoteEntityInfo optionalActiveEntity() {
+    RemoteEntityInfo ent = RemoteEntityInfo.DEFAULT_INSTANCE;
+    String key = entityMap().activeEntity();
+    if (!key.isEmpty()) {
+      ent = entityMap().entityMap().get(key);
+      if (ent == null)
+        throw badState("No entity found for active entity key:", key, INDENT, entityMap());
+    }
+    return ent;
+  }
+
+  public RemoteEntityInfo activeEntity() {
+    RemoteEntityInfo ent = optionalActiveEntity();
+    if (ent == RemoteEntityInfo.DEFAULT_INSTANCE)
+      throw badState("No active remote entity");
+    return ent;
   }
 
   private RemoteEntityMap mEntityMap;
