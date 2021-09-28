@@ -34,11 +34,8 @@ import js.app.AppOper;
 import js.app.CmdLineArgs;
 import js.base.SystemCall;
 import js.file.Files;
-import js.json.JSMap;
 
 public class RsyncOper extends AppOper {
-
-  private static final boolean ACT_VERBOSE = false && alert("always verbose for some things");
 
   @Override
   public String userCommand() {
@@ -71,7 +68,7 @@ public class RsyncOper extends AppOper {
   @Override
   public void perform() {
     SystemCall s = new SystemCall();
-    boolean verbosity = verbose() || ACT_VERBOSE;
+    boolean verbosity = verbose();
     s.withVerbose(verbosity);
     s.arg("rsync");
 
@@ -156,13 +153,6 @@ public class RsyncOper extends AppOper {
       s.arg(sb);
     }
 
-    s.call();
-
-    if (ACT_VERBOSE) {
-      JSMap m = s.toJson();
-      pr("Command:", INDENT, m.get("args"));
-      //pr(m);
-    }
     s.assertSuccess();
   }
 
@@ -205,6 +195,10 @@ public class RsyncOper extends AppOper {
     return mExcludeExpressionsList;
   }
 
+  // ------------------------------------------------------------------
+  // Some utility methods for working with paths
+  // ------------------------------------------------------------------
+
   /**
    * Determine index of last '/' within a path. Expects a path that doesn't end
    * with '/', and that contains at least two elements.
@@ -230,6 +224,8 @@ public class RsyncOper extends AppOper {
   private static String removeLastPathElement(String path) {
     return path.substring(0, lastPathElementDelimeter(path));
   }
+
+  // ------------------------------------------------------------------
 
   private List<String> mExcludeExpressionsList;
   private File mSourceDir;
