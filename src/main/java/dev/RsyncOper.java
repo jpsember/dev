@@ -74,9 +74,10 @@ public class RsyncOper extends AppOper {
     pr(m);
 
     SystemCall s = new SystemCall();
-    s.withVerbose(verbose());
+    boolean verbosity = verbose() || ACT_VERBOSE;
+    s.withVerbose(verbosity);
     s.arg("rsync", "--archive");
-    if (verbose() || ACT_VERBOSE)
+    if (verbosity)
       s.arg("--verbose");
     if (dryRun() || alert("always dry run"))
       s.arg("--dry-run");
@@ -85,7 +86,7 @@ public class RsyncOper extends AppOper {
     //
     {
       File tempFile;
-      if (verbose() || ACT_VERBOSE)
+      if (verbosity)
         tempFile = new File(Files.homeDirectory(), "_SKIP_RsyncOper_excludes.txt");
       else {
         tempFile = Files.createTempFile("RsyncExcludes", ".txt");
@@ -101,8 +102,6 @@ public class RsyncOper extends AppOper {
 
       Files.S.writeString(tempFile, sb.toString());
       s.arg("--exclude-from=" + tempFile);
-      if (false && ACT_VERBOSE)
-        pr("exclude file:", INDENT, sb);
     }
 
     s.arg(sourceDir());
@@ -122,12 +121,9 @@ public class RsyncOper extends AppOper {
         rp = rp.substring(0, i);
     }
 
-    checkArgument(nonEmpty(ent.user()),"no user:",INDENT,ent);
+    checkArgument(nonEmpty(ent.user()), "no user:", INDENT, ent);
     checkArgument(nonEmpty(ent.url()), "no url:", INDENT, ent);
-
-    String remotePrefix = ent.user()+"@"+ent.url() + ":"; // + ""ubuntu@6.tcp.ngrok.io:";
-
-    todo("fetch remote prefix from local config files");
+    String remotePrefix = ent.user() + "@" + ent.url() + ":";
 
     s.arg(remotePrefix + targetBaseDir().toString() + "/" + rp);
     s.call();
@@ -136,7 +132,9 @@ public class RsyncOper extends AppOper {
       m = s.toJson();
       pr("Output:", INDENT, m.get("system_out"));
       pr("Command:", INDENT, m.get("args"));
+      //pr(m);
     }
+    s.assertSuccess();
   }
 
   private String relPath() {

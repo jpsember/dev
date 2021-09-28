@@ -42,7 +42,7 @@ public class EntityManager {
   public RemoteEntityInfo activeEntity() {
     RemoteEntityInfo ent = optionalActiveEntity();
     if (ent == RemoteEntityInfo.DEFAULT_INSTANCE)
-      throw badState("No active remote entity");
+      throw badState("No active remote entity:",INDENT,entityMap());
     return ent;
   }
 
