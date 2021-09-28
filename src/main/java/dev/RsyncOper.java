@@ -38,7 +38,7 @@ import js.json.JSMap;
 
 public class RsyncOper extends AppOper {
 
-  private static final boolean ACT_VERBOSE = false && alert("always verbose for some things");
+  private static final boolean ACT_VERBOSE = true && alert("always verbose for some things");
 
   @Override
   public String userCommand() {
@@ -81,7 +81,22 @@ public class RsyncOper extends AppOper {
     SystemCall s = new SystemCall();
     boolean verbosity = verbose() || ACT_VERBOSE;
     s.withVerbose(verbosity);
-    s.arg("rsync", "--archive");
+    s.arg("rsync");
+
+    // Ok, I figured out why it seems to be transferring a lot of files unnecessarily.
+    // The remote machine's files have different timestamps, due to them being installed via git.
+    // This can be avoided by using options other than --archive; but it will slow things down,
+    // so I'm going to stick with --archive:
+
+    if (true) {
+      s.arg("--archive");
+    } else {
+      s.arg("--checksum");
+      s.arg("--recursive");
+      s.arg("--links");
+      s.arg("--perms");
+    }
+
     if (verbosity)
       s.arg("--verbose");
     if (dryRun())
@@ -124,13 +139,15 @@ public class RsyncOper extends AppOper {
         rp = "";
       else
         rp = rp.substring(0, i);
+      if (!rp.isEmpty())
+        rp = "/" + rp;
     }
 
     checkArgument(nonEmpty(ent.user()), "no user:", INDENT, ent);
     checkArgument(nonEmpty(ent.url()), "no url:", INDENT, ent);
     String remotePrefix = ent.user() + "@" + ent.url() + ":";
 
-    s.arg(remotePrefix + targetBaseDir().toString() + "/" + rp);
+    s.arg(remotePrefix + targetBaseDir().toString() + rp);
     s.call();
 
     {
@@ -158,7 +175,7 @@ public class RsyncOper extends AppOper {
 
   private File sourceDir() {
     if (mSourceDir == null) {
-      mSourceDir = currentDir();
+      mSourceDir = Files.currentDirectory();
     }
     return mSourceDir;
   }
@@ -172,19 +189,10 @@ public class RsyncOper extends AppOper {
     return mSourceBaseDir;
   }
 
-  private File currentDir() {
-    if (true) {
-      pr("...current dir:", Files.currentDirectory());
-      return Files.currentDirectory();
-    }
-    todo("this is temporary, since Eclipse work directory ISN'T available from Files.currentDirectory()");
-    return new File(Files.homeDirectory(), "eio_consulting/barnserv_alpha1/jv_exp/src/main");
-  }
-
   private File targetBaseDir() {
     if (mTargetBaseDir == null) {
-      // Assume the target base directory is the home directory + repository name (the last element of the repo base dir)
-      mTargetBaseDir = new File(sourceBaseDir().getName());
+      RemoteEntityInfo ent = EntityManager.sharedInstance().activeEntity();
+      mTargetBaseDir = Files.assertAbsolute(ent.projectDir());
     }
     return mTargetBaseDir;
   }

@@ -7,4 +7,8 @@ fields {
   string url;
   int port;
   string user;
+
+  // Directory containing the project; the one containing the git repo (on the remote machine)
+  //
+  File project_dir;
 }

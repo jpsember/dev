@@ -1,5 +1,3 @@
-// extern dev.gen.RemoteEntityInfo;
-
 fields {
   map string RemoteEntityInfo entity_map;
   string active_entity;
