@@ -38,7 +38,7 @@ import js.json.JSMap;
 
 public class RsyncOper extends AppOper {
 
-  private static final boolean ACT_VERBOSE = true && alert("always verbose for some things");
+  private static final boolean ACT_VERBOSE = false && alert("always verbose for some things");
 
   @Override
   public String userCommand() {
@@ -59,27 +59,27 @@ public class RsyncOper extends AppOper {
         relPath = new File(Files.currentDirectory(), relPath.toString());
       }
       mSourceDir = Files.getCanonicalFile(relPath);
-      pr("source dir:", mSourceDir);
     }
     args.assertArgsDone();
   }
 
   @Override
   public void perform() {
-    JSMap m = map();
-    m.putNumbered("srcDir", sourceDir().toString());
-    m.putNumbered("srcBaseDir", sourceBaseDir().toString());
-    m.putNumbered("relPath", relPath().toString());
-    m.putNumbered("trgBaseDir", targetBaseDir().toString());
-    pr(m);
-
+    if (ACT_VERBOSE) {
+      JSMap m = map();
+      m.putNumbered("srcDir", sourceDir().toString());
+      m.putNumbered("srcBaseDir", sourceBaseDir().toString());
+      m.putNumbered("relPath", relPath().toString());
+      m.putNumbered("trgBaseDir", targetBaseDir().toString());
+      pr(m);
+    }
     SystemCall s = new SystemCall();
     boolean verbosity = verbose() || ACT_VERBOSE;
     s.withVerbose(verbosity);
     s.arg("rsync", "--archive");
     if (verbosity)
       s.arg("--verbose");
-    if (dryRun() || alert("always dry run"))
+    if (dryRun())
       s.arg("--dry-run");
 
     // Construct an exclude list within a temporary file, and pass that as an argument
@@ -129,8 +129,7 @@ public class RsyncOper extends AppOper {
     s.call();
 
     {
-      m = s.toJson();
-      pr("Output:", INDENT, m.get("system_out"));
+      JSMap m = s.toJson();
       pr("Command:", INDENT, m.get("args"));
       //pr(m);
     }
