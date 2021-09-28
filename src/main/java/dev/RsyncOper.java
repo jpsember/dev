@@ -74,7 +74,6 @@ public class RsyncOper extends AppOper {
       JSMap m = map();
       m.putNumbered("srcDir", sourceDir().toString());
       m.putNumbered("srcBaseDir", sourceBaseDir().toString());
-      m.putNumbered("relPath", relPath().toString());
       m.putNumbered("trgBaseDir", targetBaseDir().toString());
       pr(m);
     }
@@ -124,30 +123,63 @@ public class RsyncOper extends AppOper {
       s.arg("--exclude-from=" + tempFile);
     }
 
-    s.arg(sourceDir());
+    // Include a trailing / on the source directory, so we are sending the contents of the directory,
+    // and not the directory itself.
+    // We will include the --mkpath option so the target directory(s) are created if necessary.
+    // NO! This feature was only supported quite recently in rsync, and doesn't work on my Macbook.
+
+    //s.arg("--mkpath");
+    //s.arg(sourceDir()+"/");
+    String sourceBaseDirStr = sourceBaseDir().toString();
+
+    String sourceDirString = sourceDir().toString();
+    s.arg(sourceDirString);
 
     RemoteEntityInfo ent = EntityManager.sharedInstance().activeEntity();
     checkArgument(ent.port() > 0, "bad port:", INDENT, ent);
 
     s.arg("-e", "ssh -p" + ent.port());
 
-    String rp = relPath();
-    // Trim the last path element (everything from the last '/' onward)
+    // Determine the target directory
+
+    String targetDirString;
     {
-      int i = rp.lastIndexOf('/');
-      if (i < 0)
-        rp = "";
-      else
-        rp = rp.substring(0, i);
-      if (!rp.isEmpty())
-        rp = "/" + rp;
+      checkArgument(sourceDirString.startsWith(sourceBaseDirStr));
+      String sourceOffsetString = sourceDirString.substring(sourceBaseDirStr.length());
+      targetDirString = targetBaseDir().toString() + sourceOffsetString;
     }
 
-    checkArgument(nonEmpty(ent.user()), "no user:", INDENT, ent);
-    checkArgument(nonEmpty(ent.url()), "no url:", INDENT, ent);
-    String remotePrefix = ent.user() + "@" + ent.url() + ":";
+    // Omit the target directory name, so rsync will create one with the same name as the source.
+    targetDirString = removeLastPathElement(targetDirString);
 
-    s.arg(remotePrefix + targetBaseDir().toString() + rp);
+    // Special case: if sending the entire source directory, generate a warning if the source 
+    // directory name differs from that of the target (project) directory name, since
+    // it will create a different target directory.
+
+    if (sourceDirString.length() == sourceBaseDirStr.length()) {
+      String sourceDirName = lastPathElement(sourceDirString);
+      String targetDirName = lastPathElement(targetBaseDir().toString());
+      if (!sourceDirName.equals(targetDirName)) {
+        pr("*** Target directory will not lie within the project directory:", INDENT, sourceDirName, CR,
+            targetBaseDir());
+      }
+    }
+
+    {
+      StringBuilder sb = new StringBuilder();
+
+      checkArgument(nonEmpty(ent.user()), "no user:", INDENT, ent);
+      checkArgument(nonEmpty(ent.url()), "no url:", INDENT, ent);
+      sb.append(ent.user());
+      sb.append('@');
+      sb.append(ent.url());
+      sb.append(':');
+
+      sb.append(targetBaseDir().toString());
+      sb.append(targetDirString);
+      s.arg(sb);
+    }
+
     s.call();
 
     {
@@ -156,21 +188,6 @@ public class RsyncOper extends AppOper {
       //pr(m);
     }
     s.assertSuccess();
-  }
-
-  private String relPath() {
-    if (mRelPath == null) {
-      String base = sourceBaseDir().toString();
-      String subdir = sourceDir().toString();
-      checkArgument(subdir.startsWith(base), "expected source directory", subdir,
-          "to be a subdirectory of base", base);
-
-      checkArgument(subdir.length() > base.length(), "subdirectory is not a proper subdirectory of:", base);
-      String sourceRelPath = subdir.substring(base.length());
-
-      mRelPath = sourceRelPath.substring(1);
-    }
-    return mRelPath;
   }
 
   private File sourceDir() {
@@ -212,9 +229,34 @@ public class RsyncOper extends AppOper {
     return mExcludeExpressionsList;
   }
 
+  /**
+   * Determine index of last '/' within a path. Expects a path that doesn't end
+   * with '/', and that contains at least two elements.
+   */
+
+  private static int lastPathElementDelimeter(String path) {
+    int i = path.lastIndexOf('/');
+    checkState(i > 0 && i < path.length() - 1, "path must have more than one element, and not end with '/':",
+        path);
+    return i;
+  }
+
+  /**
+   * Get the last path element (without '/')
+   */
+  private static String lastPathElement(String path) {
+    return path.substring(lastPathElementDelimeter(path) + 1);
+  }
+
+  /**
+   * Remove the last path element (and its '/' delimeter)
+   */
+  private static String removeLastPathElement(String path) {
+    return path.substring(0, lastPathElementDelimeter(path));
+  }
+
   private List<String> mExcludeExpressionsList;
   private File mSourceDir;
   private File mSourceBaseDir;
-  private String mRelPath;
   private File mTargetBaseDir;
 }
