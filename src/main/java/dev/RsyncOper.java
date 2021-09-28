@@ -38,7 +38,7 @@ import js.json.JSMap;
 
 public class RsyncOper extends AppOper {
 
-  private static final boolean ACT_VERBOSE = true && alert("always verbose for some things");
+  private static final boolean ACT_VERBOSE = false && alert("always verbose for some things");
 
   @Override
   public String userCommand() {
@@ -70,13 +70,6 @@ public class RsyncOper extends AppOper {
 
   @Override
   public void perform() {
-    if (ACT_VERBOSE) {
-      JSMap m = map();
-      m.putNumbered("srcDir", sourceDir().toString());
-      m.putNumbered("srcBaseDir", sourceBaseDir().toString());
-      m.putNumbered("trgBaseDir", targetBaseDir().toString());
-      pr(m);
-    }
     SystemCall s = new SystemCall();
     boolean verbosity = verbose() || ACT_VERBOSE;
     s.withVerbose(verbosity);
@@ -87,14 +80,7 @@ public class RsyncOper extends AppOper {
     // This can be avoided by using options other than --archive; but it will slow things down,
     // so I'm going to stick with --archive:
 
-    if (true) {
-      s.arg("--archive");
-    } else {
-      s.arg("--checksum");
-      s.arg("--recursive");
-      s.arg("--links");
-      s.arg("--perms");
-    }
+    s.arg("--archive");
 
     if (verbosity)
       s.arg("--verbose");
@@ -123,15 +109,7 @@ public class RsyncOper extends AppOper {
       s.arg("--exclude-from=" + tempFile);
     }
 
-    // Include a trailing / on the source directory, so we are sending the contents of the directory,
-    // and not the directory itself.
-    // We will include the --mkpath option so the target directory(s) are created if necessary.
-    // NO! This feature was only supported quite recently in rsync, and doesn't work on my Macbook.
-
-    //s.arg("--mkpath");
-    //s.arg(sourceDir()+"/");
     String sourceBaseDirStr = sourceBaseDir().toString();
-
     String sourceDirString = sourceDir().toString();
     s.arg(sourceDirString);
 
@@ -146,7 +124,7 @@ public class RsyncOper extends AppOper {
     {
       checkArgument(sourceDirString.startsWith(sourceBaseDirStr));
       String sourceOffsetString = sourceDirString.substring(sourceBaseDirStr.length());
-      targetDirString = targetBaseDir().toString() + sourceOffsetString;
+      targetDirString = targetBaseDir() + sourceOffsetString;
     }
 
     // Omit the target directory name, so rsync will create one with the same name as the source.
@@ -155,7 +133,6 @@ public class RsyncOper extends AppOper {
     // Special case: if sending the entire source directory, generate a warning if the source 
     // directory name differs from that of the target (project) directory name, since
     // it will create a different target directory.
-
     if (sourceDirString.length() == sourceBaseDirStr.length()) {
       String sourceDirName = lastPathElement(sourceDirString);
       String targetDirName = lastPathElement(targetBaseDir().toString());
@@ -175,14 +152,13 @@ public class RsyncOper extends AppOper {
       sb.append(ent.url());
       sb.append(':');
 
-      sb.append(targetBaseDir().toString());
       sb.append(targetDirString);
       s.arg(sb);
     }
 
     s.call();
 
-    {
+    if (ACT_VERBOSE) {
       JSMap m = s.toJson();
       pr("Command:", INDENT, m.get("args"));
       //pr(m);
