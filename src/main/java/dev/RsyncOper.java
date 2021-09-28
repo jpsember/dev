@@ -51,6 +51,11 @@ public class RsyncOper extends AppOper {
   }
 
   @Override
+  protected List<Object> getAdditionalArgs() {
+    return arrayList("[<source dir>]", "[<target dir>]");
+  }
+
+  @Override
   protected void processAdditionalArgs() {
     CmdLineArgs args = app().cmdLineArgs();
     if (args.hasNextArg()) {
