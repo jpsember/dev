@@ -5,7 +5,7 @@ import static js.base.Tools.*;
 import java.io.File;
 
 import dev.gen.RemoteEntityInfo;
-import dev.gen.RemoteEntityMap;
+import dev.gen.RemoteEntityCollection;
 import js.file.Files;
 
 public class EntityManager {
@@ -19,13 +19,12 @@ public class EntityManager {
   }
 
   private static EntityManager sSharedInstance;
-  private File mEntityFile;
 
-  public RemoteEntityMap entityMap() {
-    if (mEntityMap == null) {
-      mEntityMap = Files.parseAbstractData(RemoteEntityMap.DEFAULT_INSTANCE, entityFile());
+  public RemoteEntityCollection entityMap() {
+    if (mEntities == null) {
+      mEntities = Files.parseAbstractData(RemoteEntityCollection.DEFAULT_INSTANCE, entityFile());
     }
-    return mEntityMap;
+    return mEntities;
   }
 
   public RemoteEntityInfo optionalActiveEntity() {
@@ -48,13 +47,13 @@ public class EntityManager {
 
   public void setActive(String tag) {
     if (!entityMap().entityMap().containsKey(tag))
-      throw badArg("entity not found in map:", tag);
+      throw badArg("entity not found:", tag);
 
-    RemoteEntityMap.Builder b = entityMap().toBuilder();
+    RemoteEntityCollection.Builder b = entityMap().toBuilder();
     b.activeEntity(tag);
-    mEntityMap = b.build();
+    mEntities = b.build();
 
-    Files.S.writePretty(entityFile(), mEntityMap);
+    Files.S.writePretty(entityFile(), mEntities);
   }
 
   private File entityFile() {
@@ -64,6 +63,7 @@ public class EntityManager {
     return mEntityFile;
   }
 
-  private RemoteEntityMap mEntityMap;
+  private RemoteEntityCollection mEntities;
+  private File mEntityFile;
 
 }
