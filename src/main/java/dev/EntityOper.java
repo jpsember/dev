@@ -26,12 +26,14 @@ package dev;
 
 import static js.base.Tools.*;
 
+import java.io.File;
 import java.util.List;
 
 import dev.gen.RemoteEntityInfo;
-import dev.gen.RemoteEntityMap;
 import js.app.AppOper;
 import js.app.CmdLineArgs;
+import js.base.SystemCall;
+import js.file.Files;
 
 public class EntityOper extends AppOper {
 
@@ -83,15 +85,12 @@ public class EntityOper extends AppOper {
   }
 
   private void setEntity() {
-    RemoteEntityMap em = EntityManager.sharedInstance().entityMap();
-
+    EntityManager mgr = EntityManager.sharedInstance();
     RemoteEntityInfo foundEnt = null;
-
     String expr = mEntityNameExpr;
-
     String exprLower = expr.toLowerCase();
     outer: for (int pass = 0; pass < 2; pass++) {
-      for (RemoteEntityInfo ent : em.entityMap().values()) {
+      for (RemoteEntityInfo ent : mgr.entityMap().entityMap().values()) {
         if (pass == 0) {
           if (ent.tag().equals(expr) || ent.longName().equalsIgnoreCase(expr)) {
             foundEnt = ent;
@@ -107,13 +106,37 @@ public class EntityOper extends AppOper {
     }
 
     if (foundEnt == null) {
-      setError("no entity found for:", quote(expr), INDENT, em);
+      setError("no entity found for:", quote(expr), INDENT, mgr.entityMap());
       return;
     }
-    EntityManager.sharedInstance().setActive(foundEnt.tag());
-
-    todo("update script for ssh'ing to this new active entity");
+    mgr.setActive(foundEnt.tag());
+    createSSHScript(foundEnt);
     displayEntity();
+  }
+
+  private void createSSHScript(RemoteEntityInfo ent) {
+    StringBuilder sb = new StringBuilder();
+    sb.append("#!/usr/bin/env bash\n");
+    sb.append("echo \"Connecting to: ");
+    sb.append(ent.tag());
+    sb.append("\"\n");
+    sb.append("ssh ");
+    sb.append(ent.user());
+    sb.append("@");
+    sb.append(ent.url());
+    sb.append(" -p ");
+    sb.append(ent.port());
+    sb.append(" -oStrictHostKeyChecking=no");
+    sb.append(" $@");
+    sb.append('\n');
+    File f = new File(Files.homeDirectory(), "bin/sshe");
+    files().writeString(f, sb.toString());
+    if (!dryRun()) {
+      SystemCall sc = new SystemCall();
+      sc.setVerbose(verbose());
+      sc.arg("chmod", "u+x", f);
+      sc.assertSuccess();
+    }
   }
 
   private String mEntityNameExpr;
