@@ -26,5 +26,7 @@ _SKIP_*
 #
 target
 classes
+bin
+__pycache__
 
 .git

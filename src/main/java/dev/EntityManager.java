@@ -19,11 +19,11 @@ public class EntityManager {
   }
 
   private static EntityManager sSharedInstance;
+  private File mEntityFile;
 
   public RemoteEntityMap entityMap() {
     if (mEntityMap == null) {
-      File entityFile = new File(Files.S.projectConfigDirectory(), "entity_map.json");
-      mEntityMap = Files.parseAbstractData(RemoteEntityMap.DEFAULT_INSTANCE, entityFile);
+      mEntityMap = Files.parseAbstractData(RemoteEntityMap.DEFAULT_INSTANCE, entityFile());
     }
     return mEntityMap;
   }
@@ -42,8 +42,26 @@ public class EntityManager {
   public RemoteEntityInfo activeEntity() {
     RemoteEntityInfo ent = optionalActiveEntity();
     if (ent == RemoteEntityInfo.DEFAULT_INSTANCE)
-      throw badState("No active remote entity:",INDENT,entityMap());
+      throw badState("No active remote entity:", INDENT, entityMap());
     return ent;
+  }
+
+  public void setActive(String tag) {
+    if (!entityMap().entityMap().containsKey(tag))
+      throw badArg("entity not found in map:", tag);
+
+    RemoteEntityMap.Builder b = entityMap().toBuilder();
+    b.activeEntity(tag);
+    mEntityMap = b.build();
+
+    Files.S.writePretty(entityFile(), mEntityMap);
+  }
+
+  private File entityFile() {
+    if (mEntityFile == null) {
+      mEntityFile = new File(Files.S.projectConfigDirectory(), "entity_map.json");
+    }
+    return mEntityFile;
   }
 
   private RemoteEntityMap mEntityMap;
