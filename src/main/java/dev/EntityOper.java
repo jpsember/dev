@@ -28,6 +28,7 @@ import static js.base.Tools.*;
 
 import java.io.File;
 import java.util.List;
+import java.util.regex.Matcher;
 
 import dev.gen.RemoteEntityInfo;
 import js.app.AppOper;
@@ -36,6 +37,7 @@ import js.base.SystemCall;
 import js.file.Files;
 import js.json.JSList;
 import js.json.JSMap;
+import js.parsing.RegExp;
 
 public class EntityOper extends AppOper {
 
@@ -65,6 +67,8 @@ public class EntityOper extends AppOper {
 
   @Override
   public void perform() {
+    if (verbose())
+      EntityManager.sharedInstance().setVerbose();
     if (mEntityNameExpr == null) {
       displayEntity();
     } else
@@ -139,11 +143,11 @@ public class EntityOper extends AppOper {
         }
       }
       if (metadata.isEmpty()) {
-        pr("*** tunnel has no metadata:", INDENT, tunMap);
+        pr("*** ngrok tunnel has no metadata:", INDENT, tunMap);
       } else {
         RemoteEntityInfo info = EntityManager.sharedInstance().optionalEntryFor(metadata);
         if (info == RemoteEntityInfo.DEFAULT_INSTANCE) {
-          pr("*** tunnel metadata doesn't correspond to any remote entities:", INDENT, tunMap);
+          pr("*** ngrok tunnel metadata doesn't correspond to any remote entities:", INDENT, tunMap);
         } else {
           if (info.tag().equals(entity.tag())) {
             activeTunnel = tunMap;
@@ -152,13 +156,18 @@ public class EntityOper extends AppOper {
       }
     }
     if (activeTunnel == null) {
-      pr("*** no tunnel found for entity:", entity.tag());
+      pr("*** no ngrok tunnel found for entity:", entity.tag());
     } else {
-      todo("update url for entity");
-      // todo("update url for entity:", entity.tag(), INDENT, activeTunnel);
+      String publicUrl = activeTunnel.get("public_url");
+      chompPrefix(publicUrl, "tcp://");
+      Matcher matcher = RegExp.matcher("tcp:\\/\\/(.+):(\\d+)", publicUrl);
+      if (!matcher.matches()) {
+        pr("*** failed to parse public_url:", publicUrl);
+      } else {
+        b.url(matcher.group(1));
+        b.port(Integer.parseInt(matcher.group(2)));
+      }
     }
-    halt("tunnels:", INDENT, m);
-
     return b.build();
   }
 

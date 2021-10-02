@@ -8,9 +8,10 @@ import java.util.Map;
 
 import dev.gen.RemoteEntityInfo;
 import dev.gen.RemoteEntityCollection;
+import js.base.BaseObject;
 import js.file.Files;
 
-public class EntityManager {
+public class EntityManager extends BaseObject {
 
   public static EntityManager sharedInstance() {
     if (sSharedInstance == null) {
@@ -73,13 +74,16 @@ public class EntityManager {
    * Store updated version of entity
    */
   public void updateEnt(RemoteEntityInfo entity) {
+    log("updateEnt:", entity.tag());
     RemoteEntityInfo prev = entities().entityMap().get(entity.tag());
     if (!entity.equals(prev)) {
       Map<String, RemoteEntityInfo> m = new HashMap<>(mutable().entityMap());
       m.put(entity.tag(), entity);
       mutable().entityMap(m);
+      log("...storing modified entity:", INDENT, entity);
       flushChanges();
-    }
+    } else
+      log("...no changes");
   }
 
   private File entityFile() {
@@ -101,6 +105,7 @@ public class EntityManager {
       return;
     RemoteEntityCollection updated = mMutable.build();
     if (!updated.equals(mEntities)) {
+      log("...flushing changes to:", entityFile());
       mEntities = mMutable.build();
       Files.S.writePretty(entityFile(), mEntities);
     }
