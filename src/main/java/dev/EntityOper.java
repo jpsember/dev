@@ -34,6 +34,7 @@ import js.app.AppOper;
 import js.app.CmdLineArgs;
 import js.base.SystemCall;
 import js.file.Files;
+import js.json.JSMap;
 
 public class EntityOper extends AppOper {
 
@@ -71,7 +72,7 @@ public class EntityOper extends AppOper {
         setEntity();
         break;
       case "list":
-        pr(EntityManager.sharedInstance().entityMap());
+        pr(EntityManager.sharedInstance().entities());
         break;
       }
   }
@@ -90,7 +91,7 @@ public class EntityOper extends AppOper {
     String expr = mEntityNameExpr;
     String exprLower = expr.toLowerCase();
     outer: for (int pass = 0; pass < 2; pass++) {
-      for (RemoteEntityInfo ent : mgr.entityMap().entityMap().values()) {
+      for (RemoteEntityInfo ent : mgr.entities().entityMap().values()) {
         if (pass == 0) {
           if (ent.tag().equals(expr) || ent.longName().equalsIgnoreCase(expr)) {
             foundEnt = ent;
@@ -106,19 +107,30 @@ public class EntityOper extends AppOper {
     }
 
     if (foundEnt == null) {
-      setError("no entity found for:", quote(expr), INDENT, mgr.entityMap());
+      setError("no entity found for:", quote(expr), INDENT, mgr.entities());
       return;
     }
-    mgr.setActive(foundEnt.tag());
-    createSSHScript(foundEnt);
+
+    RemoteEntityInfo updatedEnt = updateEntity(foundEnt);
+    mgr.updateEnt(updatedEnt);
+    mgr.setActive(updatedEnt.tag());
+    createSSHScript(updatedEnt.tag());
     displayEntity();
   }
 
-  private void createSSHScript(RemoteEntityInfo ent) {
+  private RemoteEntityInfo updateEntity(RemoteEntityInfo entity) {
+    RemoteEntityInfo.Builder b = entity.build().toBuilder();
+    JSMap m = Ngrok.sharedInstance().tunnels();
+    halt("tunnels:", INDENT, m);
+    return b.build();
+  }
+
+  private void createSSHScript(String tag) {
     StringBuilder sb = new StringBuilder();
+    RemoteEntityInfo ent = EntityManager.sharedInstance().entryFor(tag);
     sb.append("#!/usr/bin/env bash\n");
     sb.append("echo \"Connecting to: ");
-    sb.append(ent.tag());
+    sb.append(tag);
     sb.append("\"\n");
     sb.append("ssh ");
     sb.append(ent.user());

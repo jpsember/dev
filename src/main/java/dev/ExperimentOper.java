@@ -52,7 +52,7 @@ public class ExperimentOper extends AppOper {
     pr("find:", Files.getFileWithinParents(new File("src"), ".git"));
     pr("tunnels", INDENT, ng.tunnels());
     pr("tunnel_sessions", INDENT, ng.tunnelSessions());
-     pr("entity map:", INDENT, EntityManager.sharedInstance().entityMap());
+    pr("entity map:", INDENT, EntityManager.sharedInstance().entities());
   }
 
   @Override

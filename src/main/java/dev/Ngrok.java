@@ -57,6 +57,7 @@ public class Ngrok extends BaseObject {
     sc.arg("-H", "Accept: application/json");
     sc.arg("-H", "Authorization: Bearer " + getNgrokToken());
     sc.arg("https://api.ngrok.com/" + endpoint);
+    sc.assertSuccess();
     JSMap result = new JSMap(sc.systemOut());
     return result;
   }
@@ -77,7 +78,6 @@ public class Ngrok extends BaseObject {
 
   public JSMap tunnelSessions() {
     return callAPI("tunnel_sessions");
-
   }
 
   private String getNgrokToken() {
