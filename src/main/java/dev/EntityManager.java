@@ -39,11 +39,19 @@ public class EntityManager {
    * null or empty
    */
   public RemoteEntityInfo entryFor(String key) {
-    RemoteEntityInfo ent = RemoteEntityInfo.DEFAULT_INSTANCE;
-    if (!nullOrEmpty(key))
-      ent = entities().entityMap().get(key);
-     if (ent == null)
+    RemoteEntityInfo ent = optionalEntryFor(key);
+    if (!nullOrEmpty(key) && ent == RemoteEntityInfo.DEFAULT_INSTANCE)
       throw badState("No entity found for key:", key, INDENT, entities());
+    return ent;
+  }
+
+  public RemoteEntityInfo optionalEntryFor(String key) {
+    RemoteEntityInfo ent = RemoteEntityInfo.DEFAULT_INSTANCE;
+    if (!nullOrEmpty(key)) {
+      RemoteEntityInfo ent2 = entities().entityMap().get(key);
+      if (ent2 != null)
+        ent = ent2;
+    }
     return ent;
   }
 

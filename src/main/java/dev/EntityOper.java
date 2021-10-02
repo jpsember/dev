@@ -34,6 +34,7 @@ import js.app.AppOper;
 import js.app.CmdLineArgs;
 import js.base.SystemCall;
 import js.file.Files;
+import js.json.JSList;
 import js.json.JSMap;
 
 public class EntityOper extends AppOper {
@@ -120,8 +121,44 @@ public class EntityOper extends AppOper {
 
   private RemoteEntityInfo updateEntity(RemoteEntityInfo entity) {
     RemoteEntityInfo.Builder b = entity.build().toBuilder();
+
     JSMap m = Ngrok.sharedInstance().tunnels();
+
+    JSMap activeTunnel = null;
+
+    // TODO: we're digging into the JSMap returned by Ngrok here, when ideally this would be internal to the Ngrok class.
+    // TODO: we're performing a validation over *all* the tunnels, when we're actually only interested in modifying the current one.
+    JSList tunnels = m.getList("tunnels");
+    for (JSMap tunMap : tunnels.asMaps()) {
+      String metadata = tunMap.get("metadata");
+
+      if (alert("temporarily acting as if metadata exists for one of the tunnels")) {
+        if (metadata.isEmpty() && tunMap.get("public_url").contains("2.tcp.ngrok.io")) {
+          metadata = "rpi";
+          tunMap.put("metadata", metadata);
+        }
+      }
+      if (metadata.isEmpty()) {
+        pr("*** tunnel has no metadata:", INDENT, tunMap);
+      } else {
+        RemoteEntityInfo info = EntityManager.sharedInstance().optionalEntryFor(metadata);
+        if (info == RemoteEntityInfo.DEFAULT_INSTANCE) {
+          pr("*** tunnel metadata doesn't correspond to any remote entities:", INDENT, tunMap);
+        } else {
+          if (info.tag().equals(entity.tag())) {
+            activeTunnel = tunMap;
+          }
+        }
+      }
+    }
+    if (activeTunnel == null) {
+      pr("*** no tunnel found for entity:", entity.tag());
+    } else {
+      todo("update url for entity");
+      // todo("update url for entity:", entity.tag(), INDENT, activeTunnel);
+    }
     halt("tunnels:", INDENT, m);
+
     return b.build();
   }
 
