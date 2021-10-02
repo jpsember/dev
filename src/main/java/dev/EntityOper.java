@@ -28,16 +28,12 @@ import static js.base.Tools.*;
 
 import java.io.File;
 import java.util.List;
-import java.util.regex.Matcher;
 
 import dev.gen.RemoteEntityInfo;
 import js.app.AppOper;
 import js.app.CmdLineArgs;
 import js.base.SystemCall;
 import js.file.Files;
-import js.json.JSList;
-import js.json.JSMap;
-import js.parsing.RegExp;
 
 public class EntityOper extends AppOper {
 
@@ -125,48 +121,12 @@ public class EntityOper extends AppOper {
 
   private RemoteEntityInfo updateEntity(RemoteEntityInfo entity) {
     RemoteEntityInfo.Builder b = entity.build().toBuilder();
-
-    JSMap m = Ngrok.sharedInstance().tunnels();
-
-    JSMap activeTunnel = null;
-
-    // TODO: we're digging into the JSMap returned by Ngrok here, when ideally this would be internal to the Ngrok class.
-    // TODO: we're performing a validation over *all* the tunnels, when we're actually only interested in modifying the current one.
-    JSList tunnels = m.getList("tunnels");
-    for (JSMap tunMap : tunnels.asMaps()) {
-      String metadata = tunMap.get("metadata");
-
-      if (alert("temporarily acting as if metadata exists for one of the tunnels")) {
-        if (metadata.isEmpty() && tunMap.get("public_url").contains("2.tcp.ngrok.io")) {
-          metadata = "rpi";
-          tunMap.put("metadata", metadata);
-        }
-      }
-      if (metadata.isEmpty()) {
-        pr("*** ngrok tunnel has no metadata:", INDENT, tunMap);
-      } else {
-        RemoteEntityInfo info = EntityManager.sharedInstance().optionalEntryFor(metadata);
-        if (info == RemoteEntityInfo.DEFAULT_INSTANCE) {
-          pr("*** ngrok tunnel metadata doesn't correspond to any remote entities:", INDENT, tunMap);
-        } else {
-          if (info.tag().equals(entity.tag())) {
-            activeTunnel = tunMap;
-          }
-        }
-      }
-    }
-    if (activeTunnel == null) {
+    RemoteEntityInfo tunnel = Ngrok.sharedInstance().tunnelInfo(entity.tag());
+    if (tunnel == null) {
       pr("*** no ngrok tunnel found for entity:", entity.tag());
     } else {
-      String publicUrl = activeTunnel.get("public_url");
-      chompPrefix(publicUrl, "tcp://");
-      Matcher matcher = RegExp.matcher("tcp:\\/\\/(.+):(\\d+)", publicUrl);
-      if (!matcher.matches()) {
-        pr("*** failed to parse public_url:", publicUrl);
-      } else {
-        b.url(matcher.group(1));
-        b.port(Integer.parseInt(matcher.group(2)));
-      }
+      b.url(tunnel.url());
+      b.port(tunnel.port());
     }
     return b.build();
   }

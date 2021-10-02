@@ -27,11 +27,15 @@ package dev;
 import static js.base.Tools.*;
 
 import java.io.File;
+import java.util.regex.Matcher;
 
+import dev.gen.RemoteEntityInfo;
 import js.base.BaseObject;
 import js.base.SystemCall;
 import js.file.Files;
+import js.json.JSList;
 import js.json.JSMap;
+import js.parsing.RegExp;
 
 public class Ngrok extends BaseObject {
 
@@ -63,10 +67,58 @@ public class Ngrok extends BaseObject {
   }
 
   /**
-   * Temporary, for testing
+   * Discard any cached tunnels that may have previously been read
    */
-  public JSMap tunnels() {
-    return callAPI("tunnels");
+  public Ngrok discardTunnels() {
+    mCachedTunnels = null;
+    return this;
+  }
+
+  /**
+   * Get ngrok tunnel corresponding to an entity
+   * 
+   * @param tag
+   *          entity's tag
+   * @return RemoteEntityInfo containing url and port, or null if no matching
+   *         tunnel found
+   */
+  public RemoteEntityInfo tunnelInfo(String tag) {
+    RemoteEntityInfo result = null;
+    for (JSMap tunMap : tunnelsMap().asMaps()) {
+      String metadata = tunMap.get("metadata");
+
+      if (alert("temporarily acting as if metadata exists for one of the tunnels")) {
+        if (metadata.isEmpty() && tunMap.get("public_url").contains("2.tcp.ngrok.io")) {
+          metadata = "rpi";
+          tunMap.put("metadata", metadata);
+        }
+      }
+      if (metadata.isEmpty()) {
+        pr("*** ngrok tunnel has no metadata, public_url:", tunMap.get("public_url"));
+        continue;
+      }
+
+      if (!metadata.equals(tag))
+        continue;
+
+      if (result != null) {
+        pr("*** multiple tunnels sharing same metadata:", metadata);
+        break;
+      }
+
+      String publicUrl = tunMap.get("public_url");
+      chompPrefix(publicUrl, "tcp://");
+      Matcher matcher = RegExp.matcher("tcp:\\/\\/(.+):(\\d+)", publicUrl);
+      if (!matcher.matches()) {
+        pr("*** failed to parse public_url:", publicUrl);
+        continue;
+      }
+      result = RemoteEntityInfo.newBuilder()//
+          .url(matcher.group(1)) //
+          .port(Integer.parseInt(matcher.group(2)))//
+          .build();
+    }
+    return result;
   }
 
   /**
@@ -88,6 +140,14 @@ public class Ngrok extends BaseObject {
     }
     return mToken;
   }
+
+  private JSList tunnelsMap() {
+    if (mCachedTunnels == null)
+      mCachedTunnels = callAPI("tunnels").getList("tunnels");
+    return mCachedTunnels;
+  }
+
+  private JSList mCachedTunnels;
 
   private String mToken;
 
