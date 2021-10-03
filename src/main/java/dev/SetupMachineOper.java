@@ -24,35 +24,51 @@
  **/
 package dev;
 
-import js.app.App;
-
 import static js.base.Tools.*;
 
-public class Main extends App {
+import java.util.List;
 
-  public static final String VERSION = "1.0";
+import js.app.AppOper;
+import js.app.CmdLineArgs;
 
-  public static void main(String[] args) {
-    loadTools();
-    App app = new Main();
-    app.startApplication(args);
-    app.exitWithReturnCode();
+public class SetupMachineOper extends AppOper {
+
+  @Override
+  public String userCommand() {
+    return "setup";
   }
 
   @Override
-  public String getVersion() {
-    return VERSION;
+  public String getHelpDescription() {
+    return "setup system";
   }
 
   @Override
-  protected void registerOperations() {
-    registerOper(new CreateAppOper());
-    registerOper(new ResetTestOper());
-    registerOper(new CopyrightOper());
-    registerOper(new ExperimentOper());
-    registerOper(new EntityOper());
-    registerOper(new RsyncOper());
-    registerOper(new SetupMachineOper());
+  protected List<Object> getAdditionalArgs() {
+    return null;
+    //return arrayList("[<xxx>]", "[<yyy>]");
+  }
+
+  @Override
+  protected void processAdditionalArgs() {
+    CmdLineArgs args = app().cmdLineArgs();
+    if (false) {
+      if (args.hasNextArg()) {
+      }
+    }
+    args.assertArgsDone();
+  }
+
+  private void validateOS() {
+    String osName = System.getProperty("os.name", "<none>");
+    if (osName.equals("<none>") || osName.contains("OS X"))
+      throw badState("Unexpected os.name:", osName, "(are you running this on your Mac by mistake?");
+  }
+
+  @Override
+  public void perform() {
+    validateOS();
+    System.getProperties().list(System.out);
   }
 
 }
