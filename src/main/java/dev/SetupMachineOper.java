@@ -26,10 +26,12 @@ package dev;
 
 import static js.base.Tools.*;
 
+import java.io.File;
 import java.util.List;
 
 import js.app.AppOper;
 import js.app.CmdLineArgs;
+import js.file.Files;
 
 public class SetupMachineOper extends AppOper {
 
@@ -59,16 +61,21 @@ public class SetupMachineOper extends AppOper {
     args.assertArgsDone();
   }
 
+  @Override
+  public void perform() {
+    validateOS();
+    prepareSSH();
+  }
+
   private void validateOS() {
     String osName = System.getProperty("os.name", "<none>");
     if (osName.equals("<none>") || osName.contains("OS X"))
       throw badState("Unexpected os.name:", osName, "(are you running this on your Mac by mistake?");
   }
 
-  @Override
-  public void perform() {
-    validateOS();
-    System.getProperties().list(System.out);
+  private void prepareSSH() {
+    File sshDir = new File("~/.ssh");
+    pr("sshDir:",Files.infoMap(sshDir));
   }
-
+  
 }
