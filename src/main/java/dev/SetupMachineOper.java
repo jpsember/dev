@@ -89,7 +89,7 @@ public class SetupMachineOper extends AppOper {
       sshDir = new File(Files.homeDirectory(), "_temp_ssh");
     files().mkdirs(sshDir);
 
-    byte[] content = Files.toByteArray(getClass(), "authorized_keys");
+    byte[] content = Files.toByteArray(fileWithinSecrets("authorized_keys"));
     File authorizedKeys = new File(sshDir, "authorized_keys");
 
     writeWithBackup(authorizedKeys, content);
@@ -136,6 +136,15 @@ public class SetupMachineOper extends AppOper {
     }
     log("...writing new contents to:", backupFile);
     files().write(newContents, targetFile);
+  }
+
+  private File fileWithinSecrets(String relativePath) {
+    checkArgument(!relativePath.startsWith("/"), "expected relative path:", relativePath);
+    File file = new File(files().projectSecretsDirectory(), relativePath);
+    if (!file.exists())
+      throw badState("File", relativePath, "not found in secrets directory:", INDENT,
+          files().projectSecretsDirectory());
+    return file;
   }
 
   private boolean mLocalTest;
