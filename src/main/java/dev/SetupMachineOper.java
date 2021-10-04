@@ -69,6 +69,7 @@ public class SetupMachineOper extends AppOper {
   public void perform() {
     validateOS();
     prepareSSH();
+    prepareVI();
   }
 
   private void validateOS() {
@@ -89,10 +90,23 @@ public class SetupMachineOper extends AppOper {
       sshDir = new File(Files.homeDirectory(), "_temp_ssh");
     files().mkdirs(sshDir);
 
-    byte[] content = Files.toByteArray(fileWithinSecrets("authorized_keys"));
+    byte[] content = Files.toByteArray(fileWithinSecrets("authorized_keys.txt"));
     File authorizedKeys = new File(sshDir, "authorized_keys");
 
     writeWithBackup(authorizedKeys, content);
+  }
+
+  private void prepareVI() {
+    log("...prepareVI");
+    File homeDir = Files.homeDirectory();
+    if (mLocalTest) {
+      homeDir = new File(Files.homeDirectory(), "_temp_home");
+      files().mkdirs(homeDir);
+    }
+
+    byte[] content = Files.toByteArray(fileWithinSecrets("vimrc.txt"));
+    File targetFile = new File(homeDir, ".vimrc");
+    writeWithBackup(targetFile, content);
   }
 
   /**
@@ -108,12 +122,17 @@ public class SetupMachineOper extends AppOper {
 
     String backupsPrefix;
     {
-      String basename = Files.basename(targetFile);
-      String ext = Files.getExtension(targetFile);
-      if (!ext.isEmpty())
-        backupsPrefix = basename + "_" + ext;
-      else
-        backupsPrefix = basename;
+      String file = targetFile.getName();
+      if (file.startsWith("."))
+        backupsPrefix = file;
+      else {
+        String basename = Files.basename(file);
+        String ext = Files.getExtension(targetFile);
+        if (!ext.isEmpty())
+          backupsPrefix = basename + "_" + ext;
+        else
+          backupsPrefix = basename;
+      }
     }
 
     File backupFile = null;
