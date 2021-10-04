@@ -27,6 +27,7 @@ package dev;
 import static js.base.Tools.*;
 
 import java.io.File;
+import java.util.Arrays;
 import java.util.List;
 
 import js.app.AppOper;
@@ -34,6 +35,9 @@ import js.app.CmdLineArgs;
 import js.file.Files;
 
 public class SetupMachineOper extends AppOper {
+
+  private static final boolean LOCAL_TEST = true
+      && alert("allowing running from local machine for test purposes");
 
   @Override
   public String userCommand() {
@@ -69,13 +73,70 @@ public class SetupMachineOper extends AppOper {
 
   private void validateOS() {
     String osName = System.getProperty("os.name", "<none>");
-    if (osName.equals("<none>") || osName.contains("OS X"))
-      throw badState("Unexpected os.name:", osName, "(are you running this on your Mac by mistake?");
+    if (osName.equals("<none>"))
+      throw badState("Unknown os.name:", osName);
+    if (osName.contains("OS X")) {
+      if (!LOCAL_TEST)
+        throw badState("Unexpected os.name:", osName, "(are you running this on your Mac by mistake?");
+      mLocalTest = true;
+    }
   }
 
   private void prepareSSH() {
-    File sshDir = new File("~/.ssh");
-    pr("sshDir:",Files.infoMap(sshDir));
+    log("...prepareSSH");
+    File sshDir = new File(Files.homeDirectory(), ".ssh");
+    if (mLocalTest)
+      sshDir = new File(Files.homeDirectory(), "_temp_ssh");
+    files().mkdirs(sshDir);
+
+    byte[] content = Files.toByteArray(getClass(), "authorized_keys");
+    File authorizedKeys = new File(sshDir, "authorized_keys");
+
+    writeWithBackup(authorizedKeys, content);
   }
-  
+
+  /**
+   * If a file exists, create backup copy. Use an incrementing filename to avoid
+   * overwriting a previous backup. Doesn't create an additional backup if file
+   * hasn't changed since the most recent backup
+   * 
+   * TODO: doesn't attempt to preserve original file's permissions
+   * 
+   * @return true if file
+   */
+  private void writeWithBackup(File targetFile, byte[] newContents) {
+
+    String backupsPrefix;
+    {
+      String basename = Files.basename(targetFile);
+      String ext = Files.getExtension(targetFile);
+      if (!ext.isEmpty())
+        backupsPrefix = basename + "_" + ext;
+      else
+        backupsPrefix = basename;
+    }
+
+    File backupFile = null;
+    for (int candidateIndex = 0;; candidateIndex++) {
+      File file = new File(Files.parent(targetFile),
+          String.format("%s_%02d.bak", backupsPrefix, candidateIndex));
+      if (!file.exists()) {
+        backupFile = file;
+        break;
+      }
+    }
+
+    if (targetFile.exists()) {
+      checkArgument(targetFile.isFile(), "not a file:", targetFile);
+      byte[] originalContents = Files.toByteArray(targetFile);
+      if (Arrays.equals(originalContents, newContents))
+        return;
+      log("...backing up to:", backupFile);
+      files().moveFile(targetFile, backupFile);
+    }
+    log("...writing new contents to:", backupFile);
+    files().write(newContents, targetFile);
+  }
+
+  private boolean mLocalTest;
 }
