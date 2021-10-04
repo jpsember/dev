@@ -120,6 +120,7 @@ public class SetupMachineOper extends AppOper {
   private void prepareBash() {
     log("...prepareBash");
     writeWithBackup(fileWithinHome(".inputrc"), fileWithinSecrets("inputrc.txt"));
+    writeWithBackup(fileWithinHome(".entity_name.txt"), mEntityName);
 
     File profileFile = assertExists(fileWithinHome(".profile"));
 
