@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+set -e
+ 
+# -----------------------------------------------------
+PROGNAME=$(basename $0)
+
+function error_exit
+{
+	echo 
+	echo "*************************************************************************"
+    echo "${PROGNAME}: ${1:-"Unknown Error"}" 1>&2
+	echo "*************************************************************************"
+    exit 1
+}
+# -----------------------------------------------------
+
+
+echo "Completing setup operation"
+
+# Determine the entity name we're running within
+#
+ENTITYNAME=OSX
+FILE=~/.entity_name.txt
+if [ -f "$FILE" ]; then
+	v=$(<$FILE)
+	v="${v%"${v##*[![:space:]]}"}"  
+	ENTITYNAME=$v
+fi
+
+if [ $ENTITYNAME="OSX" ]; then
+	error_exit "This script is only to be run on the remote entity!"
+fi	
+
+sudo apt update
+
+# Install AWS command line interface
+#
+sudo apt -y install awscli

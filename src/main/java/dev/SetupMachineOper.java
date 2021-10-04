@@ -71,6 +71,7 @@ public class SetupMachineOper extends AppOper {
     prepareSSH();
     prepareBash();
     prepareVI();
+    prepareAWS();
   }
 
   private void validateOS() {
@@ -100,28 +101,29 @@ public class SetupMachineOper extends AppOper {
   private void prepareVI() {
     log("...prepareVI");
     byte[] content = Files.toByteArray(fileWithinSecrets("vimrc.txt"));
-    File targetFile = new File(effectiveHomeDir(), ".vimrc");
+    File targetFile = fileWithinHome(".vimrc");
     writeWithBackup(targetFile, content);
   }
 
-  private File mEffHome;
+  private void prepareAWS() {
+    log("...prepareAWS");
+    File awsDir = fileWithinHome(".aws");
+    files().mkdirs(awsDir);
 
-  private File effectiveHomeDir() {
-    if (mEffHome == null) {
-      File homeDir = Files.homeDirectory();
-      if (mLocalTest) {
-        homeDir = new File(Files.homeDirectory(), "_temp_home");
-        files().mkdirs(homeDir);
-      }
-      mEffHome = homeDir;
-    }
-    return mEffHome;
+    writeWithBackup(new File(awsDir, "config"), Files.toByteArray(fileWithinSecrets("aws_config.txt")));
+    writeWithBackup(new File(awsDir, "credentials"), Files.toByteArray(fileWithinSecrets("aws_credentials.txt")));
+  }
+
+  private String assertRelative(String path) {
+    if (nullOrEmpty(path) || path.startsWith("/"))
+      throw badArg("Not a relative path:", path);
+    return path;
   }
 
   private void prepareBash() {
     log("...prepareBash");
     byte[] content = Files.toByteArray(fileWithinSecrets("inputrc.txt"));
-    File targetFile = new File(effectiveHomeDir(), ".inputrc");
+    File targetFile = fileWithinHome(".inputrc");
     writeWithBackup(targetFile, content);
 
     todo("modify existing .profile, if necessary, to include our custom version, e.g. .profile_more");
@@ -175,14 +177,40 @@ public class SetupMachineOper extends AppOper {
     files().write(newContents, targetFile);
   }
 
+  /**
+   * Get a file within the secrets directory; make sure it exists
+   */
   private File fileWithinSecrets(String relativePath) {
-    checkArgument(!relativePath.startsWith("/"), "expected relative path:", relativePath);
-    File file = new File(files().projectSecretsDirectory(), relativePath);
+    File file = new File(files().projectSecretsDirectory(), assertRelative(relativePath));
     if (!file.exists())
       throw badState("File", relativePath, "not found in secrets directory:", INDENT,
           files().projectSecretsDirectory());
     return file;
   }
 
+  /**
+   * Get a file within the (effective) home directory
+   */
+  private File fileWithinHome(String relativePath) {
+    return new File(effectiveHomeDir(), assertRelative(relativePath));
+  }
+
+  /**
+   * Get the 'effective' home directory. This is Files.homeDirectory() unless
+   * we're running in LOCAL_TEST mode
+   */
+  private File effectiveHomeDir() {
+    if (mEffectiveHomeDir == null) {
+      File homeDir = Files.homeDirectory();
+      if (mLocalTest) {
+        homeDir = new File(Files.homeDirectory(), "_temp_home");
+        files().mkdirs(homeDir);
+      }
+      mEffectiveHomeDir = homeDir;
+    }
+    return mEffectiveHomeDir;
+  }
+
+  private File mEffectiveHomeDir;
   private boolean mLocalTest;
 }
