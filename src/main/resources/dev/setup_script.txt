@@ -20,14 +20,14 @@ echo "Completing setup operation"
 # Determine the entity name we're running within
 #
 ENTITYNAME=OSX
-FILE=~/.entity_name.txt
+FILE=$HOME/.entity_name.txt
 if [ -f "$FILE" ]; then
 	v=$(<$FILE)
 	v="${v%"${v##*[![:space:]]}"}"  
 	ENTITYNAME=$v
 fi
 
-if [ $ENTITYNAME="OSX" ]; then
+if [ $ENTITYNAME = "OSX" ]; then
 	error_exit "This script is only to be run on the remote entity!"
 fi	
 
