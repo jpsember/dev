@@ -69,6 +69,7 @@ public class SetupMachineOper extends AppOper {
   public void perform() {
     validateOS();
     prepareSSH();
+    prepareBash();
     prepareVI();
   }
 
@@ -98,15 +99,33 @@ public class SetupMachineOper extends AppOper {
 
   private void prepareVI() {
     log("...prepareVI");
-    File homeDir = Files.homeDirectory();
-    if (mLocalTest) {
-      homeDir = new File(Files.homeDirectory(), "_temp_home");
-      files().mkdirs(homeDir);
-    }
-
     byte[] content = Files.toByteArray(fileWithinSecrets("vimrc.txt"));
-    File targetFile = new File(homeDir, ".vimrc");
+    File targetFile = new File(effectiveHomeDir(), ".vimrc");
     writeWithBackup(targetFile, content);
+  }
+
+  private File mEffHome;
+
+  private File effectiveHomeDir() {
+    if (mEffHome == null) {
+      File homeDir = Files.homeDirectory();
+      if (mLocalTest) {
+        homeDir = new File(Files.homeDirectory(), "_temp_home");
+        files().mkdirs(homeDir);
+      }
+      mEffHome = homeDir;
+    }
+    return mEffHome;
+  }
+
+  private void prepareBash() {
+    log("...prepareBash");
+    byte[] content = Files.toByteArray(fileWithinSecrets("inputrc.txt"));
+    File targetFile = new File(effectiveHomeDir(), ".inputrc");
+    writeWithBackup(targetFile, content);
+
+    todo("modify existing .profile, if necessary, to include our custom version, e.g. .profile_more");
+    todo("write .profile_more as well");
   }
 
   /**
@@ -150,10 +169,9 @@ public class SetupMachineOper extends AppOper {
       byte[] originalContents = Files.toByteArray(targetFile);
       if (Arrays.equals(originalContents, newContents))
         return;
-      log("...backing up to:", backupFile);
+      log("...backing up old version");
       files().moveFile(targetFile, backupFile);
     }
-    log("...writing new contents to:", backupFile);
     files().write(newContents, targetFile);
   }
 
