@@ -78,6 +78,7 @@ public class SetupMachineOper extends AppOper {
     prepareSSH();
     prepareBash();
     prepareVI();
+    prepareGitHub();
     prepareAWS();
     runSetupScript();
   }
@@ -100,6 +101,11 @@ public class SetupMachineOper extends AppOper {
   private void prepareVI() {
     log("...prepareVI");
     writeWithBackup(fileWithinHome(".vimrc"), fileWithinSecrets("vimrc.txt"));
+  }
+
+  private void prepareGitHub() {
+    log("...prepareGitHub");
+    todo("prepareGitHub");
   }
 
   private void prepareAWS() {
