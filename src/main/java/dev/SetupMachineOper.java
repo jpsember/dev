@@ -84,8 +84,7 @@ public class SetupMachineOper extends AppOper {
 
   private void validateOS() {
     mEntityName = Files.readString(fileWithinSecrets("entity_name.txt")).trim();
-    if (mEntityName.equals("osx"))
-      mLocalTest = true;
+    mLocalTest = mEntityName.equals("osx");
   }
 
   private void prepareSSH() {
