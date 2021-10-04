@@ -1,0 +1,51 @@
+# Included by .profile
+#
+
+
+# Set prompt
+export PS1="(TODO insert appropriate name here) \W} "
+
+alias ls="ls -l"
+alias show="unzip -l"
+
+# Show history without line numbers
+alias hist="history | cut -c 8-"
+
+
+# Enhance the 'cd' command; push old directories onto a stack.
+# These additional commands are now available:
+#   f    : flip between current and last directory
+#   p    : return (pop) to last directory
+#
+pushd()
+{
+  if [ $# -eq 0 ]; then
+    DIR="${HOME}"
+  else
+    DIR="$1"
+  fi
+
+  builtin pushd "${DIR}" > /dev/null
+}
+
+pushd_builtin()
+{
+  builtin pushd > /dev/null
+}
+
+popd()
+{
+  builtin popd > /dev/null
+}
+
+alias cd='pushd'
+alias p='popd'
+alias f='pushd_builtin'
+
+# Include our custom ~/bin directory in the path
+#
+export PATH=.:$HOME/bin:$PATH
+
+# Remove duplicates in PATH
+#
+export PATH="$(perl -e 'print join(":", grep { not $seen{$_}++ } split(/:/, $ENV{PATH}))')"

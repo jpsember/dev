@@ -32,12 +32,10 @@ import java.util.List;
 
 import js.app.AppOper;
 import js.app.CmdLineArgs;
+import js.base.SystemCall;
 import js.file.Files;
 
 public class SetupMachineOper extends AppOper {
-
-  private static final boolean LOCAL_TEST = true
-      && alert("allowing running from local machine for test purposes");
 
   @Override
   public String userCommand() {
@@ -58,10 +56,19 @@ public class SetupMachineOper extends AppOper {
   @Override
   protected void processAdditionalArgs() {
     CmdLineArgs args = app().cmdLineArgs();
-    if (false) {
-      if (args.hasNextArg()) {
+
+    if (args.hasNextArg()) {
+      String arg = args.nextArg();
+      switch (arg) {
+      case "eclipse":
+        mEclipseMode = true;
+        break;
+      default:
+        setError("Unsupported argument:", arg);
+        break;
       }
     }
+
     args.assertArgsDone();
   }
 
@@ -72,17 +79,13 @@ public class SetupMachineOper extends AppOper {
     prepareBash();
     prepareVI();
     prepareAWS();
+    runSetupScript();
   }
 
   private void validateOS() {
-    String osName = System.getProperty("os.name", "<none>");
-    if (osName.equals("<none>"))
-      throw badState("Unknown os.name:", osName);
-    if (osName.contains("OS X")) {
-      if (!LOCAL_TEST)
-        throw badState("Unexpected os.name:", osName, "(are you running this on your Mac by mistake?");
+    mEntityName = Files.readString(fileWithinSecrets("entity_name.txt")).trim();
+    if (mEntityName.equals("osx"))
       mLocalTest = true;
-    }
   }
 
   private void prepareSSH() {
@@ -92,17 +95,12 @@ public class SetupMachineOper extends AppOper {
       sshDir = new File(Files.homeDirectory(), "_temp_ssh");
     files().mkdirs(sshDir);
 
-    byte[] content = Files.toByteArray(fileWithinSecrets("authorized_keys.txt"));
-    File authorizedKeys = new File(sshDir, "authorized_keys");
-
-    writeWithBackup(authorizedKeys, content);
+    writeWithBackup(new File(sshDir, "authorized_keys"), fileWithinSecrets("authorized_keys.txt"));
   }
 
   private void prepareVI() {
     log("...prepareVI");
-    byte[] content = Files.toByteArray(fileWithinSecrets("vimrc.txt"));
-    File targetFile = fileWithinHome(".vimrc");
-    writeWithBackup(targetFile, content);
+    writeWithBackup(fileWithinHome(".vimrc"), fileWithinSecrets("vimrc.txt"));
   }
 
   private void prepareAWS() {
@@ -110,8 +108,8 @@ public class SetupMachineOper extends AppOper {
     File awsDir = fileWithinHome(".aws");
     files().mkdirs(awsDir);
 
-    writeWithBackup(new File(awsDir, "config"), Files.toByteArray(fileWithinSecrets("aws_config.txt")));
-    writeWithBackup(new File(awsDir, "credentials"), Files.toByteArray(fileWithinSecrets("aws_credentials.txt")));
+    writeWithBackup(new File(awsDir, "config"), fileWithinSecrets("aws_config.txt"));
+    writeWithBackup(new File(awsDir, "credentials"), fileWithinSecrets("aws_credentials.txt"));
   }
 
   private String assertRelative(String path) {
@@ -122,12 +120,56 @@ public class SetupMachineOper extends AppOper {
 
   private void prepareBash() {
     log("...prepareBash");
-    byte[] content = Files.toByteArray(fileWithinSecrets("inputrc.txt"));
-    File targetFile = fileWithinHome(".inputrc");
-    writeWithBackup(targetFile, content);
+    writeWithBackup(fileWithinHome(".inputrc"), fileWithinSecrets("inputrc.txt"));
 
-    todo("modify existing .profile, if necessary, to include our custom version, e.g. .profile_more");
-    todo("write .profile_more as well");
+    File profileFile = assertExists(fileWithinHome(".profile"));
+
+    final String customFilename = ".profile_custom";
+    String newContent;
+    {
+      String text = Files.readString(profileFile);
+      String delimText = "# <<< generated code; do not edit\n";
+
+      List<Integer> delims = arrayList();
+      int cursor = 0;
+      while (cursor < text.length()) {
+        int loc = text.indexOf(delimText, cursor);
+        if (loc < 0)
+          break;
+        delims.add(loc);
+        cursor = loc + delimText.length();
+      }
+      if (delims.size() != 0 && delims.size() != 2)
+        throw badState("unexpected occurrences of delimeter text in", profileFile);
+
+      {
+        String insertContent = "source ~/" + customFilename;
+        if (delims.size() == 0) {
+          newContent = text + "\n" + delimText + insertContent + delimText;
+        } else {
+          newContent = text.substring(0, delims.get(0)) + delimText + insertContent + delimText
+              + text.substring(delims.get(1) + delimText.length());
+        }
+      }
+    }
+    writeWithBackup(profileFile, newContent);
+
+    writeWithBackup(fileWithinHome(customFilename), Files.readString(getClass(), "profile_custom.txt"));
+  }
+
+  private void runSetupScript() {
+    String scriptFilename = ".setup_script.sh";
+    File targetFile = fileWithinHome(scriptFilename);
+    writeWithBackup(targetFile, Files.readString(getClass(), "setup_script.txt"));
+
+    pr("Running script that requires sudo access... type password if necessary...");
+    SystemCall sc = new SystemCall();
+    sc.arg("bash", targetFile);
+    sc.setVerbose();
+    if (mEclipseMode) {
+      pr("...not running script, since eclipse mode is active");
+    } else
+      sc.assertSuccess();
   }
 
   /**
@@ -177,15 +219,29 @@ public class SetupMachineOper extends AppOper {
     files().write(newContents, targetFile);
   }
 
+  private void writeWithBackup(File targetFile, String newContent) {
+    writeWithBackup(targetFile, newContent.getBytes());
+  }
+
+  private void writeWithBackup(File targetFile, File sourceFile) {
+    writeWithBackup(targetFile, Files.toByteArray(sourceFile));
+  }
+
+  /**
+   * Make sure file exists
+   */
+  private File assertExists(File file) {
+    if (!file.exists())
+      throw badState("File", file, "doesn't exist");
+    return file;
+  }
+
   /**
    * Get a file within the secrets directory; make sure it exists
    */
   private File fileWithinSecrets(String relativePath) {
     File file = new File(files().projectSecretsDirectory(), assertRelative(relativePath));
-    if (!file.exists())
-      throw badState("File", relativePath, "not found in secrets directory:", INDENT,
-          files().projectSecretsDirectory());
-    return file;
+    return assertExists(file);
   }
 
   /**
@@ -197,7 +253,7 @@ public class SetupMachineOper extends AppOper {
 
   /**
    * Get the 'effective' home directory. This is Files.homeDirectory() unless
-   * we're running in LOCAL_TEST mode
+   * we're running in mLocalTest mode
    */
   private File effectiveHomeDir() {
     if (mEffectiveHomeDir == null) {
@@ -211,6 +267,10 @@ public class SetupMachineOper extends AppOper {
     return mEffectiveHomeDir;
   }
 
+  private String mEntityName;
   private File mEffectiveHomeDir;
-  private boolean mLocalTest;
+  private boolean mEclipseMode;
+
+  // Have this start of null, to ensure we initialize it before attempting to use it
+  private Boolean mLocalTest;
 }
