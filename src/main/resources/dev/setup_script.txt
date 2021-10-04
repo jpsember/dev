@@ -31,8 +31,14 @@ if [ $ENTITYNAME = "OSX" ]; then
 	error_exit "This script is only to be run on the remote entity!"
 fi	
 
-sudo apt update
+# There is lots of nonsense with messages such as 
+#   "The repository 'xxxx hirsute Release' does not have a Release file.
+#    N: Updating from such a repository can't be done securely, and is therefore disabled by default.
+#
+# Also, using apt generates an error about it not being recommended for scripts; apt-get might work.
+#
+sudo apt-get update
 
 # Install AWS command line interface
 #
-sudo apt -y install awscli
+sudo apt-get -y install awscli
