@@ -80,6 +80,7 @@ public class SetupMachineOper extends AppOper {
     prepareSSH();
     prepareBash();
     prepareVI();
+    prepareGit();
     prepareGitHub();
     prepareAWS();
     runSetupScript();
@@ -92,17 +93,21 @@ public class SetupMachineOper extends AppOper {
 
   private void prepareSSH() {
     log("...prepareSSH");
-    File sshDir = new File(Files.homeDirectory(), ".ssh");
-    if (mLocalTest)
-      sshDir = new File(Files.homeDirectory(), "_temp_ssh");
+    File sshDir = fileWithinHome(".ssh");
     files().mkdirs(sshDir);
-
     writeWithBackup(new File(sshDir, "authorized_keys"), fileWithinSecrets("authorized_keys.txt"));
   }
 
   private void prepareVI() {
     log("...prepareVI");
     writeWithBackup(fileWithinHome(".vimrc"), fileWithinSecrets("vimrc.txt"));
+  }
+
+  private void prepareGit() {
+    log("...prepareGit");
+    pr("writing:", fileWithinHome(".gitconfig"));
+    pr("content:", Files.readString(getClass(), "git_config.txt"));
+    writeWithBackup(fileWithinHome(".gitconfig"), Files.readString(getClass(), "git_config.txt"));
   }
 
   private void prepareGitHub() {

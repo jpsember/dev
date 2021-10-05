@@ -1,0 +1,3 @@
+[alias]
+  lg = log --pretty=format:\"%h (%an)    %s\"
+  st = status

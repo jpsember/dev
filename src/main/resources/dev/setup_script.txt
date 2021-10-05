@@ -29,6 +29,4 @@ fi
 #
 sudo apt-get update
 
-# Install AWS command line interface
-#
-sudo apt-get -y install awscli
+sudo apt-get -y install git awscli
