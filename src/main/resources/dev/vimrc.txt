@@ -1,0 +1,86 @@
+" Tell vim to remember certain things when we exit
+"  '10  :  marks will be remembered for up to 10 previously edited files
+"  "100 :  will save up to 100 lines for each register
+"  :20  :  up to 20 lines of command-line history will be remembered
+"  %    :  saves and restores the buffer list
+"  n... :  where to save the viminfo files
+set viminfo='10,\"100,:20,%,n~/.viminfo
+
+filetype on  " Automatically detect file types.
+set nocompatible  " We don't want vi compatibility.
+
+" Have language-specific files trump general indent values
+filetype plugin indent on
+
+" Add recently accessed projects menu (project plugin)
+set viminfo^=!
+
+set cf  " Enable error files & error jumping.
+set clipboard+=unnamed  " Yanks go on clipboard instead.
+set history=256  " Number of things to remember in history.
+set autowrite  " Writes on make/shell commands
+set ruler  " Ruler on
+set nonumber
+set nowrap  " Line wrapping off
+set timeoutlen=250  " Time to wait after ESC (default causes an annoying delay)
+" colorscheme vividchalk  " Uncomment this to set a default theme
+
+" Formatting (some of these are for coding in C and C++)
+set ts=2  " Tabs are 2 spaces
+set bs=2  " Backspace over everything in insert mode
+set shiftwidth=2  " Tabs under smart indent
+set nocp incsearch
+set cinoptions=:0,p0,t0
+set cinwords=if,else,while,do,for,switch,case
+set formatoptions=tcqr
+set nocindent   "disabled by Jeff to get Octave working properly...
+set noautoindent
+set smarttab
+set expandtab
+
+" Visual
+set showmatch  " Show matching brackets.
+set mat=5  " Bracket blinking.
+set list
+" Show $ at end of line and trailing space as ~
+"set lcs=tab:\ \ ,trail:~,extends:>,precedes:< ",eol:$
+set lcs=tab:\ \ ,extends:>,precedes:< ",eol:$
+set novisualbell  " No blinking .
+set noerrorbells  " No noise.
+set laststatus=2  " Always show status line.
+
+set ignorecase
+
+noremap <F2> :set invpaste paste?<CR>
+set pastetoggle=<F2>
+set showmode
+
+
+" Python
+augroup filetypedetect
+  au! BufRead,BufNewFile *.py set filetype=python
+augroup END
+au FileType python setlocal tabstop=2 expandtab shiftwidth=2 softtabstop=2
+
+if has ("autocmd")
+  " File type detection. Indent based on filetype. Recommended.
+  filetype plugin indent on
+endif
+
+
+" Go to last file(s) if invoked without arguments.
+autocmd VimLeave * nested if (!isdirectory($HOME . "/.vim")) |
+    \ call mkdir($HOME . "/.vim") |
+    \ endif |
+    \ execute "mksession! " . $HOME . "/.vim/Session.vim"
+
+autocmd VimEnter * nested if argc() == 0 && filereadable($HOME . "/.vim/Session.vim") |
+    \ execute "source " . $HOME . "/.vim/Session.vim"
+
+
+if has('gui_running')
+          set guioptions-=T               " remove the toolbar
+          set lines=40                    " 40 lines of text instead of 24,
+else
+"             set term=builtin_ansi       " Make arrow and other keys work
+endif

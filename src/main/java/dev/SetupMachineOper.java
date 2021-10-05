@@ -50,12 +50,6 @@ public class SetupMachineOper extends AppOper {
   }
 
   @Override
-  protected List<Object> getAdditionalArgs() {
-    return null;
-    //return arrayList("[<xxx>]", "[<yyy>]");
-  }
-
-  @Override
   protected void processAdditionalArgs() {
     CmdLineArgs args = app().cmdLineArgs();
 
@@ -101,20 +95,16 @@ public class SetupMachineOper extends AppOper {
     //
     writeWithBackup(new File(sshDir, "id_rsa.pub"), fileWithinSecrets("id_rsa.pub.txt"));
     writeWithBackup(new File(sshDir, "id_rsa"), fileWithinSecrets("id_rsa.txt"));
-    todo("send secrets to remote machine, changing entity name appropriately");
   }
 
   private void prepareVI() {
-    todo("remote machine is complaining about features not available");
     log("...prepareVI");
-    writeWithBackup(fileWithinHome(".vimrc"), fileWithinSecrets("vimrc.txt"));
+    writeWithBackup(fileWithinHome(".vimrc"), resourceString("vimrc.txt"));
   }
 
   private void prepareGit() {
     log("...prepareGit");
-    pr("writing:", fileWithinHome(".gitconfig"));
-    pr("content:", Files.readString(getClass(), "git_config.txt"));
-    writeWithBackup(fileWithinHome(".gitconfig"), Files.readString(getClass(), "git_config.txt"));
+    writeWithBackup(fileWithinHome(".gitconfig"), resourceString("git_config.txt"));
   }
 
   private void prepareGitHub() {
@@ -173,8 +163,11 @@ public class SetupMachineOper extends AppOper {
       }
     }
     writeWithBackup(profileFile, applyMacroParser(newContent));
-    writeWithBackup(fileWithinHome(customFilename),
-        applyMacroParser(Files.readString(getClass(), "profile_custom.txt")));
+    writeWithBackup(fileWithinHome(customFilename), applyMacroParser(resourceString("profile_custom.txt")));
+  }
+
+  private String resourceString(String filename) {
+    return Files.readString(getClass(), filename);
   }
 
   private String applyMacroParser(String sourceText) {
@@ -190,7 +183,7 @@ public class SetupMachineOper extends AppOper {
   private void runSetupScript() {
     String scriptFilename = ".setup_script.sh";
     File targetFile = fileWithinHome(scriptFilename);
-    writeWithBackup(targetFile, applyMacroParser(Files.readString(getClass(), "setup_script.txt")));
+    writeWithBackup(targetFile, applyMacroParser(resourceString("setup_script.txt")));
 
     pr("Running script that requires sudo access... type password if necessary...");
     SystemCall sc = new SystemCall();
