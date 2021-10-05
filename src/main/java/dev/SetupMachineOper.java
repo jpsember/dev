@@ -96,12 +96,12 @@ public class SetupMachineOper extends AppOper {
     File sshDir = fileWithinHome(".ssh");
     files().mkdirs(sshDir);
     writeWithBackup(new File(sshDir, "authorized_keys"), fileWithinSecrets("authorized_keys.txt"));
-    
+
     // Install public/private key pair for accessing GitHub
     //
-    writeWithBackup(new File(sshDir,"id_rsa.pub"), fileWithinSecrets("id_rsa.pub.txt"));
-    writeWithBackup(new File(sshDir,"id_rsa"), fileWithinSecrets("id_rsa.txt"));
-}
+    writeWithBackup(new File(sshDir, "id_rsa.pub"), fileWithinSecrets("id_rsa.pub.txt"));
+    writeWithBackup(new File(sshDir, "id_rsa"), fileWithinSecrets("id_rsa.txt"));
+  }
 
   private void prepareVI() {
     log("...prepareVI");
@@ -161,7 +161,7 @@ public class SetupMachineOper extends AppOper {
         throw badState("unexpected occurrences of delimeter text in", profileFile);
 
       {
-        String insertContent = "source ~/" + customFilename;
+        String insertContent = "source ~/" + customFilename + "\n";
         if (delims.size() == 0) {
           newContent = text + "\n" + delimText + insertContent + delimText;
         } else {
