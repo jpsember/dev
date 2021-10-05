@@ -86,11 +86,18 @@ public class Ngrok extends BaseObject {
     RemoteEntityInfo result = null;
     for (JSMap tunMap : tunnelsMap().asMaps()) {
       String metadata = tunMap.get("metadata");
-
-      if (alert("temporarily acting as if metadata exists for one of the tunnels")) {
-        if (metadata.isEmpty() && tunMap.get("public_url").contains("2.tcp.ngrok.io")) {
-          metadata = "rpi";
-          tunMap.put("metadata", metadata);
+      if (metadata.isEmpty()) {
+        if (alert("until metadata working")) {
+          if (tunMap.get("public_url").contains("18995")) {
+            metadata = "rpi32";
+            tunMap.put("metadata", metadata);
+          } else if (tunMap.get("public_url").contains("16890")) {
+            metadata = "rpi64";
+            tunMap.put("metadata", metadata);
+          } else if (tunMap.get("public_url").contains("16881")) {
+            metadata = "rpi";
+            tunMap.put("metadata", metadata);
+          }
         }
       }
       if (metadata.isEmpty()) {
