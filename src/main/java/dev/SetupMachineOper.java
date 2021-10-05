@@ -178,7 +178,7 @@ public class SetupMachineOper extends AppOper {
   private void runSetupScript() {
     String scriptFilename = ".setup_script.sh";
     File targetFile = fileWithinHome(scriptFilename);
-    writeWithBackup(targetFile, Files.readString(getClass(), "setup_script.txt"));
+    writeWithBackup(targetFile, applyMacroParser(Files.readString(getClass(), "setup_script.txt")));
 
     pr("Running script that requires sudo access... type password if necessary...");
     SystemCall sc = new SystemCall();
