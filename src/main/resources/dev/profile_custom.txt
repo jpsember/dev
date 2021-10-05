@@ -3,7 +3,7 @@
 
 
 # Set prompt
-export PS1="(TODO insert appropriate name here) \W} "
+export PS1="([!entity_id]) \W} "
 
 alias ls="ls -l"
 alias show="unzip -l"

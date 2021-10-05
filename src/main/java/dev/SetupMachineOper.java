@@ -34,6 +34,8 @@ import js.app.AppOper;
 import js.app.CmdLineArgs;
 import js.base.SystemCall;
 import js.file.Files;
+import js.json.JSMap;
+import js.parsing.MacroParser;
 
 public class SetupMachineOper extends AppOper {
 
@@ -158,10 +160,20 @@ public class SetupMachineOper extends AppOper {
         }
       }
     }
-    writeWithBackup(profileFile, newContent);
-
-    writeWithBackup(fileWithinHome(customFilename), Files.readString(getClass(), "profile_custom.txt"));
+    writeWithBackup(profileFile, applyMacroParser(newContent));
+    writeWithBackup(fileWithinHome(customFilename),
+        applyMacroParser(Files.readString(getClass(), "profile_custom.txt")));
   }
+
+  private String applyMacroParser(String sourceText) {
+    if (mMacroMap == null) {
+      mMacroMap = map()//
+          .put("entity_id", mEntityName);
+    }
+    return MacroParser.parse(sourceText, mMacroMap);
+  }
+
+  private JSMap mMacroMap;
 
   private void runSetupScript() {
     String scriptFilename = ".setup_script.sh";
