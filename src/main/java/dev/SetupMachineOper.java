@@ -101,9 +101,11 @@ public class SetupMachineOper extends AppOper {
     //
     writeWithBackup(new File(sshDir, "id_rsa.pub"), fileWithinSecrets("id_rsa.pub.txt"));
     writeWithBackup(new File(sshDir, "id_rsa"), fileWithinSecrets("id_rsa.txt"));
+    todo("send secrets to remote machine, changing entity name appropriately");
   }
 
   private void prepareVI() {
+    todo("remote machine is complaining about features not available");
     log("...prepareVI");
     writeWithBackup(fileWithinHome(".vimrc"), fileWithinSecrets("vimrc.txt"));
   }
