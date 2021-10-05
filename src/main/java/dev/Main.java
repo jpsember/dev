@@ -53,6 +53,7 @@ public class Main extends App {
     registerOper(new EntityOper());
     registerOper(new RsyncOper());
     registerOper(new SetupMachineOper());
+    registerOper(new SecretsOper());
   }
 
 }
