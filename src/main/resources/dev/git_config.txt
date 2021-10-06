@@ -2,5 +2,6 @@
   lg = log --pretty=format:\"%h (%an)    %s\"
   st = status
 
- [user]
+[user]
   name = [!entity_id]
+  email = [noreply@jeffsember.com]
