@@ -86,6 +86,7 @@ public class SetupMachineOper extends AppOper {
   }
 
   private void prepareSSH() {
+    todo("see latest error related to git pull on remote machine");
     log("...prepareSSH");
     File sshDir = fileWithinHome(".ssh");
     files().mkdirs(sshDir);
@@ -104,7 +105,7 @@ public class SetupMachineOper extends AppOper {
 
   private void prepareGit() {
     log("...prepareGit");
-    writeWithBackup(fileWithinHome(".gitconfig"), resourceString("git_config.txt"));
+    writeWithBackup(fileWithinHome(".gitconfig"), applyMacroParser(resourceString("git_config.txt")));
   }
 
   private void prepareGitHub() {
@@ -129,6 +130,11 @@ public class SetupMachineOper extends AppOper {
 
   private void prepareBash() {
     log("...prepareBash");
+    
+    // Create ~/bin directory 
+    //
+    files().mkdirs(fileWithinHome("bin"));
+
     writeWithBackup(fileWithinHome(".inputrc"), fileWithinSecrets("inputrc.txt"));
     writeWithBackup(fileWithinHome(".entity_name.txt"), mEntityName);
 

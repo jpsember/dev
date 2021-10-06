@@ -1,3 +1,6 @@
 [alias]
   lg = log --pretty=format:\"%h (%an)    %s\"
   st = status
+
+ [user]
+  name = [!entity_id]
