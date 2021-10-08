@@ -1,0 +1,26 @@
+fields {
+
+  File path;
+
+  string name;
+
+  int version;
+
+  bool push;
+
+  bool offload;
+
+  // If not empty, archives only files in the specified directory with these extensions, and leaves
+  // others intact.
+  // Does not recurse into subdirectories.
+  //
+  * string file_extensions;
+
+  // Marked for forgetting (remove from registry, but don't delete from file system or S3)
+  //
+  bool forget;
+
+  // Ignore this entry, but leave it untouched within registry
+  //
+  ? bool ignore;
+}
