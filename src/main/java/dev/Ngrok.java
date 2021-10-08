@@ -39,6 +39,9 @@ import js.parsing.RegExp;
 
 public class Ngrok extends BaseObject {
 
+  private static final boolean METADATA_WORKAROUND = false
+      && alert("using heuristics until metadata working");
+
   public static Ngrok sharedInstance() {
     if (sSharedInstance == null) {
       sSharedInstance = new Ngrok();
@@ -87,7 +90,11 @@ public class Ngrok extends BaseObject {
     for (JSMap tunMap : tunnelsMap().asMaps()) {
       String metadata = tunMap.get("metadata");
       if (metadata.isEmpty()) {
-        if (alert("until metadata working")) {
+        // If this is not a tcp tunnel, ignore
+        if (!tunMap.get("proto").equals("tcp"))
+          continue;
+
+        if (METADATA_WORKAROUND) {
           if (tunMap.get("public_url").contains("18995")) {
             metadata = "rpi32";
             tunMap.put("metadata", metadata);
@@ -124,6 +131,7 @@ public class Ngrok extends BaseObject {
           .url(matcher.group(1)) //
           .port(Integer.parseInt(matcher.group(2)))//
           .build();
+      log("parsed public url:", publicUrl, CR, "to entity info:", INDENT, result);
     }
     return result;
   }
@@ -149,8 +157,20 @@ public class Ngrok extends BaseObject {
   }
 
   private JSList tunnelsMap() {
-    if (mCachedTunnels == null)
-      mCachedTunnels = callAPI("tunnels").getList("tunnels");
+    if (mCachedTunnels == null) {
+      if (true) {
+        alert(
+            "The ngrok API seems to have bugs.  The metadata string it returns is always empty, despite that not being the case when viewed from their web dashboard.  Also, "
+                + "I can't get the 'tunnel_sessions/{id}' endpoint to work; it returns a 'Resource not found' error message.");
+      } else if (true) {
+        JSMap exp = callAPI("tunnel_sessions/tn_1z8c6lzOO9D4KJiHtCPCMOKkl62");
+        log("tunnel_sessions:", INDENT, exp);
+      }
+      JSMap apiResult = callAPI("tunnels");
+      log("Called api:", INDENT, apiResult);
+      mCachedTunnels = apiResult.getList("tunnels");
+      log("tunnels:", INDENT, mCachedTunnels);
+    }
     return mCachedTunnels;
   }
 

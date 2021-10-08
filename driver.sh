@@ -3,7 +3,6 @@ set -e
 
 APP=dev
 MVN=$HOME/.m2/repository
-DIR=$(pwd)
 
 ###### Custom statements start ##### {~custom1:
 ###### Custom statements end   ##### ~}

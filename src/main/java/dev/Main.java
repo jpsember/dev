@@ -54,6 +54,7 @@ public class Main extends App {
     registerOper(new RsyncOper());
     registerOper(new SetupMachineOper());
     registerOper(new SecretsOper());
+    registerOper(new ArchiveOper());
   }
 
 }

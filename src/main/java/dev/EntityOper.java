@@ -63,8 +63,11 @@ public class EntityOper extends AppOper {
 
   @Override
   public void perform() {
-    if (verbose())
+    todo("If tag field is empty, set it to the key that references it");
+    if (verbose()) {
       EntityManager.sharedInstance().setVerbose();
+      Ngrok.sharedInstance().setVerbose();
+    }
     if (mEntityNameExpr == null) {
       displayEntity();
     } else

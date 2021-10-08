@@ -81,7 +81,7 @@ public class SetupMachineOper extends AppOper {
   }
 
   private void validateOS() {
-    mEntityName = Files.readString(fileWithinSecrets("entity_name.txt")).trim();
+    mEntityName = Files.readString(files().fileWithinSecrets("entity_name.txt")).trim();
     mLocalTest = mEntityName.equals("osx");
   }
 
@@ -90,12 +90,12 @@ public class SetupMachineOper extends AppOper {
     log("...prepareSSH");
     File sshDir = fileWithinHome(".ssh");
     files().mkdirs(sshDir);
-    writeWithBackup(new File(sshDir, "authorized_keys"), fileWithinSecrets("authorized_keys.txt"));
+    writeWithBackup(new File(sshDir, "authorized_keys"), files().fileWithinSecrets("authorized_keys.txt"));
 
     // Install public/private key pair for accessing GitHub
     //
-    writeWithBackup(new File(sshDir, "id_rsa.pub"), fileWithinSecrets("id_rsa.pub.txt"));
-    writeWithBackup(new File(sshDir, "id_rsa"), fileWithinSecrets("id_rsa.txt"));
+    writeWithBackup(new File(sshDir, "id_rsa.pub"), files().fileWithinSecrets("id_rsa.pub.txt"));
+    writeWithBackup(new File(sshDir, "id_rsa"), files().fileWithinSecrets("id_rsa.txt"));
   }
 
   private void prepareVI() {
@@ -118,8 +118,8 @@ public class SetupMachineOper extends AppOper {
     File awsDir = fileWithinHome(".aws");
     files().mkdirs(awsDir);
 
-    writeWithBackup(new File(awsDir, "config"), fileWithinSecrets("aws_config.txt"));
-    writeWithBackup(new File(awsDir, "credentials"), fileWithinSecrets("aws_credentials.txt"));
+    writeWithBackup(new File(awsDir, "config"), files().fileWithinSecrets("aws_config.txt"));
+    writeWithBackup(new File(awsDir, "credentials"), files().fileWithinSecrets("aws_credentials.txt"));
   }
 
   private String assertRelative(String path) {
@@ -130,12 +130,12 @@ public class SetupMachineOper extends AppOper {
 
   private void prepareBash() {
     log("...prepareBash");
-    
+
     // Create ~/bin directory 
     //
     files().mkdirs(fileWithinHome("bin"));
 
-    writeWithBackup(fileWithinHome(".inputrc"), fileWithinSecrets("inputrc.txt"));
+    writeWithBackup(fileWithinHome(".inputrc"), files().fileWithinSecrets("inputrc.txt"));
     writeWithBackup(fileWithinHome(".entity_name.txt"), mEntityName);
 
     File profileFile = assertExists(fileWithinHome(".profile"));
@@ -263,14 +263,6 @@ public class SetupMachineOper extends AppOper {
     if (!file.exists())
       throw badState("File", file, "doesn't exist");
     return file;
-  }
-
-  /**
-   * Get a file within the secrets directory; make sure it exists
-   */
-  private File fileWithinSecrets(String relativePath) {
-    File file = new File(files().projectSecretsDirectory(), assertRelative(relativePath));
-    return assertExists(file);
   }
 
   /**
