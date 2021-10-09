@@ -1,0 +1,29 @@
+{
+    "entries": {
+        "alpha": {
+            "file_extensions": [],
+            "name": "",
+            "offload": false,
+            "path": "",
+            "push": false,
+            "version": 1
+        },
+        "delta.txt": {
+            "file_extensions": [],
+            "name": "",
+            "offload": false,
+            "path": "",
+            "push": false,
+            "version": 1
+        },
+        "gamma.txt": {
+            "file_extensions": [],
+            "name": "",
+            "offload": false,
+            "path": "",
+            "push": false,
+            "version": 1
+        }
+    },
+    "version": "2.0"
+}

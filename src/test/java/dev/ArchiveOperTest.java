@@ -64,6 +64,23 @@ public class ArchiveOperTest extends MyTestCase {
     execute();
   }
 
+  /**
+   * Push new versions of a couple of items
+   */
+  @Test
+  public void pushUpdate() {
+    prepareWorkCopies();
+
+    addArg("push", "alpha");
+    runApp();
+
+    addArg("push", "delta.txt");
+    runApp();
+
+    runApp();
+
+    assertGenerated();
+  }
   // ------------------------------------------------------------------
 
   private final void addArg(Object... args) {
@@ -73,12 +90,19 @@ public class ArchiveOperTest extends MyTestCase {
   }
 
   private void runApp() {
+    addArg("dir", mWorkLocal);
+    addArg("mock_remote", mWorkRemote);
     new Main().startApplication(DataUtil.toStringArray(args()));
-    args().clear();
+    mArgs = null;
   }
 
   private void execute() {
+    prepareWorkCopies();
+    runApp();
+    assertGenerated();
+  }
 
+  private void prepareWorkCopies() {
     // Create copies of the local and remote directories (where they exist)
     // so that we only modify the copies during the unit test 
 
@@ -86,17 +110,11 @@ public class ArchiveOperTest extends MyTestCase {
 
     File templateLocal = new File(unitTestSourceData, "local");
     File templateRemote = new File(unitTestSourceData, "remote");
-    File workLocal = generatedFile("local");
-    File workRemote = generatedFile("remote");
-    Files.S.copyDirectory(templateLocal, workLocal);
+    mWorkLocal = generatedFile("local");
+    mWorkRemote = generatedFile("remote");
+    Files.S.copyDirectory(templateLocal, mWorkLocal);
     if (templateRemote.exists())
-      Files.S.copyDirectory(templateRemote, workRemote);
-
-    addArg("dir", workLocal);
-    addArg("mock_remote", workRemote);
-
-    runApp();
-    assertGenerated();
+      Files.S.copyDirectory(templateRemote, mWorkRemote);
   }
 
   private List<String> args() {
@@ -110,5 +128,7 @@ public class ArchiveOperTest extends MyTestCase {
   }
 
   private List<String> mArgs;
+  private File mWorkLocal;
+  private File mWorkRemote;
 
 }

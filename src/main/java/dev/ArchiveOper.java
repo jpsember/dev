@@ -84,6 +84,70 @@ import dev.gen.archive.ArchiveRegistry;
  * different objects, then git ought to be able to merge the resulting changes
  * to the archive_registry.json file without difficulty.
  *
+ * <pre>
+ * 
+ * Operations
+ * ======================================================================================================
+ * 
+ * After these operations, it may be necessary to perform a git commit, so that changes to
+ * archive_registry.json are propagated to other machines.
+ * 
+ * 
+ * Adding an object to the archive
+ * ------------------------------------------------------------------------------------
+ * 
+ * Suppose you wish to add the file (or directory) "<project root directory>/abc/xyz/foo" to the archive.
+ * 
+ * Edit archive_registry.json, inserting a key/value pair to the "entries" map:
+ * 
+ *        "abc/xyz/foo" : { }
+ * 
+ * In the above example, the relative path is the key.  Alternatively, an arbitrary key, e.g. "moo", can be used:
+ *  
+ *        "moo" : { "path" : "abc/xyz/foo" }
+ *        
+ * Run the archive operation to push the file to the archive:
+ * 
+ *    dev archive
+ * 
+ * Additional fields can be added to the map above:
+ * 
+ *    TODO: document these fields, e.g. "file_extensions", "offload"
+ * 
+ * 
+ * Pushing a new version of an object to the archive
+ * ------------------------------------------------------------------------------------
+ * Suppose you have modified "<project root directory>/abc/xyz/foo" and want to push the new version to the
+ * archive.
+ * 
+ * Run the archive operation with these arguments:
+ * 
+ *    dev archive push abc/xyz/foo
+ *    dev archive
+ *    
+ * The first line registers the object with the local registry.  The second call actually performs the pushing
+ * to the archive.  Multiple files can be added before a final "dev archive" call is made.
+ *    
+ * Alternatively, if the object has a key that is different from its path (e.g. "moo"):
+ * 
+ *    dev archive push moo
+ *    dev archive
+ *    
+ * 
+ * Removing an object from the archive
+ * ------------------------------------------------------------------------------------
+ * To delete "<project root directory>/abc/xyz/foo" from the archive:
+ * 
+ *    dev archive forget abc/xyz/foo
+ *    dev archive
+ *    
+ * or, if appropriate,
+ * 
+ *    dev archive forget moo
+ *    dev archive
+ * 
+ * </pre>
+ * 
  */
 public final class ArchiveOper extends AppOper {
 
@@ -200,7 +264,7 @@ public final class ArchiveOper extends AppOper {
     if (!mRegistryGlobalOriginal.equals(mRegistryGlobal)) {
       JSMap registryMap;
       {
-        registryMap = mRegistryGlobal.toJson(); //registry.toJson();
+        registryMap = mRegistryGlobal.toJson();
 
         // Make the registry more legible to a human by removing some unnecessary key/value pairs, where possible
 
@@ -296,8 +360,14 @@ public final class ArchiveOper extends AppOper {
     pr("after forgetting:", keysToDelete, INDENT, mRegistryGlobal, CR, mRegistryLocal);
   }
 
+  private File fileWithinWorkDirectory(File f) {
+    if (!f.isAbsolute())
+      f = new File(mProjectDir, f.toString());
+    return Files.getCanonicalFile(f);
+  }
+
   private void markForPushing() {
-    File path = Files.getCanonicalFile(Files.absolute(mMarkForPushingFile));
+    File path = fileWithinWorkDirectory(mMarkForPushingFile);
     String foundKey = findKeyForFileOrDir(path);
     ArchiveEntry foundEntry = mRegistryGlobal.entries().get(foundKey);
     ArchiveEntry updatedEntry = foundEntry.toBuilder().push(true).build();
