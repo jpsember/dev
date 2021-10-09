@@ -30,6 +30,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
@@ -87,7 +88,7 @@ import dev.gen.archive.ArchiveRegistry;
 public final class ArchiveOper extends AppOper {
 
   private static final boolean DUMP_REG = alert("dumping registries");
-  
+
   @Override
   public String userCommand() {
     return "archive";
@@ -136,7 +137,7 @@ public final class ArchiveOper extends AppOper {
       processForgetFlags();
       updateEntries();
       flushRegistry();
-      log(map().put("entries", mEditRegistry.size())//
+      log(map().put("entries", mRegistryGlobal.entries().size())//
           .put("pushed", mPushedCount)//
           .put("pulled", mPulledCount)//
           .put("offloaded", mOffloadedCount)//
@@ -149,108 +150,108 @@ public final class ArchiveOper extends AppOper {
     File directory = mProjectDir;
     if (Files.empty(directory))
       directory = Files.parent(Files.S.projectConfigDirectory());
-    File path = Files.assertExists(new File(directory, "archive_registry.json"));
-    mRegistryFile = path;
-    mWorkDirectory = mRegistryFile.getParentFile();
+    mWorkDirectory = directory; //mRegistryGlobalFile.getParentFile();
     mWorkTempFile = new File(mWorkDirectory, "_SKIP_temp.zip");
 
     todo("refactor to better determine if registry (normal and hidden) have changed");
-    ArchiveRegistry registry = Files.parseAbstractData(ArchiveRegistry.DEFAULT_INSTANCE, mRegistryFile);
+    File globalFile = registerGlobalFile();
+    ArchiveRegistry registry = Files.parseAbstractData(ArchiveRegistry.DEFAULT_INSTANCE, globalFile);
     if (DUMP_REG)
       pr("global registry:", INDENT, registry);
-
-    mEditRegistry = hashMap();
-    for (String key : registry.entries().keySet())
-      mEditRegistry.put(key, registry.entries().get(key));
+    ensureVersionValid(registry, globalFile);
+    mRegistryGlobalOriginal = registry;
+    mRegistryGlobal = registry.toBuilder();
 
     readHiddenRegistry();
   }
 
-  private void readHiddenRegistry() {
-    mAuxRegistryFile = new File(mWorkDirectory, ".archive_registry.json");
-
-    JSMap m = JSMap.fromFileIfExists(mAuxRegistryFile);
-    String generatingVersion = m.opt("version", "");
-
-    mHiddenRegistryModified = false;
-    if (mAuxRegistryFile.exists() && !generatingVersion.equals(ArchiveRegistry.DEFAULT_INSTANCE.version())) {
-      throw die("this version of the archive has an unsupported version:", generatingVersion);
-    }
-    ArchiveRegistry registry = (ArchiveRegistry) ArchiveRegistry.DEFAULT_INSTANCE.parse(m).toBuilder();
-    if (DUMP_REG) {
-      pr("local registry:", INDENT, registry);
-      pr("info:",Files.infoMap(mAuxRegistryFile));
-    }
-    mHiddenRegistryEntries = hashMap();
-    mHiddenRegistryEntries.putAll(registry.entries());
+  private void ensureVersionValid(ArchiveRegistry registry, File context) {
+    String expected = ArchiveRegistry.DEFAULT_INSTANCE.version();
+    if (!registry.version().equals(expected))
+      throw die("bad version in archive registry:", registry.version(), "expected:", expected, ";", context);
   }
 
-  private Map<String, ArchiveEntry> editHiddenRegistry() {
-    mHiddenRegistryModified = true;
-    return mHiddenRegistryEntries;
+  private File registerGlobalFile() {
+    return new File(mWorkDirectory, "archive_registry.json");
+  }
+
+  private File registerLocalFile() {
+    return new File(mWorkDirectory, ".archive_registry.json");
+  }
+
+  private void readHiddenRegistry() {
+    ArchiveRegistry registry = Files.parseAbstractDataOpt(ArchiveRegistry.DEFAULT_INSTANCE,
+        registerLocalFile());
+    ensureVersionValid(registry, registerLocalFile());
+
+    mRegistryLocalOriginal = registry;
+
+    if (DUMP_REG) {
+      pr("local registry:", INDENT, registry);
+    }
+
+    // Apparently the toBuilder() call *does* construct a copy of the entries map, which is what we need
+    // (since we want to leave the original registry untouched)
+    mRegistryLocal = registry.toBuilder();
   }
 
   private void flushRegistry() {
 
-    JSMap registryMap;
-    {
-      ArchiveRegistry registry = ArchiveRegistry.newBuilder().entries(mEditRegistry).build();
-      registryMap = registry.toJson();
+    if (!mRegistryGlobalOriginal.equals(mRegistryGlobal)) {
+      JSMap registryMap;
+      {
+        registryMap = mRegistryGlobal.toJson(); //registry.toJson();
 
-      // Make the registry more legible to a human by removing some unnecessary key/value pairs, where possible
+        // Make the registry more legible to a human by removing some unnecessary key/value pairs, where possible
 
-      JSMap m2 = registryMap.getMap("entries");
-      for (String k : m2.keySet()) {
-        JSMap m = m2.getMap(k);
-        if (!m.opt("push"))
-          m.remove("push");
-        if (m.get("name").isEmpty())
-          m.remove("name");
-        if (m.get("path").isEmpty())
-          m.remove("path");
-        m.remove("offload");
-        if (m.getList("file_extensions").isEmpty())
-          m.remove("file_extensions");
+        JSMap m2 = registryMap.getMap("entries");
+        todo("make additional fields optional where appropriate");
+        for (String k : m2.keySet()) {
+          JSMap m = m2.getMap(k);
+          if (!m.opt("push"))
+            m.remove("push");
+          if (m.get("name").isEmpty())
+            m.remove("name");
+          if (m.get("path").isEmpty())
+            m.remove("path");
+          m.remove("offload");
+          if (m.getList("file_extensions").isEmpty())
+            m.remove("file_extensions");
+        }
       }
+
+      log("...global registry has been modified, writing updated version");
+      files().writePretty(registerGlobalFile(), registryMap);
     }
 
-    JSMap oldContentMap = new JSMap(Files.readString(mRegistryFile));
-    if (!registryMap.equals(oldContentMap))
-      files().writePretty(mRegistryFile, registryMap);
-
-    if (mHiddenRegistryModified) {
+    if (!mRegistryLocalOriginal.equals(mRegistryLocal)) {
       log("...hidden registry has been modified, writing updated version");
-      ArchiveRegistry.Builder b = ArchiveRegistry.newBuilder();
-      b.entries(mHiddenRegistryEntries);
-      files().writePretty(mAuxRegistryFile, b);
-      mHiddenRegistryModified = false;
+      files().writePretty(registerLocalFile(), mRegistryLocal);
     }
   }
 
   private ArchiveEntry hiddenEntry() {
-    return mHiddenRegistryEntries.getOrDefault(mKey, ArchiveEntry.DEFAULT_INSTANCE);
+    return mRegistryLocal.entries().getOrDefault(mKey, ArchiveEntry.DEFAULT_INSTANCE);
   }
 
   private void storeLocalVersion(int version) {
     ArchiveEntry ent = hiddenEntry();
     if (ent.version() == version)
       return;
-    editHiddenRegistry().put(mKey, ent.toBuilder().version(version).build());
-  }
-
-  private void removeLocalInfo() {
-    if (mHiddenRegistryEntries.containsKey(mKey))
-      editHiddenRegistry().remove(mKey);
+    mRegistryLocal.entries().put(mKey, ent.toBuilder().version(version).build());
   }
 
   private void updateEntries() {
 
-    for (String key : mEditRegistry.keySet()) {
-      ArchiveEntry entry = mEditRegistry.get(key);
+    Map<String, ArchiveEntry> modifiedEntries = hashMap();
+
+    for (Entry<String, ArchiveEntry> ent : mRegistryGlobal.entries().entrySet()) {
+      ArchiveEntry entry = ent.getValue();
       if (entry.ignore() == Boolean.TRUE)
         continue;
 
-      mKey = key;
+      todo("can we avoid instance fields mKey, mEntry?");
+      mKey = ent.getKey();
       mEntry = entry.toBuilder();
 
       File file = sourceFileOrDirectory(mWorkDirectory, mKey, mEntry);
@@ -268,37 +269,41 @@ public final class ArchiveOper extends AppOper {
       ArchiveEntry updatedEntry = mEntry.build();
       if (updatedEntry.equals(entry))
         continue;
-      log("...storing new version of entry:", key, INDENT, updatedEntry);
-      mEditRegistry.put(key, updatedEntry);
+
+      log("...storing new version of entry:", mKey, INDENT, updatedEntry);
+      modifiedEntries.put(mKey, updatedEntry);
     }
+    mRegistryGlobal.entries().putAll(modifiedEntries); //put(key, updatedEntry);
+    pr("after updating entries:", INDENT, mRegistryGlobal);
   }
 
   private void processForgetFlags() {
     List<String> keysToDelete = arrayList();
 
-    for (String key : mEditRegistry.keySet()) {
-      ArchiveEntry entry = mEditRegistry.get(key);
+    for (Entry<String, ArchiveEntry> ent : mRegistryGlobal.entries().entrySet()) {
+      ArchiveEntry entry = ent.getValue();
+      mKey = ent.getKey();
       if (entry.forget() == Boolean.TRUE)
-        keysToDelete.add(key);
+        keysToDelete.add(mKey);
     }
 
-    for (String key : keysToDelete) {
-      log("...forgetting:", key);
-      mForgottenCount++;
-      mEditRegistry.keySet().remove(key);
-      if (mHiddenRegistryEntries.remove(key) != null)
-        mHiddenRegistryModified = true;
+    mForgottenCount = keysToDelete.size();
+    if (!keysToDelete.isEmpty()) {
+      log("...forgetting:", keysToDelete);
+      mRegistryGlobal.entries().keySet().removeAll(keysToDelete);
+      mRegistryLocal.entries().keySet().removeAll(keysToDelete);
     }
+    pr("after forgetting:", keysToDelete, INDENT, mRegistryGlobal, CR, mRegistryLocal);
   }
 
   private void markForPushing() {
     File path = Files.getCanonicalFile(Files.absolute(mMarkForPushingFile));
     String foundKey = findKeyForFileOrDir(path);
-    ArchiveEntry foundEntry = mEditRegistry.get(foundKey);
+    ArchiveEntry foundEntry = mRegistryGlobal.entries().get(foundKey);
     ArchiveEntry updatedEntry = foundEntry.toBuilder().push(true).build();
     if (!updatedEntry.equals(foundEntry)) {
       pr("...marking for push:", foundKey);
-      mEditRegistry.put(foundKey, updatedEntry);
+      mRegistryGlobal.entries().put(foundKey, updatedEntry);
     } else
       pr("...already marked for push:", foundKey);
   }
@@ -316,8 +321,9 @@ public final class ArchiveOper extends AppOper {
     String seekName = fileOrDir.getName();
     boolean performFuzzyMatch = !(fileOrDir.toString().contains("/"));
 
-    for (String key : mEditRegistry.keySet()) {
-      ArchiveEntry entry = mEditRegistry.get(key);
+    for (Entry<String, ArchiveEntry> ent : mRegistryGlobal.entries().entrySet()) {
+      String key = ent.getKey();
+      ArchiveEntry entry = ent.getValue();
       File file = sourceFileOrDirectory(mWorkDirectory, key, entry);
       if (file.equals(fileOrDir)) {
         foundKey = key;
@@ -347,11 +353,11 @@ public final class ArchiveOper extends AppOper {
   private void markForForgetting() {
     File path = mForgetArg;
     String foundKey = findKeyForFileOrDir(path);
-    ArchiveEntry foundEntry = mEditRegistry.get(foundKey);
+    ArchiveEntry foundEntry = mRegistryGlobal.entries().get(foundKey);
     ArchiveEntry updatedEntry = foundEntry.toBuilder().forget(true).build();
     if (!updatedEntry.equals(foundEntry)) {
       pr("...marking for forget:", foundKey);
-      mEditRegistry.put(foundKey, updatedEntry);
+      mRegistryGlobal.entries().put(foundKey, updatedEntry);
     } else
       pr("...already marked for forget:", foundKey);
   }
@@ -367,7 +373,6 @@ public final class ArchiveOper extends AppOper {
     if (mEntry.version() == 0 || mEntry.push()) {
       pushEntry();
       mPushedCount++;
-      //die("attempting to push:", mEntry);
       return;
     }
 
@@ -378,7 +383,7 @@ public final class ArchiveOper extends AppOper {
       log("...offloading entry:", mKey);
       mOffloadedCount++;
       mEntry.offload(false);
-      editHiddenRegistry().put(mKey, hiddenEntry().toBuilder().offload(true).build());
+      mRegistryLocal.entries().put(mKey, hiddenEntry().toBuilder().offload(true).build());
     }
 
     if (hiddenEntry().offload()) {
@@ -393,8 +398,9 @@ public final class ArchiveOper extends AppOper {
       return;
     }
 
-    if (!sourceFileOrDirectory().exists())
-      removeLocalInfo();
+    if (!sourceFileOrDirectory().exists()) {
+      mRegistryLocal.entries().remove(mKey);
+    }
     int mostRecentVersion = Math.max(1, mEntry.version());
 
     if (mostRecentVersion == hiddenEntry().version())
@@ -637,16 +643,17 @@ public final class ArchiveOper extends AppOper {
 
   private File mWorkDirectory;
   private File mWorkTempFile;
-  private File mRegistryFile;
-  private Map<String, ArchiveEntry> mEditRegistry;
+
+  private ArchiveRegistry mRegistryGlobalOriginal;
+  private ArchiveRegistry.Builder mRegistryGlobal;
+
+  private ArchiveRegistry mRegistryLocalOriginal;
+  private ArchiveRegistry.Builder mRegistryLocal;
+
   private int mPushedCount;
   private int mPulledCount;
   private int mOffloadedCount;
   private int mForgottenCount;
-
-  private File mAuxRegistryFile;
-  private Map<String, ArchiveEntry> mHiddenRegistryEntries;
-  private boolean mHiddenRegistryModified;
 
   private String mKey;
   private ArchiveEntry.Builder mEntry;
