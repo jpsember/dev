@@ -1,0 +1,9 @@
+{ "entries" : { "gamma.txt" : { "file_extensions" : [  ],
+                                           "name" : "",
+                                        "offload" : false,
+                                           "path" : "",
+                                           "push" : false,
+                                        "version" : 1
+                              } },
+  "version" : "2.0"
+}

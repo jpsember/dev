@@ -48,14 +48,14 @@ public class FileArchiveDevice implements ArchiveDevice {
   }
 
   @Override
-  public void write(File source, String name) {
+  public void push(File source, String name) {
     File target = fileWithinArchive(name);
     Files.S.mkdirs(Files.parent(target));
     Files.S.copyFile(source, target);
   }
 
   @Override
-  public void read(String name, File destination) {
+  public void pull(String name, File destination) {
     File source = fileWithinArchive(name);
     Files.S.copyFile(source, destination);
   }

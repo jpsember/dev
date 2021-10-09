@@ -8,9 +8,18 @@ import java.io.File;
  */
 public interface ArchiveDevice {
 
+  /**
+   * Determine if an object exists in the archive
+   */
   boolean fileExists(String name);
 
-  void write(File source, String name);
+  /**
+   * Push a local object to the archive
+   */
+  void push(File source, String name);
 
-  void read(String name, File destination);
+  /**
+   * Pull an object from the archive to the local machine
+   */
+  void pull(String name, File destination);
 }

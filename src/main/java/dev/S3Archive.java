@@ -52,14 +52,14 @@ public class S3Archive implements ArchiveDevice {
   }
 
   @Override
-  public void write(File source, String name) {
+  public void push(File source, String name) {
     SystemCall sc = s3Call();
     sc.arg("cp", source.toString(), mBucketPath + name);
     sc.assertSuccess();
   }
 
   @Override
-  public void read(String name, File destination) {
+  public void pull(String name, File destination) {
     SystemCall sc = s3Call();
     sc.arg("cp", mBucketPath + name, destination);
     if (sc.exitCode() != 0) {

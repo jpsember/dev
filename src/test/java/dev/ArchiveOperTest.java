@@ -38,46 +38,77 @@ import js.testutil.MyTestCase;
 
 public class ArchiveOperTest extends MyTestCase {
 
+  /**
+   * Pushes initial versions of some objects, since they have entries within the
+   * (global) registry but no version numbers
+   */
   @Test
-  public void sample() {
-    addArg("archive");
-    addArg("--verbose");
+  public void pushInitialVersions() {
     execute();
   }
 
+  /**
+   * Mark an object for forgetting
+   */
+  @Test
+  public void forgetMark() {
+    addArg("forget", "alpha");
+    execute();
+  }
+
+  /**
+   * Forget an object, erasing it from the global (and local) registries
+   */
+  @Test
+  public void forgotten() {
+    execute();
+  }
+
+  // ------------------------------------------------------------------
+
   private final void addArg(Object... args) {
     for (Object a : args) {
-      mArgs.add(a.toString());
+      args().add(a.toString());
     }
   }
 
   private void runApp() {
-    if (verbose())
-      addArg("--verbose");
     new Main().startApplication(DataUtil.toStringArray(args()));
     args().clear();
   }
 
   private void execute() {
 
-    // Create a copy of the source directory
-    File unitTestSourceData = new File(testDataDir(), name());
-    File localWorkDir = generatedFile("local");
-    File remoteWorkDir = generatedFile("remote");
-    Files.S.copyDirectory(new File(unitTestSourceData, "local"), localWorkDir);
-    Files.S.copyDirectory(new File(unitTestSourceData, "remote"), remoteWorkDir);
+    // Create copies of the local and remote directories (where they exist)
+    // so that we only modify the copies during the unit test 
 
-    addArg("dir", localWorkDir);
-    addArg("mock_remote", remoteWorkDir);
+    File unitTestSourceData = new File(testDataDir(), name());
+
+    File templateLocal = new File(unitTestSourceData, "local");
+    File templateRemote = new File(unitTestSourceData, "remote");
+    File workLocal = generatedFile("local");
+    File workRemote = generatedFile("remote");
+    Files.S.copyDirectory(templateLocal, workLocal);
+    if (templateRemote.exists())
+      Files.S.copyDirectory(templateRemote, workRemote);
+
+    addArg("dir", workLocal);
+    addArg("mock_remote", workRemote);
 
     runApp();
     assertGenerated();
   }
 
   private List<String> args() {
+    if (mArgs == null) {
+      mArgs = arrayList();
+      addArg("archive");
+      if (verbose())
+        addArg("--verbose");
+    }
     return mArgs;
   }
 
-  private List<String> mArgs = arrayList();
+  private List<String> mArgs;
 
 }

@@ -18,7 +18,7 @@ fields {
 
   // Marked for forgetting (remove from registry, but don't delete from file system or S3)
   //
-  bool forget;
+  ? bool forget;
 
   // Ignore this entry, but leave it untouched within registry
   //

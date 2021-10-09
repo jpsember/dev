@@ -43,8 +43,51 @@ import js.parsing.RegExp;
 import dev.gen.archive.ArchiveEntry;
 import dev.gen.archive.ArchiveRegistry;
 
+/**
+ * 
+ * This is a tool for saving large objects to an external data store, e.g.,
+ * Amazon Web Service's S3.
+ * 
+ * Each object is either an individual file, or a zipped file directory. These
+ * objects have version numbers, so a newer version of an object can be pushed
+ * to the data store, where it retains the most recent several versions.
+ * 
+ * It is designed to serve as a more practical alternative to storing such
+ * objects in git, especially if the objects are not going to change frequently.
+ * 
+ * Relevant variables and files:
+ * 
+ * <pre>
+ * 
+ *  project root directory
+ *    Object paths are given relative to this directory.  Also the directory containing
+ *    the archive registry (this may change in future).
+ *    
+ *  archive_registry.json
+ *    Represents the state of each object within the external data store, including its relative path, its version number,
+ *    and some optional flags. This is tracked by git.
+ *    
+ *  .archive_registry.json
+ *    Records the state of each object within the local machine.  If the local version of an object is
+ *    older than that within the external data store (or if no local version exists), then the object must be
+ *    copied from the external store.  Not tracked by git.
+ *  
+ *  AWS S3 credentials
+ *    More information to follow.
+ * 
+ * </pre>
+ * 
+ * Note that no attempt is made to deal with conflicts that will arise if two
+ * separate machines attempt to store new versions of the same object to the
+ * external data store simultaneously. By contrast, if they independently modify
+ * different objects, then git ought to be able to merge the resulting changes
+ * to the archive_registry.json file without difficulty.
+ *
+ */
 public final class ArchiveOper extends AppOper {
 
+  private static final boolean DUMP_REG = alert("dumping registries");
+  
   @Override
   public String userCommand() {
     return "archive";
@@ -113,6 +156,8 @@ public final class ArchiveOper extends AppOper {
 
     todo("refactor to better determine if registry (normal and hidden) have changed");
     ArchiveRegistry registry = Files.parseAbstractData(ArchiveRegistry.DEFAULT_INSTANCE, mRegistryFile);
+    if (DUMP_REG)
+      pr("global registry:", INDENT, registry);
 
     mEditRegistry = hashMap();
     for (String key : registry.entries().keySet())
@@ -125,13 +170,17 @@ public final class ArchiveOper extends AppOper {
     mAuxRegistryFile = new File(mWorkDirectory, ".archive_registry.json");
 
     JSMap m = JSMap.fromFileIfExists(mAuxRegistryFile);
-    String generatingVersion = m.opt("prepimg_version", "");
+    String generatingVersion = m.opt("version", "");
 
     mHiddenRegistryModified = false;
-    if (mAuxRegistryFile.exists() && generatingVersion.isEmpty()) {
-      throw die("this version of the archive is too old!");
+    if (mAuxRegistryFile.exists() && !generatingVersion.equals(ArchiveRegistry.DEFAULT_INSTANCE.version())) {
+      throw die("this version of the archive has an unsupported version:", generatingVersion);
     }
     ArchiveRegistry registry = (ArchiveRegistry) ArchiveRegistry.DEFAULT_INSTANCE.parse(m).toBuilder();
+    if (DUMP_REG) {
+      pr("local registry:", INDENT, registry);
+      pr("info:",Files.infoMap(mAuxRegistryFile));
+    }
     mHiddenRegistryEntries = hashMap();
     mHiddenRegistryEntries.putAll(registry.entries());
   }
@@ -147,18 +196,18 @@ public final class ArchiveOper extends AppOper {
     {
       ArchiveRegistry registry = ArchiveRegistry.newBuilder().entries(mEditRegistry).build();
       registryMap = registry.toJson();
+
+      // Make the registry more legible to a human by removing some unnecessary key/value pairs, where possible
+
       JSMap m2 = registryMap.getMap("entries");
       for (String k : m2.keySet()) {
         JSMap m = m2.getMap(k);
-        // Remove the 'push' key if it is false
         if (!m.opt("push"))
           m.remove("push");
         if (m.get("name").isEmpty())
           m.remove("name");
         if (m.get("path").isEmpty())
           m.remove("path");
-        if (!m.getBoolean("forget"))
-          m.remove("forget");
         m.remove("offload");
         if (m.getList("file_extensions").isEmpty())
           m.remove("file_extensions");
@@ -229,7 +278,7 @@ public final class ArchiveOper extends AppOper {
 
     for (String key : mEditRegistry.keySet()) {
       ArchiveEntry entry = mEditRegistry.get(key);
-      if (entry.forget())
+      if (entry.forget() == Boolean.TRUE)
         keysToDelete.add(key);
     }
 
@@ -318,6 +367,7 @@ public final class ArchiveOper extends AppOper {
     if (mEntry.version() == 0 || mEntry.push()) {
       pushEntry();
       mPushedCount++;
+      //die("attempting to push:", mEntry);
       return;
     }
 
@@ -349,6 +399,8 @@ public final class ArchiveOper extends AppOper {
 
     if (mostRecentVersion == hiddenEntry().version())
       return;
+    die("attempting to pull most recent version:", mostRecentVersion, "of", mKey, "since doesn't match:",
+        INDENT, hiddenEntry());
     pullVersion(mostRecentVersion);
     mPulledCount++;
   }
@@ -385,7 +437,7 @@ public final class ArchiveOper extends AppOper {
       sourceFile = createZipFile(mSourceDirectory);
 
     if (!files().dryRun()) {
-      device().write(sourceFile, versionedFilename);
+      device().push(sourceFile, versionedFilename);
     }
 
     if (!singleFile())
@@ -405,7 +457,7 @@ public final class ArchiveOper extends AppOper {
     Files.S.deleteFile(tempFile());
 
     if (!files().dryRun()) {
-      device().read(versionedFilename, tempFile());
+      device().pull(versionedFilename, tempFile());
     }
 
     if (singleFile()) {
