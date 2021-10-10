@@ -34,8 +34,6 @@ import java.util.Map.Entry;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
-import org.apache.commons.io.FilenameUtils;
-
 import js.file.DirWalk;
 import js.file.Files;
 import js.app.AppOper;
@@ -164,6 +162,16 @@ import dev.gen.archive.ArchiveRegistry;
  * 
  * Note also that underscores cannot appear in bucket names in S3.
  * 
+ * TODO: extensions are ignored when determining the 'archived' name of an
+ * object; so 'aaa/bbb/ccc.txt' and 'ddd/eee/ccc.json' would both be assigned
+ * the 'archived' name (without version info) 'ccc.zip'.
+ * 
+ * TODO: a reasonable solution to these problems is to scan the archive when the
+ * operation is run, looking for conflicts with the archive names, and failing
+ * immediately if any are found. It should perhaps also require that directories
+ * don't have extensions (e.g. foo.bar is illegal), and that non-directories
+ * MUST have extensions. Also, that paths are relative.
+ * 
  */
 public final class ArchiveOper extends AppOper {
 
@@ -190,14 +198,38 @@ public final class ArchiveOper extends AppOper {
 
   @Override
   protected void processAdditionalArgs() {
-    mProjectDir = new File(cmdLineArgs().nextArgIf("dir", ""));
+    todo("be careful to 'canonicalize' paths where appropriate");
+    mProjectDirectory = new File(cmdLineArgs().nextArgIf("dir", ""));
     mMockRemoteDir = new File(cmdLineArgs().nextArgIf("mock_remote", ""));
     mMarkForPushingFile = new File(cmdLineArgs().nextArgIf("push", ""));
     mForgetArg = new File(cmdLineArgs().nextArgIf("forget", ""));
   }
 
+  /**
+   * If a file is nonempty, get its canonical version
+   * 
+   * @param file
+   * @return
+   */
+  private File fixPath(File file) {
+    if (Files.nonEmpty(file)) {
+      return file;
+    }
+    return Files.getCanonicalFile(file);
+  }
+
+  private void fixPaths() {
+    mProjectDirectory = fixPath(mProjectDirectory);
+    mMockRemoteDir = fixPath(mMockRemoteDir);
+    if (Files.empty(mProjectDirectory))
+      mProjectDirectory = Files.getCanonicalFile(Files.parent(Files.S.projectConfigDirectory()));
+    mWorkTempFile = fileWithinProjectDir("_SKIP_temp.zip");
+  }
+
   @Override
   public void perform() {
+    fixPaths();
+
     readRegistry();
 
     boolean proc = false;
@@ -227,12 +259,6 @@ public final class ArchiveOper extends AppOper {
   }
 
   private void readRegistry() {
-    File directory = mProjectDir;
-    if (Files.empty(directory))
-      directory = Files.parent(Files.S.projectConfigDirectory());
-    mWorkDirectory = directory; //mRegistryGlobalFile.getParentFile();
-    mWorkTempFile = new File(mWorkDirectory, "_SKIP_temp.zip");
-
     todo("refactor to better determine if registry (normal and hidden) have changed");
     File globalFile = registerGlobalFile();
     ArchiveRegistry registry = Files.parseAbstractData(ArchiveRegistry.DEFAULT_INSTANCE, globalFile);
@@ -241,7 +267,6 @@ public final class ArchiveOper extends AppOper {
     ensureVersionValid(registry, globalFile);
     mRegistryGlobalOriginal = registry;
     mRegistryGlobal = registry.toBuilder();
-
     readHiddenRegistry();
   }
 
@@ -252,11 +277,11 @@ public final class ArchiveOper extends AppOper {
   }
 
   private File registerGlobalFile() {
-    return new File(mWorkDirectory, "archive_registry.json");
+    return fileWithinProjectDir( "archive_registry.json");
   }
 
   private File registerLocalFile() {
-    return new File(mWorkDirectory, ".archive_registry.json");
+    return fileWithinProjectDir( ".archive_registry.json");
   }
 
   private void readHiddenRegistry() {
@@ -332,7 +357,7 @@ public final class ArchiveOper extends AppOper {
       mKey = ent.getKey();
       mEntry = entry.toBuilder();
 
-      File file = sourceFileOrDirectory(mWorkDirectory, mKey, mEntry);
+      File file = absoluteFileForEntry(mKey, mEntry);
 
       if (Files.getExtension(file).isEmpty()) {
         mSourceFile = null;
@@ -374,9 +399,14 @@ public final class ArchiveOper extends AppOper {
     pr("after forgetting:", keysToDelete, INDENT, mRegistryGlobal, CR, mRegistryLocal);
   }
 
+  private File fileWithinProjectDir(String relativeFilePath) {
+    checkArgument(relativeFilePath.charAt(0) != '/');
+    return new File(mProjectDirectory, relativeFilePath);
+  }
+
   private File fileWithinWorkDirectory(File f) {
     if (!f.isAbsolute())
-      f = new File(mProjectDir, f.toString());
+      f = new File(mProjectDirectory, f.toString());
     return Files.getCanonicalFile(f);
   }
 
@@ -408,7 +438,7 @@ public final class ArchiveOper extends AppOper {
     for (Entry<String, ArchiveEntry> ent : mRegistryGlobal.entries().entrySet()) {
       String key = ent.getKey();
       ArchiveEntry entry = ent.getValue();
-      File file = sourceFileOrDirectory(mWorkDirectory, key, entry);
+      File file = absoluteFileForEntry(key, entry);
       if (file.equals(fileOrDir)) {
         foundKey = key;
         break;
@@ -436,6 +466,7 @@ public final class ArchiveOper extends AppOper {
 
   private void markForForgetting() {
     File path = mForgetArg;
+    todo("treat 'forget' arg similarly to 'push' arg, by canonicalizing, relativizing etc");
     String foundKey = findKeyForFileOrDir(path);
     ArchiveEntry foundEntry = mRegistryGlobal.entries().get(foundKey);
     ArchiveEntry updatedEntry = foundEntry.toBuilder().forget(true).build();
@@ -499,20 +530,25 @@ public final class ArchiveOper extends AppOper {
     return mSourceFile != null;
   }
 
-  private String filenameWithVersion(String name, int version) {
+  /**
+   * Determine name of file within archive corresponding to a version of an
+   * object
+   */
+  private String filenameWithVersion(int version) {
+    String basename = Files.basename(mKey);
     if (singleFile()) {
-      String ext = Files.getExtension(name);
-      String trim = Files.removeExtension(name);
-      return String.format("%s_%03d.%s", trim, version, ext);
+      String ext = Files.getExtension(mKey);
+      // Note: this shouldn't happen if we run our 'sanity check' for keys when the operation starts
+      checkArgument(!ext.isEmpty(), "filename has no extension:", mKey, INDENT, mEntry);
+      return String.format("%s_%03d.%s", basename, version, ext);
     } else
-      return String.format("%s_%03d.zip", name, version);
+      return String.format("%s_%03d.zip", basename, version);
   }
 
   private void pushEntry() {
     int nextVersionNumber = mEntry.version() + 1;
-    String entryName = entryName(mKey);
-    String versionedFilename = filenameWithVersion(entryName, nextVersionNumber);
-    log("...pushing version " + nextVersionNumber, "of:", entryName, "to", versionedFilename);
+    String versionedFilename = filenameWithVersion(nextVersionNumber);
+    log("...pushing version " + nextVersionNumber, "of:", mKey, "to", versionedFilename);
     log("...source:", sourceFileOrDirectory());
 
     if (device().fileExists(versionedFilename))
@@ -540,8 +576,7 @@ public final class ArchiveOper extends AppOper {
 
   private void pullVersion(int desiredVersion) {
     log("...pulling version " + desiredVersion, "of:", mKey);
-    String entryName = entryName(mKey);
-    String versionedFilename = filenameWithVersion(entryName, desiredVersion);
+    String versionedFilename = filenameWithVersion(desiredVersion);
 
     Files.S.deleteFile(tempFile());
 
@@ -577,7 +612,7 @@ public final class ArchiveOper extends AppOper {
           });
         }
       } else {
-        File target = new File(mWorkDirectory, "_SKIP_unzip_temp");
+        File target = fileWithinProjectDir("_SKIP_unzip_temp");
         files().deleteDirectory(target);
         files().mkdirs(target);
         if (!files().dryRun())
@@ -683,23 +718,14 @@ public final class ArchiveOper extends AppOper {
   // ArchiveEntry utilities
   // ------------------------------------------------------------------
 
-  private static String entryName(String key) {
-    String name = FilenameUtils.getName(key);
-    if (!name.isEmpty())
-      return name;
-    throw die("Cannot parse entry name for key", key);
-  }
-
-  private static File sourceFileOrDirectory(File workDirectory, String key, ArchiveEntry entry) {
-    File path = entry.path();
-    if (Files.empty(path)) {
-      path = new File(key);
-    }
-    todo("Do we want to force paths to be relative?");
-    if (!path.isAbsolute()) {
-      path = new File(workDirectory, path.toString());
-    }
-    return path;
+  /**
+   * Determine the absolute file corresponding to the local copy of an object
+   */
+  private File absoluteFileForEntry(String key, ArchiveEntry entry) {
+    String pathString = key;
+    if (!Files.empty(entry.path()))
+      pathString = entry.path().toString();
+   return fileWithinProjectDir(pathString);
   }
 
   private ArchiveDevice device() {
@@ -708,7 +734,7 @@ public final class ArchiveOper extends AppOper {
         mDevice = new FileArchiveDevice(mMockRemoteDir);
       else {
         die("S3Archive disabled for now");
-        mDevice = new S3Archive("<profile name>", "<s3 account name>/archive", mWorkDirectory);
+        mDevice = new S3Archive("<profile name>", "<s3 account name>/archive", mProjectDirectory);
       }
     }
     return mDevice;
@@ -716,7 +742,7 @@ public final class ArchiveOper extends AppOper {
 
   // ------------------------------------------------------------------
 
-  private File mWorkDirectory;
+  private File mProjectDirectory;
   private File mWorkTempFile;
 
   private ArchiveRegistry mRegistryGlobalOriginal;
@@ -736,7 +762,6 @@ public final class ArchiveOper extends AppOper {
   private File mSourceDirectory;
   private File mMarkForPushingFile;
   private File mForgetArg;
-  private File mProjectDir;
   private File mMockRemoteDir;
   private ArchiveDevice mDevice;
 }
