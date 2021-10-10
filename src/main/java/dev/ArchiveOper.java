@@ -201,20 +201,16 @@ public final class ArchiveOper extends AppOper {
     todo("be careful to 'canonicalize' paths where appropriate");
     mProjectDirectory = new File(cmdLineArgs().nextArgIf("dir", ""));
     mMockRemoteDir = new File(cmdLineArgs().nextArgIf("mock_remote", ""));
-    mMarkForPushingFile = new File(cmdLineArgs().nextArgIf("push", ""));
-    mForgetArg = new File(cmdLineArgs().nextArgIf("forget", ""));
+    mPushPathArg = cmdLineArgs().nextArgIf("push", "");
+    mForgetPathArg = cmdLineArgs().nextArgIf("forget", "");
   }
 
   /**
    * If a file is nonempty, get its canonical version
-   * 
-   * @param file
-   * @return
    */
   private File fixPath(File file) {
-    if (Files.nonEmpty(file)) {
+    if (Files.nonEmpty(file))
       return file;
-    }
     return Files.getCanonicalFile(file);
   }
 
@@ -223,7 +219,7 @@ public final class ArchiveOper extends AppOper {
     mMockRemoteDir = fixPath(mMockRemoteDir);
     if (Files.empty(mProjectDirectory))
       mProjectDirectory = Files.getCanonicalFile(Files.parent(Files.S.projectConfigDirectory()));
-    mWorkTempFile = fileWithinProjectDir("_SKIP_temp.zip");
+    mTemporaryFile = fileWithinProjectDir("_SKIP_temp.zip");
   }
 
   @Override
@@ -234,13 +230,13 @@ public final class ArchiveOper extends AppOper {
 
     boolean proc = false;
 
-    if (Files.nonEmpty(mMarkForPushingFile)) {
+    if (nonEmpty(mPushPathArg)) {
       proc = true;
-      markForPushing();
+      markForPushing(mPushPathArg);
     }
-    if (Files.nonEmpty(mForgetArg)) {
+    if (nonEmpty(mForgetPathArg)) {
       proc = true;
-      markForForgetting();
+      markForForgetting(mForgetPathArg);
     }
 
     if (proc) {
@@ -277,11 +273,11 @@ public final class ArchiveOper extends AppOper {
   }
 
   private File registerGlobalFile() {
-    return fileWithinProjectDir( "archive_registry.json");
+    return fileWithinProjectDir("archive_registry.json");
   }
 
   private File registerLocalFile() {
-    return fileWithinProjectDir( ".archive_registry.json");
+    return fileWithinProjectDir(".archive_registry.json");
   }
 
   private void readHiddenRegistry() {
@@ -404,14 +400,27 @@ public final class ArchiveOper extends AppOper {
     return new File(mProjectDirectory, relativeFilePath);
   }
 
-  private File fileWithinWorkDirectory(File f) {
-    if (!f.isAbsolute())
-      f = new File(mProjectDirectory, f.toString());
-    return Files.getCanonicalFile(f);
+  /**
+   * Given a path, convert it to a file relative to the project directory. Fail
+   * if it is not within the project directory
+   */
+  private File relativeToProjectDirectory(String pathArg) {
+    checkArgument(nonEmpty(pathArg));
+    File f = new File(pathArg);
+    if (!f.isAbsolute()) {
+      f = new File(mProjectDirectory, pathArg);
+    }
+    f = Files.getCanonicalFile(f);
+
+    String fPath = f.toString();
+    String pPath = mProjectDirectory.toString();
+    if (!fPath.startsWith(pPath))
+      throw badArg("path is not within project directory:", pathArg);
+    return new File(fPath.substring(pPath.length() + 1));
   }
 
-  private void markForPushing() {
-    File path = fileWithinWorkDirectory(mMarkForPushingFile);
+  private void markForPushing(String pathArg) {
+    File path = relativeToProjectDirectory(pathArg);
     String foundKey = findKeyForFileOrDir(path);
     ArchiveEntry foundEntry = mRegistryGlobal.entries().get(foundKey);
     ArchiveEntry updatedEntry = foundEntry.toBuilder().push(true).build();
@@ -464,9 +473,8 @@ public final class ArchiveOper extends AppOper {
     return foundKey;
   }
 
-  private void markForForgetting() {
-    File path = mForgetArg;
-    todo("treat 'forget' arg similarly to 'push' arg, by canonicalizing, relativizing etc");
+  private void markForForgetting(String pathArg) {
+    File path = relativeToProjectDirectory(pathArg);
     String foundKey = findKeyForFileOrDir(path);
     ArchiveEntry foundEntry = mRegistryGlobal.entries().get(foundKey);
     ArchiveEntry updatedEntry = foundEntry.toBuilder().forget(true).build();
@@ -667,7 +675,7 @@ public final class ArchiveOper extends AppOper {
   }
 
   private File tempFile() {
-    return mWorkTempFile;
+    return mTemporaryFile;
   }
 
   private boolean specificFilesOnly() {
@@ -725,7 +733,7 @@ public final class ArchiveOper extends AppOper {
     String pathString = key;
     if (!Files.empty(entry.path()))
       pathString = entry.path().toString();
-   return fileWithinProjectDir(pathString);
+    return fileWithinProjectDir(pathString);
   }
 
   private ArchiveDevice device() {
@@ -743,7 +751,7 @@ public final class ArchiveOper extends AppOper {
   // ------------------------------------------------------------------
 
   private File mProjectDirectory;
-  private File mWorkTempFile;
+  private File mTemporaryFile;
 
   private ArchiveRegistry mRegistryGlobalOriginal;
   private ArchiveRegistry.Builder mRegistryGlobal;
@@ -760,8 +768,8 @@ public final class ArchiveOper extends AppOper {
   private ArchiveEntry.Builder mEntry;
   private File mSourceFile;
   private File mSourceDirectory;
-  private File mMarkForPushingFile;
-  private File mForgetArg;
+  private String mPushPathArg;
+  private String mForgetPathArg;
   private File mMockRemoteDir;
   private ArchiveDevice mDevice;
 }
