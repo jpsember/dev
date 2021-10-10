@@ -153,10 +153,21 @@ import dev.gen.archive.ArchiveRegistry;
  * 
  * </pre>
  * 
+ * 
+ * TODO: when a directory is archived, e.g. aaa/bbb/ccc, it gets saved as a zip
+ * file within the archive root directory, e.g. ccc.zip. This is a problem if
+ * there are multiple directories named ccc, but with different paths, as they
+ * will attempt to use the same filename(s) within the archive. It would
+ * probably be better if the filename is based on the full (relative) path, e.g.
+ * "aaa_bbb_ccc.zip" (though this has problems as '_' is a valid path character,
+ * so aaa/bbb/ccc/ would conflict with aaa_bbb_ccc/).
+ * 
+ * Note also that underscores cannot appear in bucket names in S3.
+ * 
  */
 public final class ArchiveOper extends AppOper {
 
-  private static final boolean DUMP_REG = alert("dumping registries");
+  private static final boolean DUMP_REG = false && alert("dumping registries");
 
   @Override
   public String userCommand() {
@@ -685,6 +696,7 @@ public final class ArchiveOper extends AppOper {
     if (Files.empty(path)) {
       path = new File(key);
     }
+    todo("Do we want to force paths to be relative?");
     if (!path.isAbsolute()) {
       path = new File(workDirectory, path.toString());
     }
