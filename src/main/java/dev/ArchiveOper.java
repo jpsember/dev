@@ -512,7 +512,7 @@ public final class ArchiveOper extends AppOper {
     int nextVersionNumber = mEntry.version() + 1;
     String entryName = entryName(mKey);
     String versionedFilename = filenameWithVersion(entryName, nextVersionNumber);
-    log("...pushing version " + nextVersionNumber, "of:", entryName(mKey), "to", versionedFilename);
+    log("...pushing version " + nextVersionNumber, "of:", entryName, "to", versionedFilename);
     log("...source:", sourceFileOrDirectory());
 
     if (device().fileExists(versionedFilename))
@@ -539,8 +539,7 @@ public final class ArchiveOper extends AppOper {
   }
 
   private void pullVersion(int desiredVersion) {
-    log("...pulling version " + desiredVersion, "of:", entryName(mKey));
-
+    log("...pulling version " + desiredVersion, "of:", mKey);
     String entryName = entryName(mKey);
     String versionedFilename = filenameWithVersion(entryName, desiredVersion);
 
