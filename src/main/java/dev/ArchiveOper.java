@@ -136,7 +136,7 @@ import dev.gen.archive.ArchiveRegistry;
  * 
  * Removing an object from the archive
  * ------------------------------------------------------------------------------------
- * To delete "<project root directory>/abc/xyz/foo" from the archive:
+ * To make the archive stop tracking "<project root directory>/abc/xyz/foo":
  * 
  *    dev archive forget abc/xyz/foo
  *    dev archive
@@ -145,6 +145,11 @@ import dev.gen.archive.ArchiveRegistry;
  * 
  *    dev archive forget moo
  *    dev archive
+ * 
+ * Note that neither the local copy of an object, nor any previously pushed versions in the external data store,
+ * are deleted by this operation.  It only makes the archive "forget" about the object.  It must be manually deleted
+ * (if desired) from the local machine or the data store. 
+ * 
  * 
  * </pre>
  * 
@@ -337,7 +342,7 @@ public final class ArchiveOper extends AppOper {
       log("...storing new version of entry:", mKey, INDENT, updatedEntry);
       modifiedEntries.put(mKey, updatedEntry);
     }
-    mRegistryGlobal.entries().putAll(modifiedEntries); //put(key, updatedEntry);
+    mRegistryGlobal.entries().putAll(modifiedEntries);  
     pr("after updating entries:", INDENT, mRegistryGlobal);
   }
 
