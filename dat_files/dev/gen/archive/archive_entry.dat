@@ -2,8 +2,6 @@ fields {
 
   File path;
 
-  string name;
-
   int version;
 
   bool push;

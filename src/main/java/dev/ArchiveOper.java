@@ -148,7 +148,7 @@ import dev.gen.archive.ArchiveRegistry;
  * 
  * Note that neither the local copy of an object, nor any previously pushed versions in the external data store,
  * are deleted by this operation.  It only makes the archive "forget" about the object.  It must be manually deleted
- * (if desired) from the local machine or the data store. 
+ * (if desired) from the local machine or the data store.
  * 
  * 
  * </pre>
@@ -279,8 +279,6 @@ public final class ArchiveOper extends AppOper {
           JSMap m = m2.getMap(k);
           if (!m.opt("push"))
             m.remove("push");
-          if (m.get("name").isEmpty())
-            m.remove("name");
           if (m.get("path").isEmpty())
             m.remove("path");
           m.remove("offload");
@@ -342,7 +340,7 @@ public final class ArchiveOper extends AppOper {
       log("...storing new version of entry:", mKey, INDENT, updatedEntry);
       modifiedEntries.put(mKey, updatedEntry);
     }
-    mRegistryGlobal.entries().putAll(modifiedEntries);  
+    mRegistryGlobal.entries().putAll(modifiedEntries);
     pr("after updating entries:", INDENT, mRegistryGlobal);
   }
 
@@ -501,9 +499,9 @@ public final class ArchiveOper extends AppOper {
 
   private void pushEntry() {
     int nextVersionNumber = mEntry.version() + 1;
-    String entryName = entryName(mKey, mEntry);
+    String entryName = entryName(mKey);
     String versionedFilename = filenameWithVersion(entryName, nextVersionNumber);
-    log("...pushing version " + nextVersionNumber, "of:", briefName(mKey, mEntry), "to", versionedFilename);
+    log("...pushing version " + nextVersionNumber, "of:", entryName(mKey), "to", versionedFilename);
     log("...source:", sourceFileOrDirectory());
 
     if (device().fileExists(versionedFilename))
@@ -530,9 +528,9 @@ public final class ArchiveOper extends AppOper {
   }
 
   private void pullVersion(int desiredVersion) {
-    log("...pulling version " + desiredVersion, "of:", briefName(mKey, mEntry));
+    log("...pulling version " + desiredVersion, "of:", entryName(mKey));
 
-    String entryName = entryName(mKey, mEntry);
+    String entryName = entryName(mKey);
     String versionedFilename = filenameWithVersion(entryName, desiredVersion);
 
     Files.S.deleteFile(tempFile());
@@ -675,20 +673,11 @@ public final class ArchiveOper extends AppOper {
   // ArchiveEntry utilities
   // ------------------------------------------------------------------
 
-  private static String entryName(String key, ArchiveEntry entry) {
-    String name = entry.name();
+  private static String entryName(String key) {
+    String name = FilenameUtils.getName(key);
     if (!name.isEmpty())
       return name;
-
-    name = FilenameUtils.getName(key);
-    if (!name.isEmpty())
-      return name;
-    throw die("Cannot parse entry name for key", key, ":", INDENT, entry);
-  }
-
-  private static String briefName(String key, ArchiveEntry entry) {
-    String name = entryName(key, entry);
-    return FilenameUtils.getName(name);
+    throw die("Cannot parse entry name for key", key);
   }
 
   private static File sourceFileOrDirectory(File workDirectory, String key, ArchiveEntry entry) {
