@@ -177,8 +177,6 @@ import dev.gen.archive.ArchiveRegistry;
  */
 public final class ArchiveOper extends AppOper {
 
-  private static final boolean DUMP_REG = false && alert("dumping registries");
-
   @Override
   public String userCommand() {
     return "archive";
@@ -276,14 +274,17 @@ public final class ArchiveOper extends AppOper {
       p.pr("*** Bad version number:", registry.version(), "; expected", expected);
     else {
       for (Entry<String, ArchiveEntry> entry : registry.entries().entrySet()) {
+        String key = entry.getKey();
         ArchiveEntry ent = entry.getValue();
         File pt = ent.path();
         if (Files.nonEmpty(pt)) {
-          if (!RegExp.patternMatchesString(RELATIVE_PATH_PATTERN, pt.toString())) {
-            p.pr("*** Illegal path for:", entry.getKey(), INDENT, ent);
-          }
-          todo(
-              "validate the path has an extension if it's a file, and doesn't have one if it's a directory; similar to push() operation");
+          String problemText = null;
+          if (!RegExp.patternMatchesString(RELATIVE_PATH_PATTERN, pt.toString()))
+            problemText = "Illegal path";
+          else
+            problemText = verifyValidFileExtension(key, ent);
+          if (nonEmpty(problemText))
+            p.pr("***", problemText, "; key:", key, INDENT, ent);
         }
       }
     }
@@ -293,12 +294,26 @@ public final class ArchiveOper extends AppOper {
       setError("Problems with archive registry", contextExpr(context), ":", INDENT, errorMessage);
   }
 
+  private String verifyValidFileExtension(String key, ArchiveEntry entry) {
+    File path = Files.assertNonEmpty(entry.path(), "missing path");
+    File file = fileWithinProjectDir(path.toString());
+    pr("verify valid file extension, key:", key, INDENT, entry);
+    if (file.exists()) {
+      String ext = Files.getExtension(file);
+      pr("...file:", file, "ext:", ext, "dir:", file.isDirectory());
+      if (file.isDirectory()) {
+        if (!ext.isEmpty())
+          return "Directory must not have an extension";
+      } else if (ext.isEmpty()) {
+        return "Non-directory file must have an extension";
+      }
+    }
+    return null;
+  }
+
   private void readRegistry() {
-    todo("refactor to better determine if registry (normal and hidden) have changed");
     File globalFile = registerGlobalFile();
     ArchiveRegistry registry = Files.parseAbstractData(ArchiveRegistry.DEFAULT_INSTANCE, globalFile);
-    if (DUMP_REG)
-      pr("global registry:", INDENT, registry);
     validateRegistry(registry, globalFile.getName());
     mRegistryGlobalOriginal = registry;
     mRegistryGlobal = registry.toBuilder();
@@ -319,10 +334,6 @@ public final class ArchiveOper extends AppOper {
 
     mRegistryLocalOriginal = registry;
     validateRegistry(registry, hiddenFile.getName());
-
-    if (DUMP_REG) {
-      pr("local registry:", INDENT, registry);
-    }
 
     // Apparently the toBuilder() call *does* construct a copy of the entries map, which is what we need
     // (since we want to leave the original registry untouched)
@@ -471,13 +482,13 @@ public final class ArchiveOper extends AppOper {
         setError("entry already exists for key", key, "derived from path", keyOrPath, ":", INDENT,
             existingEntry);
 
-      todo(
-          "validate the filename has an extension if it's a file, and doesn't have one if it's a directory, and is a valid path otherwise");
-
       // Construct a new entry for this key
       ArchiveEntry.Builder b = ArchiveEntry.newBuilder();
       b.path(path);
       entry = b.build();
+      String problem = verifyValidFileExtension(key, entry);
+      if (nonEmpty(problem))
+        setError(problem, "; key:", key, INDENT, entry);
       mRegistryGlobal.entries().put(key, entry);
     }
 

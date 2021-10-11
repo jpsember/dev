@@ -1,4 +1,6 @@
-{               "forgetMark" : 6375,
+{         "extensionProblem" : 2963,
+         "extensionProblem2" : 5781,
+                "forgetMark" : 6375,
                  "forgotten" : 7341,
        "pushInitialVersions" : 3517,
                 "pushUpdate" : 6691,
@@ -6,8 +8,8 @@
        "pushViaPathConflict" : 6086,
         "validateBadVersion" : 1011,
   "validateBadVersionHidden" : 9713,
-   "validatePathBadFilename" : 1968,
-  "validatePathIllegalChars" : 7170,
+   "validatePathBadFilename" : 8167,
+  "validatePathIllegalChars" : 2801,
      "validatePathIllformed" : 3129,
-   "validatePathNotRelative" : 9190
+   "validatePathNotRelative" : 4821
 }

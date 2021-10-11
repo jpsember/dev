@@ -68,7 +68,8 @@ public class ArchiveOperTest extends MyTestCase {
   }
 
   /**
-   * Fail pushing a new object via a path that conflicts with an existing object's key
+   * Fail pushing a new object via a path that conflicts with an existing
+   * object's key
    */
   @Test
   public void pushViaPathConflict() {
@@ -84,7 +85,7 @@ public class ArchiveOperTest extends MyTestCase {
 
     assertGenerated();
   }
-  
+
   /**
    * Mark an object for forgetting
    */
@@ -118,6 +119,24 @@ public class ArchiveOperTest extends MyTestCase {
     runApp();
 
     assertGenerated();
+  }
+
+  /**
+   * Non-directory file must have an extension
+   */
+  @Test
+  public void extensionProblem() {
+    addArg("push", "gamma");
+    execute();
+  }
+
+  /**
+   * Directory must not have an extension
+   */
+  @Test
+  public void extensionProblem2() {
+    addArg("push", "gamma.dir");
+    execute();
   }
 
   @Test
