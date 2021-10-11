@@ -598,7 +598,7 @@ public final class ArchiveOper extends AppOper {
 
     // Push new version from local to cloud if push signal was given
     //
-    if (mEntry.version() == 0 || mEntry.push()) {
+    if (mEntry.version() == 0 || mEntry.push() == Boolean.TRUE) {
       pushEntry();
       mPushedCount++;
       return;
@@ -688,7 +688,7 @@ public final class ArchiveOper extends AppOper {
       files().deleteFile(sourceFile);
 
     mEntry.version(nextVersionNumber);
-    mEntry.push(false);
+    mEntry.push(null);
     storeLocalVersion(mEntry.version());
   }
 

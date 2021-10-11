@@ -4,7 +4,7 @@ fields {
 
   int version;
 
-  bool push;
+  ? bool push;
 
   bool offload;
 
