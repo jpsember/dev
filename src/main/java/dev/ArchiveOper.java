@@ -199,7 +199,6 @@ public final class ArchiveOper extends AppOper {
 
   @Override
   protected void processAdditionalArgs() {
-    todo("be careful to 'canonicalize' paths where appropriate");
     mProjectDirectory = new File(cmdLineArgs().nextArgIf("dir", ""));
     mMockRemoteDir = new File(cmdLineArgs().nextArgIf("mock_remote", ""));
     mPushPathArg = cmdLineArgs().nextArgIf("push", "");
@@ -226,12 +225,13 @@ public final class ArchiveOper extends AppOper {
 
   @Override
   public void perform() {
-    todo("update old versions, changing keys that are paths to just their filenames if possible");
     fixPaths();
 
     readRegistry();
-    if (mValidateOnly)
+    if (mValidateOnly) {
+      flushRegistry();
       return;
+    }
 
     boolean proc = false;
 
@@ -314,8 +314,9 @@ public final class ArchiveOper extends AppOper {
   private void readRegistry() {
     File globalFile = registerGlobalFile();
     ArchiveRegistry registry = Files.parseAbstractData(ArchiveRegistry.DEFAULT_INSTANCE, globalFile);
-    validateRegistry(registry, globalFile.getName());
     mRegistryGlobalOriginal = registry;
+    registry = updateRegistry(registry);
+    validateRegistry(registry, globalFile.getName());
     mRegistryGlobal = registry.toBuilder();
     readHiddenRegistry();
   }
@@ -331,13 +332,48 @@ public final class ArchiveOper extends AppOper {
   private void readHiddenRegistry() {
     File hiddenFile = registerLocalFile();
     ArchiveRegistry registry = Files.parseAbstractDataOpt(ArchiveRegistry.DEFAULT_INSTANCE, hiddenFile);
-
     mRegistryLocalOriginal = registry;
+    registry = updateRegistry(registry);
+
     validateRegistry(registry, hiddenFile.getName());
 
     // Apparently the toBuilder() call *does* construct a copy of the entries map, which is what we need
     // (since we want to leave the original registry untouched)
     mRegistryLocal = registry.toBuilder();
+  }
+
+  private ArchiveRegistry updateRegistry(ArchiveRegistry registry) {
+    if (registry.version().equals("1.0")) {
+      // Replace keys with basenames, and set path to key, where appropriate
+      ArchiveRegistry.Builder b = registry.build().toBuilder();
+
+      for (Entry<String, ArchiveEntry> ent : registry.entries().entrySet()) {
+        String key = ent.getKey();
+        ArchiveEntry entry = ent.getValue();
+        ArchiveEntry.Builder eb = entry.toBuilder();
+
+        String newKey = key;
+        String basename = Files.basename(key);
+        if (!basename.equals(key)) {
+          // change the key, if possible.  Remove existing mapping, verify no mapping exists for new key, and point new key at mapping
+          ArchiveEntry currentMapping = b.entries().get(basename);
+          if (currentMapping != null) {
+            setError("cannot rename key", key, "to", basename, "as that key already points to:", INDENT,
+                currentMapping);
+          }
+          newKey = basename;
+          b.entries().remove(key);
+        }
+
+        if (Files.empty(entry.path())) {
+          eb.path(new File(key));
+        }
+        b.entries().put(newKey, eb.build());
+      }
+      b.version(ArchiveRegistry.DEFAULT_INSTANCE.version());
+      registry = b.build();
+    }
+    return registry;
   }
 
   private void flushRegistry() {

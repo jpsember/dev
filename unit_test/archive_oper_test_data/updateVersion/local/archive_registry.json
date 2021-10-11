@@ -1,0 +1,11 @@
+{
+    "entries": {
+        "source/pojo/unit_test/generator_test_data": {
+            "version": 4
+        },
+        "source/pojo/unit_test/optional_test_data": {
+            "version": 1
+        }
+    },
+    "version": "1.0"
+}

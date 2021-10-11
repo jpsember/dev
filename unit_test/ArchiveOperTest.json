@@ -6,6 +6,8 @@
                 "pushUpdate" : 6691,
                "pushViaPath" : 3977,
        "pushViaPathConflict" : 6086,
+             "updateVersion" : 8755,
+        "updateVersionFails" : 6399,
         "validateBadVersion" : 1011,
   "validateBadVersionHidden" : 9713,
    "validatePathBadFilename" : 8167,

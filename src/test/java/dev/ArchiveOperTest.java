@@ -140,6 +140,18 @@ public class ArchiveOperTest extends MyTestCase {
   }
 
   @Test
+  public void updateVersion() {
+    addArg("validate");
+    execute();
+  }
+
+  @Test
+  public void updateVersionFails() {
+    addArg("validate");
+    execute();
+  }
+
+  @Test
   public void validateBadVersion() {
     validate(map().put("version", "foo"));
   }
