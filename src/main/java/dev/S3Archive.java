@@ -46,6 +46,12 @@ public class S3Archive implements ArchiveDevice {
   }
 
   @Override
+  public void setDryRun(boolean dryRun) {
+    checkState(mDryRun == null || mDryRun == dryRun, "dry run already initialized");
+    mDryRun = dryRun;
+  }
+
+  @Override
   public boolean fileExists(String name) {
     SystemCall sc = s3Call();
     sc.arg("ls", mBucketPath + name);
@@ -54,6 +60,8 @@ public class S3Archive implements ArchiveDevice {
 
   @Override
   public void push(File source, String name) {
+    if (isDryRun())
+      return;
     SystemCall sc = s3Call();
     sc.arg("cp", source.toString(), mBucketPath + name);
     sc.assertSuccess();
@@ -61,6 +69,8 @@ public class S3Archive implements ArchiveDevice {
 
   @Override
   public void pull(String name, File destination) {
+    if (isDryRun())
+      return;
     SystemCall sc = s3Call();
     sc.arg("cp", mBucketPath + name, destination);
     if (sc.exitCode() != 0) {
@@ -80,8 +90,14 @@ public class S3Archive implements ArchiveDevice {
     return sc;
   }
 
+  private boolean isDryRun() {
+    if (mDryRun == null)
+      setDryRun(false);
+    return mDryRun;
+  }
+
   private final String mProfileName;
   private final String mBucketPath;
   private final File mRootDirectory;
-
+  private Boolean mDryRun;
 }

@@ -8,6 +8,8 @@ import java.io.File;
  */
 public interface ArchiveDevice {
 
+  void setDryRun(boolean dryRun);
+  
   /**
    * Determine if an object exists in the archive
    */

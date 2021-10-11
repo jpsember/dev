@@ -35,7 +35,12 @@ public class FileArchiveDevice implements ArchiveDevice {
   public FileArchiveDevice(File rootDirectory) {
     loadTools();
     mRootDir = rootDirectory;
-    Files.S.mkdirs(rootDirectory);
+  }
+
+  @Override
+  public void setDryRun(boolean dryRun) {
+    checkState(mFiles == null, "files already constructed");
+    mDryRun = dryRun;
   }
 
   @Override
@@ -50,16 +55,27 @@ public class FileArchiveDevice implements ArchiveDevice {
   @Override
   public void push(File source, String name) {
     File target = fileWithinArchive(name);
-    Files.S.mkdirs(Files.parent(target));
-    Files.S.copyFile(source, target);
+    files().mkdirs(Files.parent(target));
+    files().copyFile(source, target);
   }
 
   @Override
   public void pull(String name, File destination) {
     File source = fileWithinArchive(name);
-    Files.S.copyFile(source, destination);
+    files().copyFile(source, destination);
+  }
+
+  private Files files() {
+    if (mFiles == null) {
+      Files mf = new Files();
+      mf.withDryRun(mDryRun);
+      mf.mkdirs(mRootDir);
+      mFiles = mf;
+    }
+    return mFiles;
   }
 
   private final File mRootDir;
-
+  private boolean mDryRun;
+  private Files mFiles;
 }

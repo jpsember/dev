@@ -207,21 +207,13 @@ public final class ArchiveOper extends AppOper {
     mValidateOnly = cmdLineArgs().nextArgIf("validate");
   }
 
-  /**
-   * If a file is nonempty, get its canonical version
-   */
-  private File fixPath(File file) {
-    if (Files.nonEmpty(file))
-      return file;
-    return Files.getCanonicalFile(file);
-  }
-
   private void fixPaths() {
     if (Files.empty(mProjectDirectory))
       mProjectDirectory = Files.getCanonicalFile(Files.parent(Files.S.projectConfigDirectory()));
     else
       mProjectDirectory = Files.getCanonicalFile(mProjectDirectory);
-    mMockRemoteDir = fixPath(mMockRemoteDir);
+    if (Files.nonEmpty(mMockRemoteDir))
+      mMockRemoteDir = Files.getCanonicalFile(mMockRemoteDir);
     mTemporaryFile = fileWithinProjectDir("_SKIP_temp.zip");
   }
 
@@ -284,7 +276,7 @@ public final class ArchiveOper extends AppOper {
           problemText = "Illegal path";
         else {
           if (ent.version() != 0 || ent.directory() == Boolean.TRUE) {
-            File actualFile = fileWithinProjectDir(pt.toString());
+            File actualFile = fileWithinProjectDir(pt);
             if (actualFile.exists() && actualFile.isDirectory() != (ent.directory() == Boolean.TRUE))
               problemText = "Directory flag is incorrect";
           }
@@ -364,7 +356,7 @@ public final class ArchiveOper extends AppOper {
 
       if (v1Update) {
         // Initialize the directory flag
-        File absPath = fileWithinProjectDir(newEntry.path().toString());
+        File absPath = fileWithinProjectDir(newEntry.path());
         if (absPath.isDirectory())
           newEntry.directory(true);
       }
@@ -468,6 +460,10 @@ public final class ArchiveOper extends AppOper {
       pr("after forgetting:", keysToDelete, INDENT, mRegistryGlobal, CR, mRegistryLocal);
   }
 
+  private File fileWithinProjectDir(File relativePath) {
+    return fileWithinProjectDir(relativePath.toString());
+  }
+
   private File fileWithinProjectDir(String relativeFilePath) {
     checkArgument(relativeFilePath.charAt(0) != '/');
     return new File(mProjectDirectory, relativeFilePath);
@@ -502,6 +498,10 @@ public final class ArchiveOper extends AppOper {
     if (entry == null) {
       // User wants to push an object that is not in the archive
       File path = relativeToProjectDirectory(keyOrPath);
+      File absPath = fileWithinProjectDir(path);
+      if (!absPath.exists())
+        setError("Can't find file:", absPath);
+
       // Determine the key that will be assigned to this path
       key = path.getName();
       // If an entry already exists for this key, that is a problem
@@ -585,7 +585,7 @@ public final class ArchiveOper extends AppOper {
   private void updateEntry() {
     // If version is zero, assume pushing; also, set directory flag
     if (mEntry.version() == 0) {
-      File absPath = fileWithinProjectDir(mEntry.path().toString());
+      File absPath = fileWithinProjectDir(mEntry.path());
       if (!absPath.exists())
         setError("no file exists:", mKey, INDENT, mEntry);
       if (absPath.isDirectory())
@@ -853,9 +853,11 @@ public final class ArchiveOper extends AppOper {
       if (Files.nonEmpty(mMockRemoteDir))
         mDevice = new FileArchiveDevice(mMockRemoteDir);
       else {
-        die("S3Archive disabled for now");
-        mDevice = new S3Archive("<profile name>", "<s3 account name>/archive", mProjectDirectory);
+        File authFile = Files.S.fileWithinSecrets("s3_auth.json");
+        JSMap m = JSMap.from(authFile);
+        mDevice = new S3Archive(m.get("profile"), m.get("account_name") + "/archive", mProjectDirectory);
       }
+      mDevice.setDryRun(dryRun());
     }
     return mDevice;
   }
