@@ -261,7 +261,7 @@ public final class ArchiveOper extends AppOper {
   }
 
   private static final Pattern RELATIVE_PATH_PATTERN = RegExp
-      .pattern("^\\.?\\w+(?:\\/\\.?\\w+)*(?:\\.\\w+)?$");
+      .pattern("^\\.?\\w+(?:\\/\\.?\\w+)*(?:\\.\\w+)*$");
 
   private String contextExpr(Object contextOrNull) {
     return "(" + nullTo(contextOrNull, "no context given") + ")";
@@ -278,36 +278,24 @@ public final class ArchiveOper extends AppOper {
         String key = entry.getKey();
         ArchiveEntry ent = entry.getValue();
         File pt = ent.path();
-        if (Files.nonEmpty(pt)) {
-          String problemText = null;
-          if (!RegExp.patternMatchesString(RELATIVE_PATH_PATTERN, pt.toString()))
-            problemText = "Illegal path";
-          else
-            problemText = verifyValidFileExtension(key, ent);
-          if (nonEmpty(problemText))
-            p.pr("***", problemText, "; key:", key, INDENT, ent);
+        String problemText = null;
+        if (!RegExp.patternMatchesString(RELATIVE_PATH_PATTERN, pt.toString()))
+          problemText = "Illegal path";
+        else {
+          if (ent.version() != 0 || ent.directory() == Boolean.TRUE) {
+            File actualFile = fileWithinProjectDir(pt.toString());
+            if (actualFile.exists() && actualFile.isDirectory() != (ent.directory() == Boolean.TRUE))
+              problemText = "Directory flag is incorrect";
+          }
         }
+        if (nonEmpty(problemText))
+          p.pr("***", problemText, "; key:", key, INDENT, ent);
       }
     }
 
     String errorMessage = p.toString();
     if (nonEmpty(errorMessage))
       setError("Problems with archive registry", contextExpr(context), ":", INDENT, errorMessage);
-  }
-
-  private String verifyValidFileExtension(String key, ArchiveEntry entry) {
-    File path = Files.assertNonEmpty(entry.path(), "missing path");
-    File file = fileWithinProjectDir(path.toString());
-    if (file.exists()) {
-      String ext = Files.getExtension(file);
-      if (file.isDirectory()) {
-        if (!ext.isEmpty())
-          return "Directory must not have an extension";
-      } else if (ext.isEmpty()) {
-        return "Non-directory file must have an extension";
-      }
-    }
-    return null;
   }
 
   private void readRegistry() {
@@ -343,7 +331,7 @@ public final class ArchiveOper extends AppOper {
 
   private ArchiveRegistry updateRegistry(ArchiveRegistry registry) {
 
-    boolean makeKeysBasenamesOnly = registry.version().equals("1.0");
+    boolean v1Update = registry.version().equals("1.0");
     ArchiveRegistry.Builder b = registry.build().toBuilder();
 
     // Replace keys with basenames, and set path to key, where appropriate
@@ -354,7 +342,15 @@ public final class ArchiveOper extends AppOper {
       ArchiveEntry.Builder eb = entry.toBuilder();
 
       String newKey = key;
-      if (makeKeysBasenamesOnly) {
+      if (v1Update) {
+
+        // Initialize the directory flag
+        //
+        if (key.endsWith(".zip")
+            || (!Files.empty(entry.path()) && Files.getExtension(entry.path()).equals("zip"))) {
+          eb.directory(true);
+        }
+
         String basename = Files.basename(key);
         if (!basename.equals(key)) {
           // change the key, if possible.  Remove existing mapping, verify no mapping exists for new key, and point new key at mapping
@@ -384,7 +380,7 @@ public final class ArchiveOper extends AppOper {
 
   private void flushRegistry() {
     todo("get rid of 'ignore' field");
-    
+
     if (!mRegistryGlobalOriginal.equals(mRegistryGlobal)) {
       JSMap registryMap;
       {
@@ -436,6 +432,8 @@ public final class ArchiveOper extends AppOper {
       mEntry = entry.toBuilder();
 
       File file = absoluteFileForEntry(mKey, mEntry);
+
+      todo("the file vs directory instance fields should be unnecessary");
 
       if (Files.getExtension(file).isEmpty()) {
         mSourceFile = null;
@@ -523,10 +521,9 @@ public final class ArchiveOper extends AppOper {
       // Construct a new entry for this key
       ArchiveEntry.Builder b = ArchiveEntry.newBuilder();
       b.path(path);
+      if (path.isDirectory())
+        b.directory(true);
       entry = b.build();
-      String problem = verifyValidFileExtension(key, entry);
-      if (nonEmpty(problem))
-        setError(problem, "; key:", key, INDENT, entry);
       mRegistryGlobal.entries().put(key, entry);
     }
 
@@ -581,6 +578,7 @@ public final class ArchiveOper extends AppOper {
   }
 
   private void markForForgetting(String pathArg) {
+    todo("get entry given a path arg, which may be a key, or a path");
     File path = relativeToProjectDirectory(pathArg);
     String foundKey = findKeyForFileOrDir(path);
     ArchiveEntry foundEntry = mRegistryGlobal.entries().get(foundKey);
@@ -598,9 +596,20 @@ public final class ArchiveOper extends AppOper {
 
   private void updateEntry() {
 
+    // If version is zero, assume pushing; also, set directory flag
+    if (mEntry.version() == 0) {
+      File absPath = fileWithinProjectDir(mEntry.path().toString());
+      if (!absPath.exists())
+        setError("no file exists:", mKey, INDENT, mEntry);
+      if (absPath.isDirectory())
+        mEntry.directory(true);
+      mEntry.push(true);
+    }
+
     // Push new version from local to cloud if push signal was given
     //
-    if (mEntry.version() == 0 || mEntry.push() == Boolean.TRUE) {
+
+    if (mEntry.push() == Boolean.TRUE) {
       pushEntry();
       mPushedCount++;
       return;

@@ -4,6 +4,10 @@ fields {
 
   int version;
 
+  // If true, it's a directory, vs a single file
+  //
+  ? bool directory;
+
   ? bool push;
 
   ? bool offload;

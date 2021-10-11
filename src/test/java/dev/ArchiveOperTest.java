@@ -121,24 +121,6 @@ public class ArchiveOperTest extends MyTestCase {
     assertGenerated();
   }
 
-  /**
-   * Non-directory file must have an extension
-   */
-  @Test
-  public void extensionProblem() {
-    addArg("push", "gamma");
-    execute();
-  }
-
-  /**
-   * Directory must not have an extension
-   */
-  @Test
-  public void extensionProblem2() {
-    addArg("push", "gamma.dir");
-    execute();
-  }
-
   @Test
   public void updateVersion() {
     addArg("validate");
@@ -168,7 +150,7 @@ public class ArchiveOperTest extends MyTestCase {
 
   @Test
   public void validatePathBadFilename() {
-    validate(map().put("entries", map().put("a", map().put("path", "illegal/path.repeated.extensions"))));
+    validate(map().put("entries", map().put("a", map().put("path", "illegal/path..strangesequence"))));
   }
 
   @Test

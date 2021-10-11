@@ -3,7 +3,8 @@
                                             "offload" : false,
                                                "path" : "",
                                                "push" : false,
-                                            "version" : 1
+                                            "version" : 1,
+                                            "directory" : true
                                   },
                     "gamma.txt" : { "file_extensions" : [  ],
                                                "name" : "",

@@ -1,5 +1,6 @@
 { "entries" : {     "alpha" : {  "forget" : true,
-                                "version" : 1
+                                "version" : 1,
+                                "directory" : true
                               },
                 "gamma.txt" : { "version" : 1 }
               },
