@@ -228,6 +228,7 @@ public final class ArchiveOper extends AppOper {
 
   @Override
   public void perform() {
+    todo("update old versions, changing keys that are paths to just their filenames if possible");
     fixPaths();
 
     readRegistry();
@@ -281,6 +282,8 @@ public final class ArchiveOper extends AppOper {
           if (!RegExp.patternMatchesString(RELATIVE_PATH_PATTERN, pt.toString())) {
             p.pr("*** Illegal path for:", entry.getKey(), INDENT, ent);
           }
+          todo(
+              "validate the path has an extension if it's a file, and doesn't have one if it's a directory; similar to push() operation");
         }
       }
     }
@@ -422,7 +425,8 @@ public final class ArchiveOper extends AppOper {
       mRegistryGlobal.entries().keySet().removeAll(keysToDelete);
       mRegistryLocal.entries().keySet().removeAll(keysToDelete);
     }
-    pr("after forgetting:", keysToDelete, INDENT, mRegistryGlobal, CR, mRegistryLocal);
+    if (!keysToDelete.isEmpty())
+      pr("after forgetting:", keysToDelete, INDENT, mRegistryGlobal, CR, mRegistryLocal);
   }
 
   private File fileWithinProjectDir(String relativeFilePath) {
@@ -449,16 +453,40 @@ public final class ArchiveOper extends AppOper {
     return new File(fPath.substring(pPath.length() + 1));
   }
 
-  private void markForPushing(String pathArg) {
-    File path = relativeToProjectDirectory(pathArg);
-    String foundKey = findKeyForFileOrDir(path);
-    ArchiveEntry foundEntry = mRegistryGlobal.entries().get(foundKey);
-    ArchiveEntry updatedEntry = foundEntry.toBuilder().push(true).build();
-    if (!updatedEntry.equals(foundEntry)) {
-      pr("...marking for push:", foundKey);
-      mRegistryGlobal.entries().put(foundKey, updatedEntry);
+  private void markForPushing(String keyOrPath) {
+
+    // If argument matches an existing key, proceed with that key's ArchiveEntry
+    ArchiveEntry entry = mRegistryGlobal.entries().get(keyOrPath);
+    String key = keyOrPath;
+
+    pr("....marking for pushing, keyOrPath:", keyOrPath);
+    if (entry == null) {
+      // User wants to push an object that is not in the archive
+      File path = relativeToProjectDirectory(keyOrPath);
+      // Determine the key that will be assigned to this path
+      key = path.getName();
+      // If an entry already exists for this key, that is a problem
+      ArchiveEntry existingEntry = mRegistryGlobal.entries().get(key);
+      if (existingEntry != null)
+        setError("entry already exists for key", key, "derived from path", keyOrPath, ":", INDENT,
+            existingEntry);
+
+      todo(
+          "validate the filename has an extension if it's a file, and doesn't have one if it's a directory, and is a valid path otherwise");
+
+      // Construct a new entry for this key
+      ArchiveEntry.Builder b = ArchiveEntry.newBuilder();
+      b.path(path);
+      entry = b.build();
+      mRegistryGlobal.entries().put(key, entry);
+    }
+
+    ArchiveEntry updatedEntry = entry.toBuilder().push(true).build();
+    if (!updatedEntry.equals(entry)) {
+      pr("...marking for push:", key);
+      mRegistryGlobal.entries().put(key, updatedEntry);
     } else
-      pr("...already marked for push:", foundKey);
+      pr("...already marked for push:", key);
   }
 
   private String findKeyForFileOrDir(File fileOrDir) {
@@ -575,7 +603,7 @@ public final class ArchiveOper extends AppOper {
   private String filenameWithVersion(int version) {
     String basename = Files.basename(mKey);
     if (singleFile()) {
-      String ext = Files.getExtension(mKey);
+      String ext = Files.getExtension(mEntry.path());
       // Note: this shouldn't happen if we run our 'sanity check' for keys when the operation starts
       checkArgument(!ext.isEmpty(), "filename has no extension:", mKey, INDENT, mEntry);
       return String.format("%s_%03d.%s", basename, version, ext);
@@ -584,6 +612,11 @@ public final class ArchiveOper extends AppOper {
   }
 
   private void pushEntry() {
+
+    // If path is empty, derive one from the key
+    if (Files.empty(mEntry.path()))
+      mEntry.path(new File(mKey));
+
     int nextVersionNumber = mEntry.version() + 1;
     String versionedFilename = filenameWithVersion(nextVersionNumber);
     log("...pushing version " + nextVersionNumber, "of:", mKey, "to", versionedFilename);

@@ -50,6 +50,42 @@ public class ArchiveOperTest extends MyTestCase {
   }
 
   /**
+   * Push an object that is not already in the archive, by referring to its path
+   */
+  @Test
+  public void pushViaPath() {
+    prepareWorkCopies();
+
+    // First call is to mark item for pushing
+    //
+    addArg("push", "epsilon/hotel");
+    runApp();
+
+    // Second is to actually perform the pushing
+    runApp();
+
+    assertGenerated();
+  }
+
+  /**
+   * Fail pushing a new object via a path that conflicts with an existing object's key
+   */
+  @Test
+  public void pushViaPathConflict() {
+    prepareWorkCopies();
+
+    // First call is to mark item for pushing
+    //
+    addArg("push", "epsilon/hotel");
+    runApp();
+
+    // Second is to actually perform the pushing
+    runApp();
+
+    assertGenerated();
+  }
+  
+  /**
    * Mark an object for forgetting
    */
   @Test
@@ -123,8 +159,8 @@ public class ArchiveOperTest extends MyTestCase {
   }
 
   private void runApp() {
-    addArg("dir", mWorkLocal);
-    addArg("mock_remote", mWorkRemote);
+    addArg("dir", workLocal());
+    addArg("mock_remote", workRemote());
     App app = new Main();
     app.startApplication(DataUtil.toStringArray(args()));
     mArgs = null;
@@ -147,11 +183,9 @@ public class ArchiveOperTest extends MyTestCase {
 
     File templateLocal = new File(unitTestSourceData, "local");
     File templateRemote = new File(unitTestSourceData, "remote");
-    mWorkLocal = generatedFile("local");
-    mWorkRemote = generatedFile("remote");
-    Files.S.copyDirectory(templateLocal, mWorkLocal);
+    Files.S.copyDirectory(templateLocal, workLocal());
     if (templateRemote.exists())
-      Files.S.copyDirectory(templateRemote, mWorkRemote);
+      Files.S.copyDirectory(templateRemote, workRemote());
   }
 
   private List<String> args() {
@@ -164,15 +198,27 @@ public class ArchiveOperTest extends MyTestCase {
     return mArgs;
   }
 
+  private File workLocal() {
+    if (mWorkLocal == null) {
+      mWorkLocal = generatedFile("local");
+    }
+    return mWorkLocal;
+  }
+
+  private File workRemote() {
+    if (mWorkRemote == null) {
+      mWorkRemote = generatedFile("remote");
+    }
+    return mWorkRemote;
+  }
+
   private void validate(JSMap registry, JSMap hiddenRegistry) {
     if (registry == null)
       registry = map();
 
-    mWorkLocal = generatedFile("local");
-    mWorkRemote = generatedFile("remote");
-    Files.S.writePretty(new File(mWorkLocal, "archive_registry.json"), registry);
+    Files.S.writePretty(new File(workLocal(), "archive_registry.json"), registry);
     if (hiddenRegistry != null)
-      Files.S.writePretty(new File(mWorkLocal, ".archive_registry.json"), hiddenRegistry);
+      Files.S.writePretty(new File(workLocal(), ".archive_registry.json"), hiddenRegistry);
 
     addArg("validate");
     runApp();
