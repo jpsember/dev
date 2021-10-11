@@ -343,7 +343,6 @@ public final class ArchiveOper extends AppOper {
 
       String newKey = key;
       if (v1Update) {
-
         String basename = Files.basename(key);
         if (!basename.equals(key)) {
           // change the key, if possible.  Remove existing mapping, verify no mapping exists for new key, and point new key at mapping
@@ -372,6 +371,14 @@ public final class ArchiveOper extends AppOper {
 
       if (newEntry.fileExtensions() != null && newEntry.fileExtensions().isEmpty())
         newEntry.fileExtensions(null);
+
+      // Discard optional boolean values if they are false
+      //
+      if (newEntry.forget() != Boolean.TRUE)
+        newEntry.forget(null);
+      if (newEntry.offload() != Boolean.TRUE)
+        newEntry.offload(null);
+
       b.entries().put(newKey, newEntry.build());
     }
     b.version(ArchiveRegistry.DEFAULT_INSTANCE.version());
@@ -604,7 +611,7 @@ public final class ArchiveOper extends AppOper {
       mRegistryLocal.entries().put(mKey, hiddenEntry().toBuilder().offload(true).build());
     }
 
-    if (hiddenEntry().offload()) {
+    if (hiddenEntry().offload() == Boolean.TRUE) {
       File sourcePath = mSourceFile;
       if (sourcePath.exists()) {
         log("...deleting local copy of offloaded entry:", mKey);
