@@ -343,16 +343,19 @@ public final class ArchiveOper extends AppOper {
   }
 
   private ArchiveRegistry updateRegistry(ArchiveRegistry registry) {
-    if (registry.version().equals("1.0")) {
-      // Replace keys with basenames, and set path to key, where appropriate
-      ArchiveRegistry.Builder b = registry.build().toBuilder();
 
-      for (Entry<String, ArchiveEntry> ent : registry.entries().entrySet()) {
-        String key = ent.getKey();
-        ArchiveEntry entry = ent.getValue();
-        ArchiveEntry.Builder eb = entry.toBuilder();
+    boolean makeKeysBasenamesOnly = registry.version().equals("1.0");
+    ArchiveRegistry.Builder b = registry.build().toBuilder();
 
-        String newKey = key;
+    // Replace keys with basenames, and set path to key, where appropriate
+
+    for (Entry<String, ArchiveEntry> ent : registry.entries().entrySet()) {
+      String key = ent.getKey();
+      ArchiveEntry entry = ent.getValue();
+      ArchiveEntry.Builder eb = entry.toBuilder();
+
+      String newKey = key;
+      if (makeKeysBasenamesOnly) {
         String basename = Files.basename(key);
         if (!basename.equals(key)) {
           // change the key, if possible.  Remove existing mapping, verify no mapping exists for new key, and point new key at mapping
@@ -364,16 +367,17 @@ public final class ArchiveOper extends AppOper {
           newKey = basename;
           b.entries().remove(key);
         }
-
-        if (Files.empty(entry.path())) {
-          eb.path(new File(key));
-        }
-        b.entries().put(newKey, eb.build());
       }
-      b.version(ArchiveRegistry.DEFAULT_INSTANCE.version());
-      registry = b.build();
+
+      // If path is empty, set it equal to the key
+      // (user may not have specified a path when adding an object manually; especially in unit test data)
+      //
+      if (Files.empty(entry.path()))
+        eb.path(new File(key));
+      b.entries().put(newKey, eb.build());
     }
-    return registry;
+    b.version(ArchiveRegistry.DEFAULT_INSTANCE.version());
+    return b.build();
   }
 
   private void flushRegistry() {
@@ -389,10 +393,6 @@ public final class ArchiveOper extends AppOper {
         todo("make additional fields optional where appropriate");
         for (String k : m2.keySet()) {
           JSMap m = m2.getMap(k);
-          if (!m.opt("push"))
-            m.remove("push");
-          if (m.get("path").isEmpty())
-            m.remove("path");
           m.remove("offload");
           if (m.getList("file_extensions").isEmpty())
             m.remove("file_extensions");

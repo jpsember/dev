@@ -6,7 +6,7 @@ fields {
 
   ? bool push;
 
-  bool offload;
+  ? bool offload;
 
   // If not empty, archives only files in the specified directory with these extensions, and leaves
   // others intact.
