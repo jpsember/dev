@@ -431,17 +431,7 @@ public final class ArchiveOper extends AppOper {
       mKey = ent.getKey();
       mEntry = entry.toBuilder();
 
-      File file = absoluteFileForEntry(mKey, mEntry);
-
-      todo("the file vs directory instance fields should be unnecessary");
-
-      if (Files.getExtension(file).isEmpty()) {
-        mSourceFile = null;
-        mSourceDirectory = file;
-      } else {
-        mSourceDirectory = null;
-        mSourceFile = file;
-      }
+      mSourceFile = absoluteFileForEntry(mKey, mEntry);
 
       updateEntry();
 
@@ -590,12 +580,7 @@ public final class ArchiveOper extends AppOper {
       pr("...already marked for forget:", foundKey);
   }
 
-  private File sourceFileOrDirectory() {
-    return singleFile() ? mSourceFile : mSourceDirectory;
-  }
-
   private void updateEntry() {
-
     // If version is zero, assume pushing; also, set directory flag
     if (mEntry.version() == 0) {
       File absPath = fileWithinProjectDir(mEntry.path().toString());
@@ -608,7 +593,6 @@ public final class ArchiveOper extends AppOper {
 
     // Push new version from local to cloud if push signal was given
     //
-
     if (mEntry.push() == Boolean.TRUE) {
       pushEntry();
       mPushedCount++;
@@ -626,7 +610,7 @@ public final class ArchiveOper extends AppOper {
     }
 
     if (hiddenEntry().offload()) {
-      File sourcePath = sourceFileOrDirectory();
+      File sourcePath = mSourceFile;
       if (sourcePath.exists()) {
         log("...deleting local copy of offloaded entry:", mKey);
         if (sourcePath.isDirectory())
@@ -637,7 +621,7 @@ public final class ArchiveOper extends AppOper {
       return;
     }
 
-    if (!sourceFileOrDirectory().exists()) {
+    if (!mSourceFile.exists()) {
       mRegistryLocal.entries().remove(mKey);
     }
     int mostRecentVersion = Math.max(1, mEntry.version());
@@ -651,7 +635,7 @@ public final class ArchiveOper extends AppOper {
   }
 
   private boolean singleFile() {
-    return mSourceFile != null;
+    return mEntry.directory() != Boolean.TRUE;
   }
 
   /**
@@ -660,13 +644,15 @@ public final class ArchiveOper extends AppOper {
    */
   private String filenameWithVersion(int version) {
     String basename = Files.basename(mKey);
-    if (singleFile()) {
-      String ext = Files.getExtension(mEntry.path());
-      // Note: this shouldn't happen if we run our 'sanity check' for keys when the operation starts
-      checkArgument(!ext.isEmpty(), "filename has no extension:", mKey, INDENT, mEntry);
+    String ext;
+    if (singleFile())
+      ext = Files.getExtension(mEntry.path());
+    else
+      ext = "zip";
+    if (ext.isEmpty())
+      return String.format("%s_%03d", basename, version);
+    else
       return String.format("%s_%03d.%s", basename, version, ext);
-    } else
-      return String.format("%s_%03d.zip", basename, version);
   }
 
   private void pushEntry() {
@@ -678,7 +664,7 @@ public final class ArchiveOper extends AppOper {
     int nextVersionNumber = mEntry.version() + 1;
     String versionedFilename = filenameWithVersion(nextVersionNumber);
     log("...pushing version " + nextVersionNumber, "of:", mKey, "to", versionedFilename);
-    log("...source:", sourceFileOrDirectory());
+    log("...source:", mSourceFile);
 
     if (device().fileExists(versionedFilename))
       throw die("Version", versionedFilename, "already exists in cloud");
@@ -689,7 +675,7 @@ public final class ArchiveOper extends AppOper {
         throw die("file_ext can only be specified for directories; " + mKey);
       sourceFile = mSourceFile;
     } else
-      sourceFile = createZipFile(mSourceDirectory);
+      sourceFile = createZipFile(mSourceFile);
 
     if (!files().dryRun()) {
       device().push(sourceFile, versionedFilename);
@@ -721,14 +707,14 @@ public final class ArchiveOper extends AppOper {
       files().moveFile(tempFile(), mSourceFile);
     } else {
       if (specificFilesOnly()) {
-        if (mSourceDirectory.exists()) {
-          createBackupOfOldLocalVersion(mKey, mSourceDirectory, false);
+        if (mSourceFile.exists()) {
+          createBackupOfOldLocalVersion(mKey, mSourceFile, false);
           // Delete old versions of the types of extensions we want to restore
-          for (File relFile : filesToZip(mSourceDirectory)) {
-            files().deleteFile(new File(mSourceDirectory, relFile.toString()));
+          for (File relFile : filesToZip(mSourceFile)) {
+            files().deleteFile(new File(mSourceFile, relFile.toString()));
           }
         } else {
-          files().mkdirs(mSourceDirectory);
+          files().mkdirs(mSourceFile);
         }
 
         if (!files().dryRun()) {
@@ -741,7 +727,7 @@ public final class ArchiveOper extends AppOper {
               pr("*** Skipping file with unexpected extension, key:", mKey, INDENT, f);
               return false;
             };
-          Files.unzip(tempFile(), mSourceDirectory, filter);
+          Files.unzip(tempFile(), mSourceFile, filter);
         }
       } else {
         File target = fileWithinProjectDir("_SKIP_unzip_temp");
@@ -750,11 +736,11 @@ public final class ArchiveOper extends AppOper {
         if (!files().dryRun())
           Files.unzip(tempFile(), target, null);
 
-        if (mSourceDirectory.exists())
-          createBackupOfOldLocalVersion(mKey, mSourceDirectory, true);
+        if (mSourceFile.exists())
+          createBackupOfOldLocalVersion(mKey, mSourceFile, true);
 
-        files().mkdirs(mSourceDirectory.getParentFile());
-        files().moveDirectory(target, mSourceDirectory);
+        files().mkdirs(mSourceFile.getParentFile());
+        files().moveDirectory(target, mSourceFile);
       }
     }
 
@@ -892,7 +878,6 @@ public final class ArchiveOper extends AppOper {
   private String mKey;
   private ArchiveEntry.Builder mEntry;
   private File mSourceFile;
-  private File mSourceDirectory;
   private String mPushPathArg;
   private String mForgetPathArg;
   private File mMockRemoteDir;
