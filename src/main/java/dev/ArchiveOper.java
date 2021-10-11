@@ -31,12 +31,14 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.regex.Pattern;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
 import js.file.DirWalk;
 import js.file.Files;
 import js.app.AppOper;
+import js.base.BasePrinter;
 import js.json.JSMap;
 import js.parsing.RegExp;
 import dev.gen.archive.ArchiveEntry;
@@ -64,7 +66,7 @@ import dev.gen.archive.ArchiveRegistry;
  *    
  *  archive_registry.json
  *    Represents the state of each object within the external data store, including its relative path, its version number,
- *    and some optional flags. This is tracked by git.
+ *    and some optional flags. Each object record has a unique key (independent of its path). This is tracked by git.
  *    
  *  .archive_registry.json
  *    Records the state of each object within the local machine.  If the local version of an object is
@@ -193,7 +195,8 @@ public final class ArchiveOper extends AppOper {
         "[dir <path>] : project root directory", CR, //
         "[mock_remote <path>] : directory simulating cloud archive device", CR, //
         "[push <path>] : mark file or directory for pushing new version", CR, //
-        "[forget <path>] : stop tracking file or directory within archive");
+        "[forget <path>] : stop tracking file or directory within archive", CR, //
+        "[validate] : perform validation only (for test purposes)");
   }
 
   @Override
@@ -203,6 +206,7 @@ public final class ArchiveOper extends AppOper {
     mMockRemoteDir = new File(cmdLineArgs().nextArgIf("mock_remote", ""));
     mPushPathArg = cmdLineArgs().nextArgIf("push", "");
     mForgetPathArg = cmdLineArgs().nextArgIf("forget", "");
+    mValidateOnly = cmdLineArgs().nextArgIf("validate");
   }
 
   /**
@@ -227,6 +231,8 @@ public final class ArchiveOper extends AppOper {
     fixPaths();
 
     readRegistry();
+    if (mValidateOnly)
+      return;
 
     boolean proc = false;
 
@@ -254,13 +260,43 @@ public final class ArchiveOper extends AppOper {
     }
   }
 
+  private static final Pattern RELATIVE_PATH_PATTERN = RegExp
+      .pattern("^\\.?\\w+(?:\\/\\.?\\w+)*(?:\\.\\w+)?$");
+
+  private String contextExpr(Object contextOrNull) {
+    return "(" + nullTo(contextOrNull, "no context given") + ")";
+  }
+
+  private void validateRegistry(ArchiveRegistry registry, String context) {
+    BasePrinter p = new BasePrinter();
+
+    String expected = ArchiveRegistry.DEFAULT_INSTANCE.version();
+    if (!registry.version().equals(expected))
+      p.pr("*** Bad version number:", registry.version(), "; expected", expected);
+    else {
+      for (Entry<String, ArchiveEntry> entry : registry.entries().entrySet()) {
+        ArchiveEntry ent = entry.getValue();
+        File pt = ent.path();
+        if (Files.nonEmpty(pt)) {
+          if (!RegExp.patternMatchesString(RELATIVE_PATH_PATTERN, pt.toString())) {
+            p.pr("*** Illegal path for:", entry.getKey(), INDENT, ent);
+          }
+        }
+      }
+    }
+
+    String errorMessage = p.toString();
+    if (nonEmpty(errorMessage))
+      setError("Problems with archive registry", contextExpr(context), ":", INDENT, errorMessage);
+  }
+
   private void readRegistry() {
     todo("refactor to better determine if registry (normal and hidden) have changed");
     File globalFile = registerGlobalFile();
     ArchiveRegistry registry = Files.parseAbstractData(ArchiveRegistry.DEFAULT_INSTANCE, globalFile);
     if (DUMP_REG)
       pr("global registry:", INDENT, registry);
-    ensureVersionValid(registry, globalFile);
+    validateRegistry(registry, globalFile.getName());
     mRegistryGlobalOriginal = registry;
     mRegistryGlobal = registry.toBuilder();
     readHiddenRegistry();
@@ -750,6 +786,7 @@ public final class ArchiveOper extends AppOper {
 
   // ------------------------------------------------------------------
 
+  private boolean mValidateOnly;
   private File mProjectDirectory;
   private File mTemporaryFile;
 

@@ -1,5 +1,10 @@
-{          "forgetMark" : 6375,
-            "forgotten" : 7341,
-  "pushInitialVersions" : 7558,
-           "pushUpdate" : 7655
+{               "forgetMark" : 6375,
+                 "forgotten" : 7341,
+       "pushInitialVersions" : 7558,
+                "pushUpdate" : 7655,
+        "validateBadVersion" : 1011,
+   "validatePathBadFilename" : 1968,
+  "validatePathIllegalChars" : 7170,
+     "validatePathIllformed" : 3129,
+   "validatePathNotRelative" : 9190
 }

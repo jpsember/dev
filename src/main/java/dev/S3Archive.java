@@ -37,6 +37,7 @@ public class S3Archive implements ArchiveDevice {
   public S3Archive(String profileName, String bucketName, File rootDirectory) {
     todo(
         "clarify purpose of rootDirectory argument (the current directory that calls are made from?  can we use this as the basis for relative paths instead?)");
+    todo("reuse valid path expression variant, replacing underscores with dashes");
     checkArgument(RegExp.patternMatchesString("^\\w+(?:\\.\\w+)*(?:\\/\\w+(?:\\.\\w+)*)*$", bucketName),
         "bucket name should be of form xxx.yyy/aaa/bbb.ccc");
     mProfileName = profileName;

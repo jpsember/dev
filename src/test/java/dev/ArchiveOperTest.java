@@ -32,8 +32,10 @@ import java.util.List;
 import org.junit.Test;
 
 import dev.Main;
+import js.app.App;
 import js.data.DataUtil;
 import js.file.Files;
+import js.json.JSMap;
 import js.testutil.MyTestCase;
 
 public class ArchiveOperTest extends MyTestCase {
@@ -81,6 +83,32 @@ public class ArchiveOperTest extends MyTestCase {
 
     assertGenerated();
   }
+
+  @Test
+  public void validateBadVersion() {
+    validate(map().put("version", "foo"));
+  }
+
+  @Test
+  public void validatePathNotRelative() {
+    validate(map().put("entries", map().put("a", map().put("path", "/abs/path/not/allowed"))));
+  }
+
+  @Test
+  public void validatePathIllegalChars() {
+    validate(map().put("entries", map().put("a", map().put("path", "illegal/chars-in-path"))));
+  }
+
+  @Test
+  public void validatePathBadFilename() {
+    validate(map().put("entries", map().put("a", map().put("path", "illegal/path.repeated.extensions"))));
+  }
+
+  @Test
+  public void validatePathIllformed() {
+    validate(map().put("entries", map().put("a", map().put("path", "bad//path"))));
+  }
+
   // ------------------------------------------------------------------
 
   private final void addArg(Object... args) {
@@ -92,8 +120,12 @@ public class ArchiveOperTest extends MyTestCase {
   private void runApp() {
     addArg("dir", mWorkLocal);
     addArg("mock_remote", mWorkRemote);
-    new Main().startApplication(DataUtil.toStringArray(args()));
+    App app = new Main();
+    app.startApplication(DataUtil.toStringArray(args()));
     mArgs = null;
+    RuntimeException e = app.getError();
+    if (e != null)
+      Files.S.writeString(generatedFile("_error_.txt"), e.toString());
   }
 
   private void execute() {
@@ -125,6 +157,15 @@ public class ArchiveOperTest extends MyTestCase {
         addArg("--verbose");
     }
     return mArgs;
+  }
+
+  private void validate(JSMap registry) {
+    mWorkLocal = generatedFile("local");
+    mWorkRemote = generatedFile("remote");
+    Files.S.writePretty(new File(mWorkLocal, "archive_registry.json"), registry);
+    addArg("validate");
+    runApp();
+    assertGenerated();
   }
 
   private List<String> mArgs;
