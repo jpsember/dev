@@ -217,10 +217,11 @@ public final class ArchiveOper extends AppOper {
   }
 
   private void fixPaths() {
-    mProjectDirectory = fixPath(mProjectDirectory);
-    mMockRemoteDir = fixPath(mMockRemoteDir);
     if (Files.empty(mProjectDirectory))
       mProjectDirectory = Files.getCanonicalFile(Files.parent(Files.S.projectConfigDirectory()));
+    else
+      mProjectDirectory = Files.getCanonicalFile(mProjectDirectory);
+    mMockRemoteDir = fixPath(mMockRemoteDir);
     mTemporaryFile = fileWithinProjectDir("_SKIP_temp.zip");
   }
 
@@ -289,7 +290,7 @@ public final class ArchiveOper extends AppOper {
           }
         }
         if (nonEmpty(problemText))
-          p.pr("***", problemText, "; key:", key, INDENT, ent);
+          p.pr("***", problemText, "; key:", key, INDENT, ent, OUTDENT);
       }
     }
 
@@ -330,7 +331,6 @@ public final class ArchiveOper extends AppOper {
   }
 
   private ArchiveRegistry updateRegistry(ArchiveRegistry registry) {
-
     boolean v1Update = registry.version().equals("1.0");
     ArchiveRegistry.Builder b = registry.build().toBuilder();
 
@@ -339,17 +339,10 @@ public final class ArchiveOper extends AppOper {
     for (Entry<String, ArchiveEntry> ent : registry.entries().entrySet()) {
       String key = ent.getKey();
       ArchiveEntry entry = ent.getValue();
-      ArchiveEntry.Builder eb = entry.toBuilder();
+      ArchiveEntry.Builder newEntry = entry.toBuilder();
 
       String newKey = key;
       if (v1Update) {
-
-        // Initialize the directory flag
-        //
-        if (key.endsWith(".zip")
-            || (!Files.empty(entry.path()) && Files.getExtension(entry.path()).equals("zip"))) {
-          eb.directory(true);
-        }
 
         String basename = Files.basename(key);
         if (!basename.equals(key)) {
@@ -368,19 +361,24 @@ public final class ArchiveOper extends AppOper {
       // (user may not have specified a path when adding an object manually; especially in unit test data)
       //
       if (Files.empty(entry.path()))
-        eb.path(new File(key));
+        newEntry.path(new File(key));
 
-      if (eb.fileExtensions() != null && eb.fileExtensions().isEmpty())
-        eb.fileExtensions(null);
-      b.entries().put(newKey, eb.build());
+      if (v1Update) {
+        // Initialize the directory flag
+        File absPath = fileWithinProjectDir(newEntry.path().toString());
+        if (absPath.isDirectory())
+          newEntry.directory(true);
+      }
+
+      if (newEntry.fileExtensions() != null && newEntry.fileExtensions().isEmpty())
+        newEntry.fileExtensions(null);
+      b.entries().put(newKey, newEntry.build());
     }
     b.version(ArchiveRegistry.DEFAULT_INSTANCE.version());
     return b.build();
   }
 
   private void flushRegistry() {
-    todo("get rid of 'ignore' field");
-
     if (!mRegistryGlobalOriginal.equals(mRegistryGlobal)) {
       JSMap registryMap;
       {
@@ -423,9 +421,6 @@ public final class ArchiveOper extends AppOper {
 
     for (Entry<String, ArchiveEntry> ent : mRegistryGlobal.entries().entrySet()) {
       ArchiveEntry entry = ent.getValue();
-      todo("got rid of 'ignore' option");
-      //      if (entry.ignore() == Boolean.TRUE)
-      //        continue;
 
       todo("can we avoid instance fields mKey, mEntry?");
       mKey = ent.getKey();

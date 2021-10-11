@@ -21,8 +21,4 @@ fields {
   // Marked for forgetting (remove from registry, but don't delete from file system or S3)
   //
   ? bool forget;
-
-  // Deprecated entry; generate a parse error to delete them manually
-  //
-  ? string ignore;
 }
