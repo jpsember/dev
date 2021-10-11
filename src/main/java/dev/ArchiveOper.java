@@ -267,7 +267,7 @@ public final class ArchiveOper extends AppOper {
     return "(" + nullTo(contextOrNull, "no context given") + ")";
   }
 
-  private void validateRegistry(ArchiveRegistry registry, String context) {
+  private void validateRegistry(ArchiveRegistry registry, Object context) {
     BasePrinter p = new BasePrinter();
 
     String expected = ArchiveRegistry.DEFAULT_INSTANCE.version();
@@ -302,12 +302,6 @@ public final class ArchiveOper extends AppOper {
     readHiddenRegistry();
   }
 
-  private void ensureVersionValid(ArchiveRegistry registry, File context) {
-    String expected = ArchiveRegistry.DEFAULT_INSTANCE.version();
-    if (!registry.version().equals(expected))
-      throw die("bad version in archive registry:", registry.version(), "expected:", expected, ";", context);
-  }
-
   private File registerGlobalFile() {
     return fileWithinProjectDir("archive_registry.json");
   }
@@ -317,11 +311,11 @@ public final class ArchiveOper extends AppOper {
   }
 
   private void readHiddenRegistry() {
-    ArchiveRegistry registry = Files.parseAbstractDataOpt(ArchiveRegistry.DEFAULT_INSTANCE,
-        registerLocalFile());
-    ensureVersionValid(registry, registerLocalFile());
+    File hiddenFile = registerLocalFile();
+    ArchiveRegistry registry = Files.parseAbstractDataOpt(ArchiveRegistry.DEFAULT_INSTANCE, hiddenFile);
 
     mRegistryLocalOriginal = registry;
+    validateRegistry(registry, hiddenFile.getName());
 
     if (DUMP_REG) {
       pr("local registry:", INDENT, registry);

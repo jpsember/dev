@@ -109,6 +109,11 @@ public class ArchiveOperTest extends MyTestCase {
     validate(map().put("entries", map().put("a", map().put("path", "bad//path"))));
   }
 
+  @Test
+  public void validateBadVersionHidden() {
+    validate(null, map().put("version", "foo"));
+  }
+
   // ------------------------------------------------------------------
 
   private final void addArg(Object... args) {
@@ -159,13 +164,23 @@ public class ArchiveOperTest extends MyTestCase {
     return mArgs;
   }
 
-  private void validate(JSMap registry) {
+  private void validate(JSMap registry, JSMap hiddenRegistry) {
+    if (registry == null)
+      registry = map();
+
     mWorkLocal = generatedFile("local");
     mWorkRemote = generatedFile("remote");
     Files.S.writePretty(new File(mWorkLocal, "archive_registry.json"), registry);
+    if (hiddenRegistry != null)
+      Files.S.writePretty(new File(mWorkLocal, ".archive_registry.json"), hiddenRegistry);
+
     addArg("validate");
     runApp();
     assertGenerated();
+  }
+
+  private void validate(JSMap registry) {
+    validate(registry, null);
   }
 
   private List<String> mArgs;
