@@ -219,6 +219,9 @@ public final class ArchiveOper extends AppOper {
 
   @Override
   public void perform() {
+    todo("call SetError instead of die");
+    todo("when error occurs, does registry need to be flushed?  do we care?");
+    
     fixPaths();
 
     readRegistry();
@@ -630,8 +633,7 @@ public final class ArchiveOper extends AppOper {
 
     if (mostRecentVersion == hiddenEntry().version())
       return;
-    die("attempting to pull most recent version:", mostRecentVersion, "of", mKey, "since doesn't match:",
-        INDENT, hiddenEntry());
+
     pullVersion(mostRecentVersion);
     mPulledCount++;
   }
