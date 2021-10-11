@@ -18,7 +18,7 @@ fields {
   //
   ? bool forget;
 
-  // Ignore this entry, but leave it untouched within registry
+  // Deprecated entry; generate a parse error to delete them manually
   //
-  ? bool ignore;
+  ? string ignore;
 }

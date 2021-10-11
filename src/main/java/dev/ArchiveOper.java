@@ -383,7 +383,8 @@ public final class ArchiveOper extends AppOper {
   }
 
   private void flushRegistry() {
-
+    todo("get rid of 'ignore' field");
+    
     if (!mRegistryGlobalOriginal.equals(mRegistryGlobal)) {
       JSMap registryMap;
       {
@@ -426,8 +427,9 @@ public final class ArchiveOper extends AppOper {
 
     for (Entry<String, ArchiveEntry> ent : mRegistryGlobal.entries().entrySet()) {
       ArchiveEntry entry = ent.getValue();
-      if (entry.ignore() == Boolean.TRUE)
-        continue;
+      todo("got rid of 'ignore' option");
+      //      if (entry.ignore() == Boolean.TRUE)
+      //        continue;
 
       todo("can we avoid instance fields mKey, mEntry?");
       mKey = ent.getKey();
