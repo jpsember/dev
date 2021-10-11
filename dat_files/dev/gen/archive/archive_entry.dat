@@ -10,9 +10,9 @@ fields {
 
   // If not empty, archives only files in the specified directory with these extensions, and leaves
   // others intact.
-  // Does not recurse into subdirectories.
+  // Does not recurse into subdirectories (though this may change)
   //
-  * string file_extensions;
+  ? * string file_extensions;
 
   // Marked for forgetting (remove from registry, but don't delete from file system or S3)
   //

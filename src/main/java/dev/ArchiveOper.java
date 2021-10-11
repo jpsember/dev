@@ -31,6 +31,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.function.Predicate;
 import java.util.regex.Pattern;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
@@ -297,10 +298,8 @@ public final class ArchiveOper extends AppOper {
   private String verifyValidFileExtension(String key, ArchiveEntry entry) {
     File path = Files.assertNonEmpty(entry.path(), "missing path");
     File file = fileWithinProjectDir(path.toString());
-    pr("verify valid file extension, key:", key, INDENT, entry);
     if (file.exists()) {
       String ext = Files.getExtension(file);
-      pr("...file:", file, "ext:", ext, "dir:", file.isDirectory());
       if (file.isDirectory()) {
         if (!ext.isEmpty())
           return "Directory must not have an extension";
@@ -374,6 +373,9 @@ public final class ArchiveOper extends AppOper {
       //
       if (Files.empty(entry.path()))
         eb.path(new File(key));
+
+      if (eb.fileExtensions() != null && eb.fileExtensions().isEmpty())
+        eb.fileExtensions(null);
       b.entries().put(newKey, eb.build());
     }
     b.version(ArchiveRegistry.DEFAULT_INSTANCE.version());
@@ -394,8 +396,6 @@ public final class ArchiveOper extends AppOper {
         for (String k : m2.keySet()) {
           JSMap m = m2.getMap(k);
           m.remove("offload");
-          if (m.getList("file_extensions").isEmpty())
-            m.remove("file_extensions");
         }
       }
 
@@ -607,10 +607,10 @@ public final class ArchiveOper extends AppOper {
     // If user has requested to offload this entry, flag this fact within the hidden registry,
     // and delete the local copy
     //
-    if (mEntry.offload()) {
+    if (mEntry.offload() == Boolean.TRUE) {
       log("...offloading entry:", mKey);
       mOffloadedCount++;
-      mEntry.offload(false);
+      mEntry.offload(null);
       mRegistryLocal.entries().put(mKey, hiddenEntry().toBuilder().offload(true).build());
     }
 
@@ -721,13 +721,16 @@ public final class ArchiveOper extends AppOper {
         }
 
         if (!files().dryRun()) {
-          Files.unzip(tempFile(), mSourceDirectory, (f) -> {
-            String ext = Files.getExtension(f);
-            if (mEntry.fileExtensions().contains(ext))
-              return true;
-            pr("*** Skipping file with unexpected extension, key:", mKey, INDENT, f);
-            return false;
-          });
+          Predicate<File> filter = null;
+          if (specificFilesOnly())
+            filter = (f) -> {
+              String ext = Files.getExtension(f);
+              if (mEntry.fileExtensions().contains(ext))
+                return true;
+              pr("*** Skipping file with unexpected extension, key:", mKey, INDENT, f);
+              return false;
+            };
+          Files.unzip(tempFile(), mSourceDirectory, filter);
         }
       } else {
         File target = fileWithinProjectDir("_SKIP_unzip_temp");
@@ -789,7 +792,7 @@ public final class ArchiveOper extends AppOper {
   }
 
   private boolean specificFilesOnly() {
-    return !mEntry.fileExtensions().isEmpty();
+    return mEntry.fileExtensions() != null;
   }
 
   private List<File> filesToZip(File directory) {
