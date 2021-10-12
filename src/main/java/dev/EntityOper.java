@@ -63,11 +63,11 @@ public class EntityOper extends AppOper {
 
   @Override
   public void perform() {
-    todo("If tag field is empty, set it to the key that references it");
     if (verbose()) {
       EntityManager.sharedInstance().setVerbose();
       Ngrok.sharedInstance().setVerbose();
     }
+
     if (mEntityNameExpr == null) {
       displayEntity();
     } else
@@ -82,8 +82,9 @@ public class EntityOper extends AppOper {
   }
 
   private void displayEntity() {
-    RemoteEntityInfo ent = EntityManager.sharedInstance().optionalActiveEntity();
-    if (ent == RemoteEntityInfo.DEFAULT_INSTANCE)
+    EntityManager mgr = EntityManager.sharedInstance();
+    RemoteEntityInfo ent = mgr.optionalActiveEntity();
+    if (ent == null)
       pr("<none>");
     else
       pr(ent.id(), INDENT, ent);
