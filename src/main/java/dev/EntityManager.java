@@ -7,6 +7,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import dev.gen.RemoteEntityInfo;
+import dev.gen.OsType;
 import dev.gen.RemoteEntityCollection;
 import js.base.BaseObject;
 import js.file.Files;
@@ -14,21 +15,15 @@ import js.file.Files;
 public class EntityManager extends BaseObject {
 
   public static EntityManager sharedInstance() {
-    if (sSharedInstance == null) {
-      loadTools();
+    if (sSharedInstance == null)
       sSharedInstance = new EntityManager();
-    }
     return sSharedInstance;
   }
 
   private static EntityManager sSharedInstance;
 
   public RemoteEntityCollection entities() {
-    if (mEntities == null) {
-      mEntities = Files.parseAbstractData(RemoteEntityCollection.DEFAULT_INSTANCE, entityFile());
-      mMutable = null;
-    }
-    return mEntities;
+    return mutable();
   }
 
   public RemoteEntityInfo optionalActiveEntity() {
@@ -75,6 +70,8 @@ public class EntityManager extends BaseObject {
    */
   public void updateEnt(RemoteEntityInfo entity) {
     log("updateEnt:", entity.id());
+    checkArgument(!entity.id().isEmpty(), "missing id:", INDENT, entity);
+    entity = applyDefaults(entity.id(), entity.toBuilder()).build();
     RemoteEntityInfo prev = entities().entityMap().get(entity.id());
     if (!entity.equals(prev)) {
       Map<String, RemoteEntityInfo> m = new HashMap<>(mutable().entityMap());
@@ -86,6 +83,19 @@ public class EntityManager extends BaseObject {
       log("...no changes");
   }
 
+  private RemoteEntityInfo.Builder applyDefaults(String id, RemoteEntityInfo entity) {
+    RemoteEntityInfo.Builder builder = entity.toBuilder();
+    RemoteEntityInfo template = entities().entityTemplate();
+    builder.id(id);
+    if (builder.osType() == OsType.UNKNOWN)
+      builder.osType(template.osType());
+    if (builder.user().isEmpty())
+      builder.user(template.user());
+    if (Files.empty(builder.projectDir()))
+      builder.projectDir(template.projectDir());
+    return builder;
+  }
+
   private File entityFile() {
     if (mEntityFile == null) {
       mEntityFile = new File(Files.S.projectConfigDirectory(), "entity_map.json");
@@ -94,24 +104,35 @@ public class EntityManager extends BaseObject {
   }
 
   private RemoteEntityCollection.Builder mutable() {
-    if (mMutable == null) {
-      mMutable = entities().toBuilder();
+    if (mMutableEntities == null) {
+      mOriginalEntities = Files.parseAbstractData(RemoteEntityCollection.DEFAULT_INSTANCE, entityFile())
+          .toBuilder();
+      mMutableEntities = mOriginalEntities.toBuilder();
+
+      // process all entities, applying defaults in case any are missing
+      //
+      Map<String, RemoteEntityInfo> modified = hashMap();
+      for (Map.Entry<String, RemoteEntityInfo> entry : mMutableEntities.entityMap().entrySet()) {
+        RemoteEntityInfo filtered = applyDefaults(entry.getKey(), entry.getValue());
+        modified.put(filtered.id(), filtered);
+      }
+      mMutableEntities.entityMap(modified);
     }
-    return mMutable;
+    return mMutableEntities;
   }
 
   private void flushChanges() {
-    if (mMutable == null)
+    if (mMutableEntities == null)
       return;
-    RemoteEntityCollection updated = mMutable.build();
-    if (!updated.equals(mEntities)) {
+    RemoteEntityCollection updated = mMutableEntities.build();
+    if (!updated.equals(mOriginalEntities)) {
       log("...flushing changes to:", entityFile());
-      mEntities = mMutable.build();
-      Files.S.writePretty(entityFile(), mEntities);
+      mOriginalEntities = mMutableEntities.build();
+      Files.S.writePretty(entityFile(), mOriginalEntities);
     }
   }
 
-  private RemoteEntityCollection mEntities;
+  private RemoteEntityCollection mOriginalEntities;
   private File mEntityFile;
-  private RemoteEntityCollection.Builder mMutable;
+  private RemoteEntityCollection.Builder mMutableEntities;
 }
