@@ -86,47 +86,29 @@ public class EntityOper extends AppOper {
     if (ent == RemoteEntityInfo.DEFAULT_INSTANCE)
       pr("<none>");
     else
-      pr(ent.tag(), INDENT, ent);
+      pr(ent.id(), INDENT, ent);
   }
 
   private void setEntity() {
     EntityManager mgr = EntityManager.sharedInstance();
-    RemoteEntityInfo foundEnt = null;
-    String expr = mEntityNameExpr;
-    String exprLower = expr.toLowerCase();
-    outer: for (int pass = 0; pass < 2; pass++) {
-      for (RemoteEntityInfo ent : mgr.entities().entityMap().values()) {
-        if (pass == 0) {
-          if (ent.tag().equals(expr) || ent.longName().equalsIgnoreCase(expr)) {
-            foundEnt = ent;
-            break outer;
-          }
-        } else {
-          if (ent.longName().toLowerCase().startsWith(exprLower)) {
-            foundEnt = ent;
-            break outer;
-          }
-        }
-      }
-    }
-
+    RemoteEntityInfo foundEnt = mgr.entities().entityMap().get(mEntityNameExpr);
     if (foundEnt == null) {
-      setError("no entity found for:", quote(expr), INDENT, mgr.entities());
+      setError("no entity found for:", quote(mEntityNameExpr), INDENT, mgr.entities());
       return;
     }
 
     RemoteEntityInfo updatedEnt = updateEntity(foundEnt);
     mgr.updateEnt(updatedEnt);
-    mgr.setActive(updatedEnt.tag());
-    createSSHScript(updatedEnt.tag());
+    mgr.setActive(updatedEnt.id());
+    createSSHScript(updatedEnt.id());
     displayEntity();
   }
 
   private RemoteEntityInfo updateEntity(RemoteEntityInfo entity) {
     RemoteEntityInfo.Builder b = entity.build().toBuilder();
-    RemoteEntityInfo tunnel = Ngrok.sharedInstance().tunnelInfo(entity.tag());
+    RemoteEntityInfo tunnel = Ngrok.sharedInstance().tunnelInfo(entity.id());
     if (tunnel == null) {
-      pr("*** no ngrok tunnel found for entity:", entity.tag());
+      pr("*** no ngrok tunnel found for entity:", entity.id());
     } else {
       b.url(tunnel.url());
       b.port(tunnel.port());

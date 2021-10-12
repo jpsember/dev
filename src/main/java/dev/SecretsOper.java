@@ -63,8 +63,7 @@ public class SecretsOper extends AppOper {
       files().copyDirectory(sourceDir, mSecretsWorkDir);
       File entityNameFile = new File(mSecretsWorkDir, "entity_name.txt");
       checkState(entityNameFile.exists(), "did not find:", entityNameFile);
-      String tag = ent.tag();
-      files().writeString(entityNameFile, tag);
+      files().writeString(entityNameFile, ent.id());
     }
 
     SystemCall s = new SystemCall();

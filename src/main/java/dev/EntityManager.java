@@ -74,11 +74,11 @@ public class EntityManager extends BaseObject {
    * Store updated version of entity
    */
   public void updateEnt(RemoteEntityInfo entity) {
-    log("updateEnt:", entity.tag());
-    RemoteEntityInfo prev = entities().entityMap().get(entity.tag());
+    log("updateEnt:", entity.id());
+    RemoteEntityInfo prev = entities().entityMap().get(entity.id());
     if (!entity.equals(prev)) {
       Map<String, RemoteEntityInfo> m = new HashMap<>(mutable().entityMap());
-      m.put(entity.tag(), entity);
+      m.put(entity.id(), entity);
       mutable().entityMap(m);
       log("...storing modified entity:", INDENT, entity);
       flushChanges();
