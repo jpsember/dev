@@ -32,7 +32,6 @@ import java.util.List;
 
 import js.app.AppOper;
 import js.app.CmdLineArgs;
-import js.base.DateTimeTools;
 import js.base.SystemCall;
 import js.file.Files;
 import js.json.JSMap;
@@ -60,9 +59,6 @@ public class SetupMachineOper extends AppOper {
       case "eclipse":
         mEclipseMode = true;
         break;
-      case "experiment":
-        mExp = true;
-        break;
       default:
         setError("Unsupported argument:", arg);
         break;
@@ -72,33 +68,13 @@ public class SetupMachineOper extends AppOper {
     args.assertArgsDone();
   }
 
-  private boolean mExp;
-
   @Override
   public void perform() {
-    if (mExp) {
-      // This is all very hacky temporary code to test things, in lieu of having actual unit tests
-      File workDir = new File(Files.getDesktopDirectory(), "_exp_");
-      files().mkdirs(workDir);
-      File sourceFile = new File(workDir, "a.txt");
-      files().writeString(sourceFile, "this is the content:" + DateTimeTools.getRealMs());
-      File targetFile = new File(workDir, "target_file.txt");
-      writeWithBackup(targetFile, sourceFile);
-      
-      
-      writeWithBackup(new File(workDir, ".target"), sourceFile);
-      writeWithBackup(new File(workDir, ".target.txt"), sourceFile);
-      writeWithBackup(new File(workDir, ".target_42_"), sourceFile);
-      
-      return;
-    }
-
     validateOS();
     prepareSSH();
     prepareBash();
     prepareVI();
     prepareGit();
-    prepareGitHub();
     prepareAWS();
     runSetupScript();
   }
@@ -135,11 +111,6 @@ public class SetupMachineOper extends AppOper {
   private void prepareGit() {
     log("...prepareGit");
     writeWithBackup(fileWithinHome(".gitconfig"), applyMacroParser(resourceString("git_config.txt")));
-  }
-
-  private void prepareGitHub() {
-    log("...prepareGitHub");
-    todo("prepareGitHub");
   }
 
   private void prepareAWS() {
@@ -231,7 +202,6 @@ public class SetupMachineOper extends AppOper {
   }
 
   private File determineBackupFile(File targetFile, List<File> existingBackups) {
-    pr("determine backup file:", targetFile);
     String backupsPrefix;
     {
       String file = targetFile.getName();
@@ -246,7 +216,6 @@ public class SetupMachineOper extends AppOper {
           backupsPrefix = basename;
       }
     }
-    pr("backupsPref:", backupsPrefix);
 
     File parentFile = Files.parent(targetFile);
     if (existingBackups == null)
@@ -254,22 +223,19 @@ public class SetupMachineOper extends AppOper {
 
     int highestBackupIndex = -1;
     String seekPrefix = backupsPrefix + "_";
-    for (File c : Files.filesWithExtension(parentFile, "bak")) {
-      String name = Files.basename(c);
-      pr("cand:", c, "name:", name);
+    for (File existingBackupFile : Files.filesWithExtension(parentFile, "bak")) {
+      String name = Files.basename(existingBackupFile);
       if (name.startsWith(seekPrefix)) {
-        existingBackups.add(c);
+        existingBackups.add(existingBackupFile);
         int indexPosition = 1 + name.lastIndexOf('_');
         String substr = name.substring(indexPosition);
         int backupIndex = Integer.parseInt(substr);
-        pr("file:", c, INDENT, "pos:", indexPosition, "substr:", substr, "ind:", backupIndex);
         highestBackupIndex = Math.max(highestBackupIndex, backupIndex);
       }
     }
 
     String backupName = String.format("%s%02d.bak", seekPrefix, highestBackupIndex + 1);
     File backupFile = new File(parentFile, backupName);
-    pr("backupFile:", backupFile);
     return backupFile;
   }
 
