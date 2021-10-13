@@ -32,6 +32,7 @@ import java.util.List;
 
 import js.app.AppOper;
 import js.app.CmdLineArgs;
+import js.base.DateTimeTools;
 import js.base.SystemCall;
 import js.file.Files;
 import js.json.JSMap;
@@ -59,6 +60,9 @@ public class SetupMachineOper extends AppOper {
       case "eclipse":
         mEclipseMode = true;
         break;
+      case "experiment":
+        mExp = true;
+        break;
       default:
         setError("Unsupported argument:", arg);
         break;
@@ -68,8 +72,27 @@ public class SetupMachineOper extends AppOper {
     args.assertArgsDone();
   }
 
+  private boolean mExp;
+
   @Override
   public void perform() {
+    if (mExp) {
+      // This is all very hacky temporary code to test things, in lieu of having actual unit tests
+      File workDir = new File(Files.getDesktopDirectory(), "_exp_");
+      files().mkdirs(workDir);
+      File sourceFile = new File(workDir, "a.txt");
+      files().writeString(sourceFile, "this is the content:" + DateTimeTools.getRealMs());
+      File targetFile = new File(workDir, "target_file.txt");
+      writeWithBackup(targetFile, sourceFile);
+      
+      
+      writeWithBackup(new File(workDir, ".target"), sourceFile);
+      writeWithBackup(new File(workDir, ".target.txt"), sourceFile);
+      writeWithBackup(new File(workDir, ".target_42_"), sourceFile);
+      
+      return;
+    }
+
     validateOS();
     prepareSSH();
     prepareBash();
@@ -207,17 +230,8 @@ public class SetupMachineOper extends AppOper {
       sc.assertSuccess();
   }
 
-  /**
-   * If a file exists, create backup copy. Use an incrementing filename to avoid
-   * overwriting a previous backup. Doesn't create an additional backup if file
-   * hasn't changed since the most recent backup
-   * 
-   * TODO: doesn't attempt to preserve original file's permissions
-   * 
-   * @return true if file
-   */
-  private void writeWithBackup(File targetFile, byte[] newContents) {
-
+  private File determineBackupFile(File targetFile, List<File> existingBackups) {
+    pr("determine backup file:", targetFile);
     String backupsPrefix;
     {
       String file = targetFile.getName();
@@ -232,16 +246,45 @@ public class SetupMachineOper extends AppOper {
           backupsPrefix = basename;
       }
     }
+    pr("backupsPref:", backupsPrefix);
 
-    File backupFile = null;
-    for (int candidateIndex = 0;; candidateIndex++) {
-      File file = new File(Files.parent(targetFile),
-          String.format("%s_%02d.bak", backupsPrefix, candidateIndex));
-      if (!file.exists()) {
-        backupFile = file;
-        break;
+    File parentFile = Files.parent(targetFile);
+    if (existingBackups == null)
+      existingBackups = arrayList();
+
+    int highestBackupIndex = -1;
+    String seekPrefix = backupsPrefix + "_";
+    for (File c : Files.filesWithExtension(parentFile, "bak")) {
+      String name = Files.basename(c);
+      pr("cand:", c, "name:", name);
+      if (name.startsWith(seekPrefix)) {
+        existingBackups.add(c);
+        int indexPosition = 1 + name.lastIndexOf('_');
+        String substr = name.substring(indexPosition);
+        int backupIndex = Integer.parseInt(substr);
+        pr("file:", c, INDENT, "pos:", indexPosition, "substr:", substr, "ind:", backupIndex);
+        highestBackupIndex = Math.max(highestBackupIndex, backupIndex);
       }
     }
+
+    String backupName = String.format("%s%02d.bak", seekPrefix, highestBackupIndex + 1);
+    File backupFile = new File(parentFile, backupName);
+    pr("backupFile:", backupFile);
+    return backupFile;
+  }
+
+  /**
+   * If a file exists, create backup copy. Use an incrementing filename to avoid
+   * overwriting a previous backup. Doesn't create an additional backup if file
+   * hasn't changed since the most recent backup
+   * 
+   * TODO: doesn't attempt to preserve original file's permissions
+   * 
+   * @return true if file
+   */
+  private void writeWithBackup(File targetFile, byte[] newContents) {
+    List<File> existingBackups = arrayList();
+    File backupFile = determineBackupFile(targetFile, existingBackups);
 
     if (targetFile.exists()) {
       checkArgument(targetFile.isFile(), "not a file:", targetFile);
@@ -250,8 +293,16 @@ public class SetupMachineOper extends AppOper {
         return;
       log("...backing up old version");
       files().moveFile(targetFile, backupFile);
+      existingBackups.add(backupFile);
     }
+
     files().write(newContents, targetFile);
+
+    // Trim existing backups to reasonable size
+    final int MAX_BACKUPS = 3;
+
+    for (int i = 0; i < existingBackups.size() - MAX_BACKUPS; i++)
+      files().deleteFile(existingBackups.get(i));
   }
 
   private void writeWithBackup(File targetFile, String newContent) {
