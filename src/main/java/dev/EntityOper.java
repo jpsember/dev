@@ -84,9 +84,9 @@ public class EntityOper extends AppOper {
   private void displayEntity() {
     RemoteEntityInfo ent = manager().optionalActiveEntity();
     if (ent == null)
-      pr("<none>");
+      pr("{}");
     else
-      pr(ent.id(), INDENT, ent);
+      pr(ent);
   }
 
   private void setEntity() {
@@ -143,7 +143,6 @@ public class EntityOper extends AppOper {
 
   private EntityManager manager() {
     if (mEntityManager == null) {
-      pr("constructing manager, dryrun:", dryRun(), "files dryrun:", files().dryRun());
       mEntityManager = new EntityManager().withFiles(files());
     }
     return mEntityManager;
