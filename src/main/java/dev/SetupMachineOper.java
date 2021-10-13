@@ -95,7 +95,13 @@ public class SetupMachineOper extends AppOper {
     // Install public/private key pair for accessing GitHub
     //
     writeWithBackup(new File(sshDir, "id_rsa.pub"), files().fileWithinSecrets("id_rsa.pub.txt"));
-    writeWithBackup(new File(sshDir, "id_rsa"), files().fileWithinSecrets("id_rsa.txt"));
+    File targetFile = new File(sshDir, "id_rsa");
+    writeWithBackup(targetFile, files().fileWithinSecrets("id_rsa.txt"));
+
+    // The permissions for the private key must be restricted or the ssh program complains
+    //
+    if (!files().dryRun())
+      new SystemCall().withVerbose(verbose()).arg("chmod", 600, targetFile).assertSuccess();
   }
 
   private void prepareVI() {
