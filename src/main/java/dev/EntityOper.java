@@ -64,7 +64,7 @@ public class EntityOper extends AppOper {
   @Override
   public void perform() {
     if (verbose()) {
-      EntityManager.sharedInstance().setVerbose();
+      //EntityManager.sharedInstance().setVerbose();
       Ngrok.sharedInstance().setVerbose();
     }
 
@@ -76,14 +76,13 @@ public class EntityOper extends AppOper {
         setEntity();
         break;
       case "list":
-        pr(EntityManager.sharedInstance().entities());
+        pr(manager().currentEntities());
         break;
       }
   }
 
   private void displayEntity() {
-    EntityManager mgr = EntityManager.sharedInstance();
-    RemoteEntityInfo ent = mgr.optionalActiveEntity();
+    RemoteEntityInfo ent = manager().optionalActiveEntity();
     if (ent == null)
       pr("<none>");
     else
@@ -91,16 +90,15 @@ public class EntityOper extends AppOper {
   }
 
   private void setEntity() {
-    EntityManager mgr = EntityManager.sharedInstance();
-    RemoteEntityInfo foundEnt = mgr.entities().entityMap().get(mEntityNameExpr);
+    RemoteEntityInfo foundEnt = manager().optionalEntryFor(mEntityNameExpr);
     if (foundEnt == null) {
-      setError("no entity found for:", quote(mEntityNameExpr), INDENT, mgr.entities());
+      setError("no entity found for:", quote(mEntityNameExpr), "; use 'list' to available ones");
       return;
     }
 
     RemoteEntityInfo updatedEnt = updateEntity(foundEnt);
-    mgr.updateEnt(updatedEnt);
-    mgr.setActive(updatedEnt.id());
+    updatedEnt = manager().updateEnt(updatedEnt);
+    manager().setActive(updatedEnt.id());
     createSSHScript(updatedEnt.id());
     displayEntity();
   }
@@ -119,7 +117,7 @@ public class EntityOper extends AppOper {
 
   private void createSSHScript(String tag) {
     StringBuilder sb = new StringBuilder();
-    RemoteEntityInfo ent = EntityManager.sharedInstance().entryFor(tag);
+    RemoteEntityInfo ent = manager().entryFor(tag);
     sb.append("#!/usr/bin/env bash\n");
     sb.append("echo \"Connecting to: ");
     sb.append(tag);
@@ -142,6 +140,17 @@ public class EntityOper extends AppOper {
       sc.assertSuccess();
     }
   }
+
+  private EntityManager manager() {
+    if (mEntityManager == null) {
+      pr("constructing manager, dryrun:", dryRun(), "files dryrun:", files().dryRun());
+      mEntityManager = new EntityManager().withFiles(files());
+
+    }
+    return mEntityManager;
+  }
+
+  private EntityManager mEntityManager;
 
   private String mEntityNameExpr;
 }
