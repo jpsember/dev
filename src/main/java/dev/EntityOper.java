@@ -64,7 +64,7 @@ public class EntityOper extends AppOper {
   @Override
   public void perform() {
     if (verbose()) {
-      //EntityManager.sharedInstance().setVerbose();
+      manager().setVerbose();
       Ngrok.sharedInstance().setVerbose();
     }
 
@@ -145,7 +145,6 @@ public class EntityOper extends AppOper {
     if (mEntityManager == null) {
       pr("constructing manager, dryrun:", dryRun(), "files dryrun:", files().dryRun());
       mEntityManager = new EntityManager().withFiles(files());
-
     }
     return mEntityManager;
   }
