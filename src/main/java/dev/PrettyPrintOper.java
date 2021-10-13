@@ -24,38 +24,54 @@
  **/
 package dev;
 
-import js.app.App;
-
 import static js.base.Tools.*;
 
-public class Main extends App {
+import java.io.File;
+import java.util.List;
 
-  public static final String VERSION = "1.0";
+import js.app.AppOper;
+import js.app.CmdLineArgs;
+import js.file.Files;
+import js.json.JSMap;
 
-  public static void main(String[] args) {
-    loadTools();
-    App app = new Main();
-    app.startApplication(args);
-    app.exitWithReturnCode();
+public class PrettyPrintOper extends AppOper {
+
+  @Override
+  public String userCommand() {
+    return "pretty";
   }
 
   @Override
-  public String getVersion() {
-    return VERSION;
+  public String getHelpDescription() {
+    return "pretty-print json files";
   }
 
   @Override
-  protected void registerOperations() {
-    registerOper(new CreateAppOper());
-    registerOper(new ResetTestOper());
-    registerOper(new CopyrightOper());
-    registerOper(new ExperimentOper());
-    registerOper(new EntityOper());
-    registerOper(new RsyncOper());
-    registerOper(new SetupMachineOper());
-    registerOper(new SecretsOper());
-    registerOper(new ArchiveOper());
-    registerOper(new PrettyPrintOper());
+  protected List<Object> getAdditionalArgs() {
+    return arrayList("<file>+");
   }
+
+  @Override
+  protected void processAdditionalArgs() {
+    CmdLineArgs args = app().cmdLineArgs();
+    if (args.hasNextArg()) {
+      File relPath = new File(args.nextArg());
+      if (!relPath.isAbsolute()) {
+        relPath = new File(Files.currentDirectory(), relPath.toString());
+      }
+      mFiles.add(relPath);
+    }
+    args.assertArgsDone();
+  }
+
+  @Override
+  public void perform() {
+    if (mFiles.isEmpty())
+      pr("(please specify one or more json files)");
+    for (File f : mFiles)
+      pr(JSMap.from(f));
+  }
+
+  private List<File> mFiles = arrayList();
 
 }
