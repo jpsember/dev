@@ -76,6 +76,7 @@ public class SetupMachineOper extends AppOper {
     prepareVI();
     prepareGit();
     prepareAWS();
+    verifyPython();
     runSetupScript();
   }
 
@@ -120,6 +121,14 @@ public class SetupMachineOper extends AppOper {
 
     writeWithBackup(new File(awsDir, "config"), files().fileWithinSecrets("aws_config.txt"));
     writeWithBackup(new File(awsDir, "credentials"), files().fileWithinSecrets("aws_credentials.txt"));
+  }
+
+  private void verifyPython() {
+    log("...verifying Python version");
+    SystemCall sc = new SystemCall().withVerbose(verbose()).arg("python3", "--version");
+    sc.assertSuccess();
+    if (!sc.systemOut().contains("Python 3.7JEFF"))
+      setError("Unexpected python version:", INDENT, sc.systemOut());
   }
 
   private String assertRelative(String path) {
@@ -187,8 +196,7 @@ public class SetupMachineOper extends AppOper {
   private JSMap mMacroMap;
 
   private void runSetupScript() {
-    String scriptFilename = ".setup_script.sh";
-    File targetFile = fileWithinHome(scriptFilename);
+    File targetFile = fileWithinHome(".setup_script.sh");
     writeWithBackup(targetFile, applyMacroParser(resourceString("setup_script.txt")));
 
     pr("Running script that requires sudo access... type password if necessary...");
