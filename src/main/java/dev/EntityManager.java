@@ -90,10 +90,20 @@ public class EntityManager extends BaseObject {
     return ent;
   }
 
-  public void setActive(String tag) {
-    if (!dynamicRegistry().entityMap().containsKey(tag))
-      throw badArg("entity not found:", tag);
-    dynamicRegistry().activeEntity(tag);
+  public void setActive(String key) {
+    if (!dynamicRegistry().entityMap().containsKey(key))
+      throw badArg("entity not found:", key);
+    dynamicRegistry().activeEntity(key);
+    flushChanges();
+  }
+
+  public void create(RemoteEntityInfo info) {
+    checkArgument(!info.id().isEmpty(), "invalid id:", INDENT, info);
+    if (staticRegistry().entityMap().containsKey(info.id()))
+      throw badArg("entity already exists:", info.id());
+    RemoteEntityInfo modified = applyDefaults(info.id(), info, staticRegistry().entityTemplate());
+    staticRegistry().entityMap().put(info.id(), clearDynamicFields(modified));
+    dynamicRegistry().entityMap().put(info.id(), modified);
     flushChanges();
   }
 

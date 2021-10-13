@@ -28,6 +28,7 @@ import static js.base.Tools.*;
 
 import java.io.File;
 import java.util.List;
+import java.util.Set;
 
 import dev.gen.RemoteEntityInfo;
 import js.app.AppOper;
@@ -44,19 +45,32 @@ public class EntityOper extends AppOper {
 
   @Override
   public String getHelpDescription() {
-    return "selects active remote entity";
+    return "manage remote entities";
   }
 
   @Override
   protected List<Object> getAdditionalArgs() {
-    return arrayList("[<tag or name> | list]");
+    return arrayList("[[select] <id> | add <id> | list]");
   }
+
+  private static Set<String> sOperNames = hashSetWith("display", "select", "list", "add");
 
   @Override
   protected void processAdditionalArgs() {
     CmdLineArgs args = app().cmdLineArgs();
-    if (args.hasNextArg()) {
-      mEntityNameExpr = args.nextArg();
+    while (args.hasNextArg()) {
+      String arg = args.nextArg();
+      if (sOperNames.contains(arg)) {
+        if (mOperName != null && !arg.equals(mOperName))
+          throw badArg("cannot process multiple operations:", mOperName, arg);
+        mOperName = arg;
+      } else {
+        if (mIdArg != null)
+          throw badArg("extraneous argument:", arg);
+        mIdArg = arg;
+        if (mOperName == null)
+          mOperName = "select";
+      }
     }
     args.assertArgsDone();
   }
@@ -67,19 +81,37 @@ public class EntityOper extends AppOper {
       manager().setVerbose();
       Ngrok.sharedInstance().setVerbose();
     }
+    if (mOperName == null)
+      mOperName = "display";
 
-    if (mEntityNameExpr == null) {
+    switch (mOperName) {
+    default:
+      throw badState("unsupported operation:", mOperName);
+    case "display":
       displayEntity();
-    } else
-      switch (mEntityNameExpr) {
-      default:
-        setEntity();
-        break;
-      case "list":
-        pr(manager().currentEntities());
-        break;
-      }
+      break;
+    case "select":
+      setEntity(consumeIdArg());
+      break;
+    case "list":
+      pr(manager().currentEntities());
+      break;
+    case "add":
+      addEntity(consumeIdArg());
+      break;
+    }
+    if (mIdArg != null)
+      checkState(mIdArgUsed, "extraneous argument:", mIdArg);
   }
+
+  private String consumeIdArg() {
+    checkState(mIdArg != null, "expected an extra argument");
+    checkState(!mIdArgUsed, "arg already used");
+    mIdArgUsed = true;
+    return mIdArg;
+  }
+
+  private boolean mIdArgUsed;
 
   private void displayEntity() {
     RemoteEntityInfo ent = manager().optionalActiveEntity();
@@ -89,18 +121,24 @@ public class EntityOper extends AppOper {
       pr(ent);
   }
 
-  private void setEntity() {
-    RemoteEntityInfo foundEnt = manager().optionalEntryFor(mEntityNameExpr);
+  private void setEntity(String id) {
+    RemoteEntityInfo foundEnt = manager().optionalEntryFor(id);
     if (foundEnt == null) {
-      setError("no entity found for:", quote(mEntityNameExpr), "; use 'list' to available ones");
-      return;
+      setError("no entity found for:", quote(id), "; use 'list' to available ones");
     }
-
     RemoteEntityInfo updatedEnt = updateEntity(foundEnt);
     updatedEnt = manager().updateEnt(updatedEnt);
     manager().setActive(updatedEnt.id());
     createSSHScript(updatedEnt.id());
     displayEntity();
+  }
+
+  private void addEntity(String id) {
+    RemoteEntityInfo foundEnt = manager().optionalEntryFor(id);
+    if (foundEnt != null) {
+      setError("entity already exists:", INDENT, foundEnt);
+    }
+    manager().create(RemoteEntityInfo.newBuilder().id(id));
   }
 
   private RemoteEntityInfo updateEntity(RemoteEntityInfo entity) {
@@ -149,6 +187,6 @@ public class EntityOper extends AppOper {
   }
 
   private EntityManager mEntityManager;
-
-  private String mEntityNameExpr;
+  private String mIdArg;
+  private String mOperName;
 }
