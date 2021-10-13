@@ -156,15 +156,15 @@ public class EntityManager extends BaseObject {
     return builder;
   }
 
-  private static final String ENTITIES_FILENAME_DYNAMIC = "entity_map.json";
-  private static final String ENTITIES_FILENAME_STATIC = "entity_map_static.json";
+  private static final String DYNAMIC_REGISTRY_NAME = ".entity_map.json";
+  private static final String STATIC_REGISTRY_NAME = "entity_map.json";
 
   private File dynamicEntityFile() {
-    return new File(files().projectConfigDirectory(), ENTITIES_FILENAME_DYNAMIC);
+    return new File(files().projectConfigDirectory(), DYNAMIC_REGISTRY_NAME);
   }
 
   private File staticEntityFile() {
-    return new File(files().projectConfigDirectory(), ENTITIES_FILENAME_STATIC);
+    return new File(files().projectConfigDirectory(), STATIC_REGISTRY_NAME);
   }
 
   private RemoteEntityCollection.Builder staticRegistry() {
