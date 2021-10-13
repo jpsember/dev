@@ -96,8 +96,11 @@ public class EntityOper extends AppOper {
     case "list":
       pr(manager().currentEntities());
       break;
-    case "add":
-      addEntity(consumeIdArg());
+    case "add": {
+      String id = consumeIdArg();
+      addEntity(id);
+      setEntity(id);
+    }
       break;
     }
     if (mIdArg != null)
