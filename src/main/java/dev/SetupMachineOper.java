@@ -125,9 +125,9 @@ public class SetupMachineOper extends AppOper {
 
   private void verifyPython() {
     log("...verifying Python version");
-    SystemCall sc = new SystemCall().withVerbose(verbose()).arg("python3", "--version");
+    SystemCall sc = new SystemCall().withVerbose(verbose()).arg("python3x", "--version");
     sc.assertSuccess();
-    if (!sc.systemOut().contains("Python 3.7JEFF"))
+    if (!sc.systemOut().contains("Python 3.7"))
       setError("Unexpected python version:", INDENT, sc.systemOut());
   }
 
