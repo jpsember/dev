@@ -56,14 +56,9 @@ public class ArchiveOperTest extends MyTestCase {
   public void pushViaPath() {
     prepareWorkCopies();
 
-    // Determine path relative to current directory
-    File absPath = new File(workLocal(), "epsilon/hotel");
-    File relPath = Files.fileRelativeToDirectory(absPath, Files.currentDirectory());
-    log("relative path:",relPath);
-    
     // First call is to mark item for pushing
     //
-    addArg("push", relPath);
+    addArg("push", relative("epsilon/hotel"));
     runApp();
 
     // Second is to actually perform the pushing
@@ -82,7 +77,7 @@ public class ArchiveOperTest extends MyTestCase {
 
     // First call is to mark item for pushing
     //
-    addArg("push", "epsilon/hotel");
+    addArg("push", relative("epsilon/hotel"));
     runApp();
 
     // Second is to actually perform the pushing
@@ -245,6 +240,13 @@ public class ArchiveOperTest extends MyTestCase {
 
   private void validate(JSMap registry) {
     validate(registry, null);
+  }
+
+  /**
+   * Modify file so that it is relative to the current directory
+   */
+  private File relative(String path) {
+    return Files.fileRelativeToDirectory(new File(workLocal(), path), Files.currentDirectory());
   }
 
   private List<String> mArgs;

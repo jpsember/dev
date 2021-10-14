@@ -493,7 +493,6 @@ public final class ArchiveOper extends AppOper {
   }
 
   private void markForPushing(String userArg) {
-
     String key = null;
     ArchiveEntry entry = mRegistryGlobal.entries().get(userArg);
     if (entry != null) {
@@ -558,59 +557,30 @@ public final class ArchiveOper extends AppOper {
     return first(foundKeys);
   }
 
-  private String findKeyForFileOrDir(File fileOrDir) {
+  private void markForForgetting(String userArg) {
 
-    String foundKey = null;
-
-    // Look for entry matching this directory.
-    // If we find an exact match, then prioritize that; otherwise, look for just a filename match.
-    // But disallow multiple filename matches.
-
-    List<File> filenameMatches = arrayList();
-    List<String> filenameKeys = arrayList();
-    String seekName = fileOrDir.getName();
-    boolean performFuzzyMatch = !(fileOrDir.toString().contains("/"));
-
-    for (Entry<String, ArchiveEntry> ent : mRegistryGlobal.entries().entrySet()) {
-      String key = ent.getKey();
-      ArchiveEntry entry = ent.getValue();
-      File file = absoluteFileForEntry(key, entry);
-      if (file.equals(fileOrDir)) {
-        foundKey = key;
-        break;
-      }
-      if (performFuzzyMatch) {
-        if (file.getName().equals(seekName)) {
-          filenameKeys.add(key);
-          filenameMatches.add(file);
-        }
-      }
-    }
-
-    if (foundKey == null) {
-      if (filenameMatches.size() == 1) {
-        foundKey = filenameKeys.get(0);
-      } else if (filenameKeys.size() > 1) {
-        die("Multiple files found with name", seekName, ":", INDENT, filenameMatches);
-      }
-    }
-
-    if (foundKey == null)
-      die("No entry found for file:", fileOrDir);
-    return foundKey;
-  }
-
-  private void markForForgetting(String pathArg) {
     todo("get entry given a path arg, which may be a key, or a path");
-    File path = relativeToProjectDirectory(pathArg);
-    String foundKey = findKeyForFileOrDir(path);
-    ArchiveEntry foundEntry = mRegistryGlobal.entries().get(foundKey);
+
+    String key = null;
+    ArchiveEntry entry = mRegistryGlobal.entries().get(userArg);
+    if (entry != null) {
+      key = userArg;
+    } else {
+      File absFile = new File(userArg).getAbsoluteFile();
+      // Ensure it is a file within the project directory
+      File relativeToProject = relativeToProjectDirectory(absFile.toString());
+      key = optKeyForFile(relativeToProject);
+    }
+    if (nullOrEmpty(key))
+      setError("No entry found for:", userArg);
+
+    ArchiveEntry foundEntry = mRegistryGlobal.entries().get(key);
     ArchiveEntry updatedEntry = foundEntry.toBuilder().forget(true).build();
     if (!updatedEntry.equals(foundEntry)) {
-      pr("...marking for forget:", foundKey);
-      mRegistryGlobal.entries().put(foundKey, updatedEntry);
+      pr("...marking for forget:", key);
+      mRegistryGlobal.entries().put(key, updatedEntry);
     } else
-      pr("...already marked for forget:", foundKey);
+      pr("...already marked for forget:", key);
   }
 
   private void updateEntry() {
