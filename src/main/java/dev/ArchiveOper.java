@@ -394,7 +394,6 @@ public final class ArchiveOper extends AppOper {
   }
 
   private void updateEntries() {
-
     Map<String, ArchiveEntry> modifiedEntries = hashMap();
 
     for (Entry<String, ArchiveEntry> ent : mRegistryGlobal.entries().entrySet()) {
@@ -415,7 +414,6 @@ public final class ArchiveOper extends AppOper {
       modifiedEntries.put(mKey, updatedEntry);
     }
     mRegistryGlobal.entries().putAll(modifiedEntries);
-    pr("after updating entries:", INDENT, mRegistryGlobal);
   }
 
   private void processForgetFlags() {
@@ -434,8 +432,6 @@ public final class ArchiveOper extends AppOper {
       mRegistryGlobal.entries().keySet().removeAll(keysToDelete);
       mRegistryLocal.entries().keySet().removeAll(keysToDelete);
     }
-    if (!keysToDelete.isEmpty())
-      pr("after forgetting:", keysToDelete, INDENT, mRegistryGlobal, CR, mRegistryLocal);
   }
 
   private File fileWithinProjectDir(File relativePath) {
