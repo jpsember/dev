@@ -40,6 +40,7 @@ import js.file.DirWalk;
 import js.file.Files;
 import js.app.AppOper;
 import js.base.BasePrinter;
+import js.json.JSList;
 import js.json.JSMap;
 import js.parsing.RegExp;
 import dev.gen.archive.ArchiveEntry;
@@ -221,7 +222,7 @@ public final class ArchiveOper extends AppOper {
   public void perform() {
     todo("call SetError instead of die");
     todo("when error occurs, does registry need to be flushed?  do we care?");
-    
+
     fixPaths();
 
     readRegistry();
@@ -491,43 +492,70 @@ public final class ArchiveOper extends AppOper {
     return new File(fPath.substring(pPath.length() + 1));
   }
 
-  private void markForPushing(String keyOrPath) {
+  private void markForPushing(String userArg) {
 
-    // If argument matches an existing key, proceed with that key's ArchiveEntry
-    ArchiveEntry entry = mRegistryGlobal.entries().get(keyOrPath);
-    String key = keyOrPath;
+    String key = null;
+    ArchiveEntry entry = mRegistryGlobal.entries().get(userArg);
+    if (entry != null) {
+      key = userArg;
+    } else {
+      File absFile = new File(userArg).getAbsoluteFile();
+      if (!absFile.exists())
+        setError("No such file:", INDENT, absFile);
 
-    pr("....marking for pushing, keyOrPath:", keyOrPath);
-    if (entry == null) {
-      // User wants to push an object that is not in the archive
-      File path = relativeToProjectDirectory(keyOrPath);
-      File absPath = fileWithinProjectDir(path);
-      if (!absPath.exists())
-        setError("Can't find file:", absPath);
+      // Ensure it is a file within the project directory
+      File relativeToProject = relativeToProjectDirectory(absFile.toString());
+      key = optKeyForFile(relativeToProject);
+      if (key != null)
+        entry = mRegistryGlobal.entries().get(key);
+      else {
+        // User wants to push an object that is not in the archive
 
-      // Determine the key that will be assigned to this path
-      key = path.getName();
-      // If an entry already exists for this key, that is a problem
-      ArchiveEntry existingEntry = mRegistryGlobal.entries().get(key);
-      if (existingEntry != null)
-        setError("entry already exists for key", key, "derived from path", keyOrPath, ":", INDENT,
-            existingEntry);
+        // We will attempt to set the key equal to the filename
+        key = relativeToProject.getName();
+        // If an entry already exists for this key, that is a problem
+        ArchiveEntry existingEntry = mRegistryGlobal.entries().get(key);
+        if (existingEntry != null)
+          setError("entry already exists for key", key, "derived from path", relativeToProject, ":", INDENT,
+              existingEntry);
+      }
 
-      // Construct a new entry for this key
       ArchiveEntry.Builder b = ArchiveEntry.newBuilder();
-      b.path(path);
-      if (path.isDirectory())
+      b.path(relativeToProject);
+      if (absFile.isDirectory())
         b.directory(true);
       entry = b.build();
+      pr("...creating new entry with id", key);
       mRegistryGlobal.entries().put(key, entry);
     }
-
     ArchiveEntry updatedEntry = entry.toBuilder().push(true).build();
     if (!updatedEntry.equals(entry)) {
       pr("...marking for push:", key);
       mRegistryGlobal.entries().put(key, updatedEntry);
     } else
       pr("...already marked for push:", key);
+  }
+
+  private String optKeyForFile(File file) {
+    List<String> foundKeys = arrayList();
+
+    for (Entry<String, ArchiveEntry> ent : mRegistryGlobal.entries().entrySet()) {
+      String key = ent.getKey();
+      ArchiveEntry entry = ent.getValue();
+      if (entry.path().equals(file)) {
+        foundKeys.add(key);
+      }
+    }
+    if (foundKeys.isEmpty())
+      return null;
+
+    //  setError("Cannot find object with path:", file);
+
+    // TODO: this should really be handled by the validation phase
+    if (foundKeys.size() > 1)
+      setError("Multiple keys found for path:", file, INDENT, JSList.with(foundKeys));
+
+    return first(foundKeys);
   }
 
   private String findKeyForFileOrDir(File fileOrDir) {

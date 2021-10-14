@@ -101,6 +101,9 @@ public class SecretsOper extends AppOper {
       s.arg(sb);
     }
 
+    s.call();
+    pr("system call info:", INDENT, s.toJson());
+
     s.assertSuccess();
     if (!verbose())
       discardSecretsWorkDir();

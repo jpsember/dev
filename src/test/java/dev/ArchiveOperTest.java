@@ -56,9 +56,14 @@ public class ArchiveOperTest extends MyTestCase {
   public void pushViaPath() {
     prepareWorkCopies();
 
+    // Determine path relative to current directory
+    File absPath = new File(workLocal(), "epsilon/hotel");
+    File relPath = Files.fileRelativeToDirectory(absPath, Files.currentDirectory());
+    log("relative path:",relPath);
+    
     // First call is to mark item for pushing
     //
-    addArg("push", "epsilon/hotel");
+    addArg("push", relPath);
     runApp();
 
     // Second is to actually perform the pushing
