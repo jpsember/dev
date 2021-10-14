@@ -100,13 +100,14 @@ import dev.gen.archive.ArchiveRegistry;
  * 
  * Suppose you wish to add the file (or directory) "<project root directory>/abc/xyz/foo" to the archive.
  * 
- * Edit archive_registry.json, inserting a key/value pair to the "entries" map:
- * 
- *        "abc/xyz/foo" : { }
- * 
- * In the above example, the relative path is the key.  Alternatively, an arbitrary key, e.g. "moo", can be used:
+ *   dev archive push <path to/>foo
+ *   
+ * In the above example, the relative path is the key.  If this creates a conflict, or some other key is desired,
+ * then (at present) you must edit archive_registry.json, inserting a key/value pair with the desired key (e.g. "moo"):
  *  
- *        "moo" : { "path" : "abc/xyz/foo" }
+ *        "moo" : { "path" : "abc/xyz/foo",
+ *                  "directory" : true
+ *                }
  *        
  * Run the archive operation to push the file to the archive:
  * 
@@ -124,7 +125,7 @@ import dev.gen.archive.ArchiveRegistry;
  * 
  * Run the archive operation with these arguments:
  * 
- *    dev archive push abc/xyz/foo
+ *    dev archive push foo
  *    dev archive
  *    
  * The first line registers the object with the local registry.  The second call actually performs the pushing
@@ -140,13 +141,9 @@ import dev.gen.archive.ArchiveRegistry;
  * ------------------------------------------------------------------------------------
  * To make the archive stop tracking "<project root directory>/abc/xyz/foo":
  * 
- *    dev archive forget abc/xyz/foo
+ *    dev archive forget foo        (or "moo", if that is the key)
  *    dev archive
  *    
- * or, if appropriate,
- * 
- *    dev archive forget moo
- *    dev archive
  * 
  * Note that neither the local copy of an object, nor any previously pushed versions in the external data store,
  * are deleted by this operation.  It only makes the archive "forget" about the object.  It must be manually deleted
@@ -154,27 +151,6 @@ import dev.gen.archive.ArchiveRegistry;
  * 
  * 
  * </pre>
- * 
- * 
- * TODO: when a directory is archived, e.g. aaa/bbb/ccc, it gets saved as a zip
- * file within the archive root directory, e.g. ccc.zip. This is a problem if
- * there are multiple directories named ccc, but with different paths, as they
- * will attempt to use the same filename(s) within the archive. It would
- * probably be better if the filename is based on the full (relative) path, e.g.
- * "aaa_bbb_ccc.zip" (though this has problems as '_' is a valid path character,
- * so aaa/bbb/ccc/ would conflict with aaa_bbb_ccc/).
- * 
- * Note also that underscores cannot appear in bucket names in S3.
- * 
- * TODO: extensions are ignored when determining the 'archived' name of an
- * object; so 'aaa/bbb/ccc.txt' and 'ddd/eee/ccc.json' would both be assigned
- * the 'archived' name (without version info) 'ccc.zip'.
- * 
- * TODO: a reasonable solution to these problems is to scan the archive when the
- * operation is run, looking for conflicts with the archive names, and failing
- * immediately if any are found. It should perhaps also require that directories
- * don't have extensions (e.g. foo.bar is illegal), and that non-directories
- * MUST have extensions. Also, that paths are relative.
  * 
  */
 public final class ArchiveOper extends AppOper {
@@ -220,8 +196,7 @@ public final class ArchiveOper extends AppOper {
 
   @Override
   public void perform() {
-    todo("call SetError instead of die");
-    todo("when error occurs, does registry need to be flushed?  do we care?");
+    // TODO: when error occurs, does registry need to be flushed?  do we care?
 
     fixPaths();
 
@@ -390,7 +365,7 @@ public final class ArchiveOper extends AppOper {
         // Make the registry more legible to a human by removing some unnecessary key/value pairs, where possible
 
         JSMap m2 = registryMap.getMap("entries");
-        todo("make additional fields optional where appropriate");
+        todo("implement offload feature");
         for (String k : m2.keySet()) {
           JSMap m = m2.getMap(k);
           m.remove("offload");
@@ -425,7 +400,6 @@ public final class ArchiveOper extends AppOper {
     for (Entry<String, ArchiveEntry> ent : mRegistryGlobal.entries().entrySet()) {
       ArchiveEntry entry = ent.getValue();
 
-      todo("can we avoid instance fields mKey, mEntry?");
       mKey = ent.getKey();
       mEntry = entry.toBuilder();
 
@@ -488,7 +462,7 @@ public final class ArchiveOper extends AppOper {
     String fPath = f.toString();
     String pPath = mProjectDirectory.toString();
     if (!fPath.startsWith(pPath))
-      throw badArg("path is not within project directory:", pathArg);
+      setError("path is not within project directory:", pathArg);
     return new File(fPath.substring(pPath.length() + 1));
   }
 
@@ -548,9 +522,6 @@ public final class ArchiveOper extends AppOper {
     if (foundKeys.isEmpty())
       return null;
 
-    //  setError("Cannot find object with path:", file);
-
-    // TODO: this should really be handled by the validation phase
     if (foundKeys.size() > 1)
       setError("Multiple keys found for path:", file, INDENT, JSList.with(foundKeys));
 
@@ -558,9 +529,6 @@ public final class ArchiveOper extends AppOper {
   }
 
   private void markForForgetting(String userArg) {
-
-    todo("get entry given a path arg, which may be a key, or a path");
-
     String key = null;
     ArchiveEntry entry = mRegistryGlobal.entries().get(userArg);
     if (entry != null) {
@@ -669,12 +637,12 @@ public final class ArchiveOper extends AppOper {
     log("...source:", mSourceFile);
 
     if (device().fileExists(versionedFilename))
-      throw die("Version", versionedFilename, "already exists in cloud");
+      setError("Version", versionedFilename, "already exists in cloud");
 
     File sourceFile;
     if (singleFile()) {
       if (specificFilesOnly())
-        throw die("file_ext can only be specified for directories; " + mKey);
+        setError("file_ext can only be specified for directories;", mKey);
       sourceFile = mSourceFile;
     } else
       sourceFile = createZipFile(mSourceFile);
