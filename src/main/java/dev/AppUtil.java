@@ -28,6 +28,7 @@ import static js.base.Tools.*;
 
 import java.io.File;
 import java.util.List;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import dev.gen.AppInfo;
@@ -48,25 +49,33 @@ public final class AppUtil {
     return Files.readString(appInfo.pomFile());
   }
 
-  public static final Pattern APP_NAME_PATTERN = Pattern.compile("[a-z]+");
-  public static final Pattern PACKAGE_PATTERN = Pattern.compile("[a-z]+(\\.[a-z]+)*");
+  // We will allow hyphens and underscores in the app name, but further work might be
+  // required if we try to use the app name to generate Java code...
+  //
+  private static final Pattern APP_NAME_PATTERN = Pattern.compile("^[a-z-_]+$");
+  private static final Pattern POM_ARTIFACT_ID_PATTERN = Pattern
+      .compile("\\<artifactId\\>(\\w+)\\<\\/artifactId\\>");
 
   public static void withDirectory(AppInfo.Builder appInfo, File appDir, String mainClassNameOrNull) {
     checkArgument(Files.nonEmpty(appDir));
     appInfo.dir(appDir);
-    String name = appInfo.dir().getName();
+
+    // Check for the existence of a pom.xml file.  If so, use its artifactId as the app name. 
+    // Otherwise, use the directory name.
+
+    String name = null;
+    appInfo.pomFile(AppUtil.pomFile(appDir));
+    if (appInfo.pomFile().exists()) {
+      String content = Files.readString(appInfo.pomFile());
+      Matcher m = POM_ARTIFACT_ID_PATTERN.matcher(content);
+      if (m.find())
+        name = m.group(1);
+    }
+    if (name == null)
+      name = appInfo.dir().getName();
+
     checkArgument(RegExp.patternMatchesString(APP_NAME_PATTERN, name), "Illegal app name:", name);
     appInfo.name(name);
-    appInfo.pomFile(new File(appInfo.dir(), "pom.xml"));
-    if (appInfo.pomFile().exists()) {
-      String pomText = readPom(appInfo);
-      String phrase = "<artifactId>";
-      int pos = pomText.indexOf(phrase);
-      int pos2 = pomText.indexOf("</artifactId>", pos + 1);
-      checkArgument(pos >= 0 && pos2 > pos, "can't find " + phrase);
-      String appNameFromPom = pomText.substring(pos + phrase.length(), pos2);
-      checkArgumentsEqual(appInfo.name(), appNameFromPom, "App name vs pom file");
-    }
 
     appInfo.mainClassName(ifNullOrEmpty(mainClassNameOrNull, "Main"));
     String mainClassName = appInfo.mainClassName() + ".java";
