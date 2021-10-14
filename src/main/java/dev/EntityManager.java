@@ -204,7 +204,7 @@ public class EntityManager extends BaseObject {
   }
 
   private void readDynamicRegister() {
-    mOriginalDynamicRegistry = Files.parseAbstractData(RemoteEntityCollection.DEFAULT_INSTANCE,
+    mOriginalDynamicRegistry = Files.parseAbstractDataOpt(RemoteEntityCollection.DEFAULT_INSTANCE,
         dynamicEntityFile());
     mDynamicRegistry = mOriginalDynamicRegistry.toBuilder();
   }

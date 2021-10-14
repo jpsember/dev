@@ -50,7 +50,6 @@ public class ExperimentOper extends AppOper {
     Ngrok ng = Ngrok.sharedInstance();
     pr("ngrok:", INDENT, ng.toJson());
     pr("find:", Files.getFileWithinParents(new File("src"), ".git"));
-    pr("tunnel_sessions", INDENT, ng.tunnelSessions());
   }
 
   @Override

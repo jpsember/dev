@@ -39,9 +39,6 @@ import js.parsing.RegExp;
 
 public class Ngrok extends BaseObject {
 
-  private static final boolean METADATA_WORKAROUND = false
-      && alert("using heuristics until metadata working");
-
   public static Ngrok sharedInstance() {
     if (sSharedInstance == null) {
       sSharedInstance = new Ngrok();
@@ -53,9 +50,6 @@ public class Ngrok extends BaseObject {
 
   /**
    * Call the ngrok API, with a particular endpoint appended to their url.
-   * 
-   * @param endpoint
-   * @return JSMap
    */
   private JSMap callAPI(String endpoint) {
     SystemCall sc = new SystemCall();
@@ -63,6 +57,7 @@ public class Ngrok extends BaseObject {
     sc.arg("curl", "-sS");
     sc.arg("-H", "Accept: application/json");
     sc.arg("-H", "Authorization: Bearer " + getNgrokToken());
+    sc.arg("-H", "ngrok-version: 2");
     sc.arg("https://api.ngrok.com/" + endpoint);
     sc.assertSuccess();
     JSMap result = new JSMap(sc.systemOut());
@@ -93,19 +88,6 @@ public class Ngrok extends BaseObject {
         // If this is not a tcp tunnel, ignore
         if (!tunMap.get("proto").equals("tcp"))
           continue;
-
-        if (METADATA_WORKAROUND) {
-          if (tunMap.get("public_url").contains("18995")) {
-            metadata = "rpi32";
-            tunMap.put("metadata", metadata);
-          } else if (tunMap.get("public_url").contains("16890")) {
-            metadata = "rpi64";
-            tunMap.put("metadata", metadata);
-          } else if (tunMap.get("public_url").contains("16881")) {
-            metadata = "rpi";
-            tunMap.put("metadata", metadata);
-          }
-        }
       }
       if (metadata.isEmpty()) {
         pr("*** ngrok tunnel has no metadata, public_url:", tunMap.get("public_url"));
@@ -136,17 +118,6 @@ public class Ngrok extends BaseObject {
     return result;
   }
 
-  /**
-   * This doesn't output much; probably a feature we're not using
-   */
-  public JSMap endpoints() {
-    return callAPI("endpoint_configurations");
-  }
-
-  public JSMap tunnelSessions() {
-    return callAPI("tunnel_sessions");
-  }
-
   private String getNgrokToken() {
     if (mToken == null) {
       File tokenFile = new File(Files.S.projectSecretsDirectory(), "ngrok_token.txt");
@@ -158,14 +129,6 @@ public class Ngrok extends BaseObject {
 
   private JSList tunnelsMap() {
     if (mCachedTunnels == null) {
-      if (true) {
-        alert(
-            "The ngrok API seems to have bugs.  The metadata string it returns is always empty, despite that not being the case when viewed from their web dashboard.  Also, "
-                + "I can't get the 'tunnel_sessions/{id}' endpoint to work; it returns a 'Resource not found' error message.");
-      } else if (true) {
-        JSMap exp = callAPI("tunnel_sessions/tn_1z8c6lzOO9D4KJiHtCPCMOKkl62");
-        log("tunnel_sessions:", INDENT, exp);
-      }
       JSMap apiResult = callAPI("tunnels");
       log("Called api:", INDENT, apiResult);
       mCachedTunnels = apiResult.getList("tunnels");
