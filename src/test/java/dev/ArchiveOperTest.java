@@ -257,7 +257,8 @@ public class ArchiveOperTest extends MyTestCase {
    * Modify file so that it is relative to the current directory
    */
   private File relative(String path) {
-    return Files.fileRelativeToDirectory(new File(workLocal(), path), Files.currentDirectory());
+    File placedWithinWorkLocal = new File(workLocal(), path);
+    return Files.fileRelativeToDirectory(placedWithinWorkLocal, Files.currentDirectory());
   }
 
   private List<String> mArgs;

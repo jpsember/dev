@@ -150,6 +150,14 @@ import dev.gen.archive.ArchiveRegistry;
  * (if desired) from the local machine or the data store.
  * 
  * 
+ * Offloading the local copy of an object
+ * ------------------------------------------------------------------------------------
+ * You can avoid having an archived object being stored locally.  This will delete the existing local copy of the
+ * object and will avoid pulling it in from the external store in subsequent operations.
+ * 
+ *   dev archive offload foo
+ * 
+ * 
  * </pre>
  * 
  */
@@ -172,6 +180,7 @@ public final class ArchiveOper extends AppOper {
         "[mock_remote <path>] : directory simulating cloud archive device", CR, //
         "[push <path>] : mark file or directory for pushing new version", CR, //
         "[forget <path>] : stop tracking file or directory within archive", CR, //
+        "[offload <path>] : delete local copy of object", CR, //
         "[validate] : perform validation only (for test purposes)");
   }
 
@@ -181,6 +190,7 @@ public final class ArchiveOper extends AppOper {
     mMockRemoteDir = new File(cmdLineArgs().nextArgIf("mock_remote", ""));
     mPushPathArg = cmdLineArgs().nextArgIf("push", "");
     mForgetPathArg = cmdLineArgs().nextArgIf("forget", "");
+    mOffloadPathArg = cmdLineArgs().nextArgIf("offload", "");
     mValidateOnly = cmdLineArgs().nextArgIf("validate");
   }
 
@@ -217,6 +227,10 @@ public final class ArchiveOper extends AppOper {
     if (nonEmpty(mForgetPathArg)) {
       proc = true;
       markForForgetting(mForgetPathArg);
+    }
+    if (nonEmpty(mOffloadPathArg)) {
+      proc = true;
+      markForOffloading(mOffloadPathArg);
     }
 
     if (proc) {
@@ -479,56 +493,50 @@ public final class ArchiveOper extends AppOper {
    * Given a path, convert it to a file relative to the project directory. Fail
    * if it is not within the project directory
    */
-  private File relativeToProjectDirectory(String pathArg) {
-    checkArgument(nonEmpty(pathArg));
-    File f = new File(pathArg);
-    if (!f.isAbsolute()) {
-      f = new File(mProjectDirectory, pathArg);
-    }
-    f = Files.getCanonicalFile(f);
-
-    String fPath = f.toString();
+  private File relativeToProjectDirectory(File file) {
+    File origFile = file;
+    file = Files.getCanonicalFile(file);
+    String fPath = file.toString();
     String pPath = mProjectDirectory.toString();
     if (!fPath.startsWith(pPath))
-      setError("path is not within project directory:", pathArg);
+      setError("file is not within project directory:", file, INDENT, "original argument:", origFile);
     return new File(fPath.substring(pPath.length() + 1));
   }
 
+  private File relativeToProjectDirectory(String pathArg) {
+    return relativeToProjectDirectory(new File(pathArg));
+  }
+
   private void markForPushing(String userArg) {
-    String key = null;
-    ArchiveEntry entry = mRegistryGlobal.entries().get(userArg);
-    if (entry != null) {
-      key = userArg;
-    } else {
-      File absFile = new File(userArg).getAbsoluteFile();
-      if (!absFile.exists())
-        setError("No such file:", INDENT, absFile);
+    String key = keyFromUserArg(userArg);
 
-      // Ensure it is a file within the project directory
-      File relativeToProject = relativeToProjectDirectory(absFile.toString());
-      key = optKeyForFile(relativeToProject);
-      if (key != null)
-        entry = mRegistryGlobal.entries().get(key);
-      else {
-        // User wants to push an object that is not in the archive
+    if (key == null) {
 
-        // We will attempt to set the key equal to the filename
-        key = relativeToProject.getName();
-        // If an entry already exists for this key, that is a problem
-        ArchiveEntry existingEntry = mRegistryGlobal.entries().get(key);
-        if (existingEntry != null)
-          setError("entry already exists for key", key, "derived from path", relativeToProject, ":", INDENT,
-              existingEntry);
-      }
+      // User wants to push an object that is not in the archive
+
+      File file = new File(userArg);
+      if (!file.exists())
+        setError("No such file:", file);
+
+      File relativeToProject = relativeToProjectDirectory(userArg);
+      key = relativeToProject.getName();
+      // If an entry already exists for this key, that is a problem
+      ArchiveEntry existingEntry = mRegistryGlobal.entries().get(key);
+      if (existingEntry != null)
+        setError("entry already exists for key", key, "derived from path", userArg, ":", INDENT,
+            existingEntry);
 
       ArchiveEntry.Builder b = ArchiveEntry.newBuilder();
       b.path(relativeToProject);
-      if (absFile.isDirectory())
+      if (file.isDirectory())
         b.directory(true);
-      entry = b.build();
       log("...creating new entry with id", key);
-      mRegistryGlobal.entries().put(key, entry);
+      mRegistryGlobal.entries().put(key, b.build());
     }
+
+    ArchiveEntry entry = entryForKey(key);
+
+    todo("Fail if user has marked this as forgotten, or offloaded");
     ArchiveEntry updatedEntry = entry.toBuilder().push(true).build();
     if (!updatedEntry.equals(entry)) {
       log("...marking for push:", key);
@@ -543,9 +551,8 @@ public final class ArchiveOper extends AppOper {
     for (Entry<String, ArchiveEntry> ent : mRegistryGlobal.entries().entrySet()) {
       String key = ent.getKey();
       ArchiveEntry entry = ent.getValue();
-      if (entry.path().equals(file)) {
+      if (entry.path().equals(file)) 
         foundKeys.add(key);
-      }
     }
     if (foundKeys.isEmpty())
       return null;
@@ -556,7 +563,39 @@ public final class ArchiveOper extends AppOper {
     return first(foundKeys);
   }
 
+  private String keyFromUserArg(String userArg) {
+    String key = null;
+    ArchiveEntry entry = mRegistryGlobal.entries().get(userArg);
+    if (entry != null) {
+      key = userArg;
+    } else {
+      // Assume the user argument is a path.  If it is relative, we treat it as if it is relative to the
+      // current directory (as opposed to the project root directory).
+      File path = relativeToProjectDirectory(userArg);
+      key = optKeyForFile(path);
+    }
+    return key;
+  }
+
+  private ArchiveEntry entryForKey(String key, Object... errorMessageIfNotFound) {
+    ArchiveEntry entry = mRegistryGlobal.entries().get(key);
+    if (entry == null && errorMessageIfNotFound.length > 0)
+      setError(errorMessageIfNotFound);
+    return entry;
+  }
+
   private void markForForgetting(String userArg) {
+    String key = keyFromUserArg(userArg);
+    ArchiveEntry foundEntry = entryForKey(key, "No entry found for:", userArg);
+    ArchiveEntry updatedEntry = foundEntry.toBuilder().forget(true).build();
+    if (!updatedEntry.equals(foundEntry)) {
+      pr("...marking for forget:", key);
+      mRegistryGlobal.entries().put(key, updatedEntry);
+    } else
+      pr("...already marked for forget:", key);
+  }
+
+  private void markForOffloading(String userArg) {
     String key = null;
     ArchiveEntry entry = mRegistryGlobal.entries().get(userArg);
     if (entry != null) {
@@ -564,7 +603,7 @@ public final class ArchiveOper extends AppOper {
     } else {
       File absFile = new File(userArg).getAbsoluteFile();
       // Ensure it is a file within the project directory
-      File relativeToProject = relativeToProjectDirectory(absFile.toString());
+      File relativeToProject = relativeToProjectDirectory(absFile);
       key = optKeyForFile(relativeToProject);
     }
     if (nullOrEmpty(key))
@@ -886,6 +925,7 @@ public final class ArchiveOper extends AppOper {
   private File mSourceFile;
   private String mPushPathArg;
   private String mForgetPathArg;
+  private String mOffloadPathArg;
   private File mMockRemoteDir;
   private ArchiveDevice mDevice;
 }

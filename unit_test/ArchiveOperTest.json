@@ -3,7 +3,7 @@
        "pushInitialVersions" : 7500,
                 "pushUpdate" : 9776,
                "pushViaPath" : 6026,
-       "pushViaPathConflict" : 7204,
+       "pushViaPathConflict" : 2875,
              "updateVersion" : 7859,
         "updateVersionFails" : 4591,
         "validateBadVersion" : 3719,
