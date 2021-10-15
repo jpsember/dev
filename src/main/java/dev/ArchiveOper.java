@@ -206,6 +206,12 @@ public final class ArchiveOper extends AppOper {
 
   @Override
   public void perform() {
+    auxPerform();
+    flushRegistry();
+  }
+
+  private void auxPerform() {
+
     // TODO: when error occurs, does registry need to be flushed?  do we care?
 
     fixPaths();
@@ -213,28 +219,15 @@ public final class ArchiveOper extends AppOper {
     readGlobalRegistry();
     readHiddenRegistry();
 
-    if (mValidateOnly) {
-      flushRegistry();
+    if (mValidateOnly)
       return;
-    }
-
-    boolean proc = false;
 
     if (nonEmpty(mPushPathArg)) {
-      proc = true;
       markForPushing(mPushPathArg);
-    }
-    if (nonEmpty(mForgetPathArg)) {
-      proc = true;
+    } else if (nonEmpty(mForgetPathArg)) {
       markForForgetting(mForgetPathArg);
-    }
-    if (nonEmpty(mOffloadPathArg)) {
-      proc = true;
+    } else if (nonEmpty(mOffloadPathArg)) {
       markForOffloading(mOffloadPathArg);
-    }
-
-    if (proc) {
-      flushRegistry();
     } else {
       processForgetFlags();
       updateEntries();
@@ -551,7 +544,7 @@ public final class ArchiveOper extends AppOper {
     for (Entry<String, ArchiveEntry> ent : mRegistryGlobal.entries().entrySet()) {
       String key = ent.getKey();
       ArchiveEntry entry = ent.getValue();
-      if (entry.path().equals(file)) 
+      if (entry.path().equals(file))
         foundKeys.add(key);
     }
     if (foundKeys.isEmpty())
