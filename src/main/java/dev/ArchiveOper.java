@@ -200,7 +200,9 @@ public final class ArchiveOper extends AppOper {
 
     fixPaths();
 
-    readRegistry();
+    readGlobalRegistry();
+    readHiddenRegistry();
+
     if (mValidateOnly) {
       flushRegistry();
       return;
@@ -270,14 +272,13 @@ public final class ArchiveOper extends AppOper {
       setError("Problems with archive registry", contextExpr(context), ":", INDENT, errorMessage);
   }
 
-  private void readRegistry() {
+  private void readGlobalRegistry() {
     File globalFile = registerGlobalFile();
     ArchiveRegistry registry = Files.parseAbstractData(ArchiveRegistry.DEFAULT_INSTANCE, globalFile);
     mRegistryGlobalOriginal = registry;
     registry = updateGlobalRegistry(registry);
     validateGlobalRegistry(registry, globalFile.getName());
     mRegistryGlobal = registry.toBuilder();
-    readHiddenRegistry();
   }
 
   private File registerGlobalFile() {
@@ -297,9 +298,6 @@ public final class ArchiveOper extends AppOper {
     ArchiveRegistry registry = Files.parseAbstractDataOpt(ArchiveRegistry.DEFAULT_INSTANCE, hiddenFile);
     mRegistryLocalOriginal = registry;
     registry = updateHiddenRegistry(registry, mRegistryGlobal);
-
-    // Apparently the toBuilder() call *does* construct a copy of the entries map, which is what we need
-    // (since we want to leave the original registry untouched)
     mRegistryLocal = registry.toBuilder();
   }
 
@@ -368,15 +366,18 @@ public final class ArchiveOper extends AppOper {
 
     for (Entry<String, ArchiveEntry> ent : globalRegistry.entries().entrySet()) {
       String key = ent.getKey();
-      ArchiveEntry originalHiddenEntry = ent.getValue();
+      ArchiveEntry globalEntry = ent.getValue();
 
-      ArchiveEntry globalEntry = hiddenRegistry.entries().get(key);
+      ArchiveEntry originalHiddenEntry = hiddenRegistry.entries().get(key);
+      if (originalHiddenEntry == null) {
+        pr("...no hidden entry found for:", key);
+        originalHiddenEntry = ArchiveEntry.DEFAULT_INSTANCE;
+      }
 
-      // If there's no corresponding global entry, leave it out
-      //
-      if (globalEntry == null) {
-        pr("...discarding unexpected hidden entry:", INDENT, ent);
-        continue;
+      int newVersion = originalHiddenEntry.version();
+      if (newVersion > globalEntry.version()) {
+        setError("*** entry", key, "hidden entry version", newVersion, "exceeds global",
+            globalEntry.version());
       }
 
       ArchiveEntry.Builder updatedEnt = ArchiveEntry.newBuilder();
@@ -579,7 +580,7 @@ public final class ArchiveOper extends AppOper {
   }
 
   private void updateEntry() {
-    // If version is zero, assume pushing; also, set directory flag
+    // If version is zero, assume pushing; also, set directory flag appropriately
     if (mEntry.version() == 0) {
       File absPath = fileWithinProjectDir(mEntry.path());
       if (!absPath.exists())
@@ -589,9 +590,15 @@ public final class ArchiveOper extends AppOper {
       mEntry.push(true);
     }
 
+    ArchiveEntry hiddenEntry = mRegistryLocal.entries().get(mKey);
+    if (hiddenEntry == null)
+      throw badState("no hidden entry found for:", mKey);
+
     // Push new version from local to cloud if push signal was given
     //
     if (mEntry.push() == Boolean.TRUE) {
+      if (hiddenEntry.offload() == Boolean.TRUE)
+        throw badState("attempt to push offloaded entry:", mEntry);
       pushEntry();
       mPushedCount++;
       return;
