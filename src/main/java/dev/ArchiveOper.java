@@ -370,7 +370,7 @@ public final class ArchiveOper extends AppOper {
 
       ArchiveEntry originalHiddenEntry = hiddenRegistry.entries().get(key);
       if (originalHiddenEntry == null) {
-        pr("...no hidden entry found for:", key);
+        log("...no hidden entry found for:", key);
         originalHiddenEntry = ArchiveEntry.DEFAULT_INSTANCE;
       }
 
@@ -526,12 +526,12 @@ public final class ArchiveOper extends AppOper {
       if (absFile.isDirectory())
         b.directory(true);
       entry = b.build();
-      pr("...creating new entry with id", key);
+      log("...creating new entry with id", key);
       mRegistryGlobal.entries().put(key, entry);
     }
     ArchiveEntry updatedEntry = entry.toBuilder().push(true).build();
     if (!updatedEntry.equals(entry)) {
-      pr("...marking for push:", key);
+      log("...marking for push:", key);
       mRegistryGlobal.entries().put(key, updatedEntry);
     } else
       pr("...already marked for push:", key);

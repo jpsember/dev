@@ -1,16 +1,7 @@
-    { "entries" : {     "alpha" : { "file_extensions" : [  ],
-                                               "name" : "",
-                                            "offload" : false,
-                                               "path" : "",
-                                               "push" : false,
+    { "entries" : {     "alpha" : {            "path" : "",
                                             "version" : 1,
-                                            "directory" : true
                                   },
-                    "gamma.txt" : { "file_extensions" : [  ],
-                                               "name" : "",
-                                            "offload" : false,
-                                               "path" : "",
-                                               "push" : false,
+                    "gamma.txt" : {            "path" : "",
                                             "version" : 1
                                   }
                   },

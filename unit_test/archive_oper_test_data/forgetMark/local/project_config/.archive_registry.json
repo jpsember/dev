@@ -3,18 +3,14 @@
         "alpha": {
             "file_extensions": [],
             "name": "",
-            "offload": false,
             "path": "",
-            "push": false,
             "version": 1,
-              "directory" : true
+            "directory" : true
         },
         "gamma.txt": {
             "file_extensions": [],
             "name": "",
-            "offload": false,
             "path": "",
-            "push": false,
             "version": 1
         }
     },
