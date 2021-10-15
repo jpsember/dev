@@ -239,7 +239,7 @@ public final class ArchiveOper extends AppOper {
     return "(" + nullTo(contextOrNull, "no context given") + ")";
   }
 
-  private void validateRegistry(ArchiveRegistry registry, Object context) {
+  private void validateGlobalRegistry(ArchiveRegistry registry, Object context) {
     BasePrinter p = new BasePrinter();
 
     String expected = ArchiveRegistry.DEFAULT_INSTANCE.version();
@@ -274,8 +274,8 @@ public final class ArchiveOper extends AppOper {
     File globalFile = registerGlobalFile();
     ArchiveRegistry registry = Files.parseAbstractData(ArchiveRegistry.DEFAULT_INSTANCE, globalFile);
     mRegistryGlobalOriginal = registry;
-    registry = updateRegistry(registry);
-    validateRegistry(registry, globalFile.getName());
+    registry = updateGlobalRegistry(registry);
+    validateGlobalRegistry(registry, globalFile.getName());
     mRegistryGlobal = registry.toBuilder();
     readHiddenRegistry();
   }
@@ -296,16 +296,14 @@ public final class ArchiveOper extends AppOper {
     File hiddenFile = registerLocalFile();
     ArchiveRegistry registry = Files.parseAbstractDataOpt(ArchiveRegistry.DEFAULT_INSTANCE, hiddenFile);
     mRegistryLocalOriginal = registry;
-    registry = updateRegistry(registry);
-
-    validateRegistry(registry, hiddenFile.getName());
+    registry = updateHiddenRegistry(registry, mRegistryGlobal);
 
     // Apparently the toBuilder() call *does* construct a copy of the entries map, which is what we need
     // (since we want to leave the original registry untouched)
     mRegistryLocal = registry.toBuilder();
   }
 
-  private ArchiveRegistry updateRegistry(ArchiveRegistry registry) {
+  private ArchiveRegistry updateGlobalRegistry(ArchiveRegistry registry) {
     boolean v1Update = registry.version().equals("1.0");
     ArchiveRegistry.Builder b = registry.build().toBuilder();
 
@@ -358,6 +356,36 @@ public final class ArchiveOper extends AppOper {
     }
     b.version(ArchiveRegistry.DEFAULT_INSTANCE.version());
     return b.build();
+  }
+
+  /**
+   * Updating the hidden registry is different, since we are copying many things
+   * from the global registry
+   */
+  private ArchiveRegistry updateHiddenRegistry(ArchiveRegistry hiddenRegistry,
+      ArchiveRegistry globalRegistry) {
+    ArchiveRegistry.Builder updatedRegistry = ArchiveRegistry.newBuilder();
+
+    for (Entry<String, ArchiveEntry> ent : globalRegistry.entries().entrySet()) {
+      String key = ent.getKey();
+      ArchiveEntry originalHiddenEntry = ent.getValue();
+
+      ArchiveEntry globalEntry = hiddenRegistry.entries().get(key);
+
+      // If there's no corresponding global entry, leave it out
+      //
+      if (globalEntry == null) {
+        pr("...discarding unexpected hidden entry:", INDENT, ent);
+        continue;
+      }
+
+      ArchiveEntry.Builder updatedEnt = ArchiveEntry.newBuilder();
+      updatedEnt.offload(originalHiddenEntry.offload());
+      updatedEnt.version(originalHiddenEntry.version());
+
+      updatedRegistry.entries().put(key, updatedEnt.build());
+    }
+    return updatedRegistry.build();
   }
 
   private void flushRegistry() {
