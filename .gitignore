@@ -28,9 +28,3 @@ eclipse_preferences.epf
 target
 
 src/main/java/dev/gen
-
-# Ignore these directories, which may be here temporarily for development purposes
-#
-secrets
-project_config
-!project_config/ngrok_config.yml

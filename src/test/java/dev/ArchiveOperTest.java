@@ -154,11 +154,6 @@ public class ArchiveOperTest extends MyTestCase {
   }
 
   @Test
-  public void validatePathIllformed() {
-    validate(map().put("entries", map().put("a", map().put("path", "bad//path"))));
-  }
-
-  @Test
   public void validateBadVersionHidden() {
     validate(null, map().put("version", "foo"));
   }
@@ -175,11 +170,12 @@ public class ArchiveOperTest extends MyTestCase {
     addArg("dir", workLocal());
     addArg("mock_remote", workRemote());
     App app = new Main();
+    app.setFiles(files());
     app.startApplication(DataUtil.toStringArray(args()));
     mArgs = null;
     RuntimeException e = app.getError();
     if (e != null)
-      Files.S.writeString(generatedFile("_error_.txt"), e.toString());
+      files().writeString(generatedFile("_error_.txt"), e.toString());
   }
 
   private void execute() {
@@ -196,10 +192,22 @@ public class ArchiveOperTest extends MyTestCase {
 
     File templateLocal = new File(unitTestSourceData, "local");
     File templateRemote = new File(unitTestSourceData, "remote");
-    Files.S.copyDirectory(templateLocal, workLocal());
-    if (templateRemote.exists())
-      Files.S.copyDirectory(templateRemote, workRemote());
+
+    files().copyDirectory(templateLocal, workLocal());
+    prepareProject();
+    if (templateRemote.exists()) {
+      files().copyDirectory(templateRemote, workRemote());
+    }
   }
+
+  private void prepareProject() {
+    if (!mProjectPrepared) {
+      mProjectPrepared = true;
+      files().setProjectDirectory(workLocal());
+    }
+  }
+
+  private boolean mProjectPrepared;
 
   private List<String> args() {
     if (mArgs == null) {
@@ -226,12 +234,15 @@ public class ArchiveOperTest extends MyTestCase {
   }
 
   private void validate(JSMap registry, JSMap hiddenRegistry) {
+    prepareProject();
     if (registry == null)
       registry = map();
 
-    Files.S.writePretty(new File(workLocal(), "archive_registry.json"), registry);
+    File configDir = new File(workLocal(), "project_config");
+    files().mkdirs(configDir);
+    files().writePretty(new File(configDir, "archive_registry.json"), registry);
     if (hiddenRegistry != null)
-      Files.S.writePretty(new File(workLocal(), ".archive_registry.json"), hiddenRegistry);
+      files().writePretty(new File(configDir, ".archive_registry.json"), hiddenRegistry);
 
     addArg("validate");
     runApp();
@@ -252,5 +263,4 @@ public class ArchiveOperTest extends MyTestCase {
   private List<String> mArgs;
   private File mWorkLocal;
   private File mWorkRemote;
-
 }

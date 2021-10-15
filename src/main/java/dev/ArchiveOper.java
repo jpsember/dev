@@ -186,7 +186,7 @@ public final class ArchiveOper extends AppOper {
 
   private void fixPaths() {
     if (Files.empty(mProjectDirectory))
-      mProjectDirectory = Files.getCanonicalFile(Files.parent(Files.S.projectConfigDirectory()));
+      mProjectDirectory = Files.getCanonicalFile(Files.parent(files().projectConfigDirectory()));
     else
       mProjectDirectory = Files.getCanonicalFile(mProjectDirectory);
     if (Files.nonEmpty(mMockRemoteDir))
@@ -281,11 +281,15 @@ public final class ArchiveOper extends AppOper {
   }
 
   private File registerGlobalFile() {
-    return fileWithinProjectDir("archive_registry.json");
+    return fileWithinConfigDir("archive_registry.json");
   }
 
   private File registerLocalFile() {
-    return fileWithinProjectDir(".archive_registry.json");
+    return fileWithinConfigDir(".archive_registry.json");
+  }
+
+  private File fileWithinConfigDir(String path) {
+    return new File(files().projectConfigDirectory(), Files.assertRelative(path));
   }
 
   private void readHiddenRegistry() {
@@ -439,8 +443,7 @@ public final class ArchiveOper extends AppOper {
   }
 
   private File fileWithinProjectDir(String relativeFilePath) {
-    checkArgument(relativeFilePath.charAt(0) != '/');
-    return new File(mProjectDirectory, relativeFilePath);
+    return new File(mProjectDirectory, Files.assertRelative(relativeFilePath));
   }
 
   /**
@@ -659,7 +662,7 @@ public final class ArchiveOper extends AppOper {
     log("...pulling version " + desiredVersion, "of:", mKey);
     String versionedFilename = filenameWithVersion(desiredVersion);
 
-    Files.S.deleteFile(tempFile());
+    files().deleteFile(tempFile());
 
     if (!files().dryRun()) {
       device().pull(versionedFilename, tempFile());
@@ -710,7 +713,7 @@ public final class ArchiveOper extends AppOper {
       }
     }
 
-    Files.S.deleteFile(tempFile());
+    files().deleteFile(tempFile());
 
     storeLocalVersion(desiredVersion);
   }
@@ -777,10 +780,10 @@ public final class ArchiveOper extends AppOper {
   }
 
   private File createZipFile(File directory) {
-    Files.S.deleteFile(tempFile());
+    files().deleteFile(tempFile());
 
     try {
-      ZipOutputStream zipStream = new ZipOutputStream(Files.S.outputStream(tempFile()));
+      ZipOutputStream zipStream = new ZipOutputStream(files().outputStream(tempFile()));
       for (File relFile : filesToZip(directory)) {
         String relPath = relFile.toString();
         ZipEntry zipEntry = new ZipEntry(relPath);
@@ -817,7 +820,7 @@ public final class ArchiveOper extends AppOper {
       if (Files.nonEmpty(mMockRemoteDir))
         mDevice = new FileArchiveDevice(mMockRemoteDir);
       else {
-        File authFile = Files.S.fileWithinSecrets("s3_auth.json");
+        File authFile = files().fileWithinSecrets("s3_auth.json");
         JSMap m = JSMap.from(authFile);
         mDevice = new S3Archive(m.get("profile"), m.get("account_name") + "/archive", mProjectDirectory);
       }
