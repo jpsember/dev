@@ -48,7 +48,18 @@ public class ArchiveOperTest extends MyTestCase {
    */
   @Test
   public void pushInitialVersions() {
-    execute();
+    generateFiles(workLocal(),
+        "alpha(beta.txt) epsilon(hotel(f1.txt f2.txt)) golf(yankee(f1.txt f2.txt)) gamma.txt");
+
+    flushEnt("!alpha");
+    path("epsilon/hotel").flushEnt("!hotel");
+    path("golf/yankee").flushEnt("!zulu");
+    flushEnt("gamma.txt");
+
+    flushRegistry();
+
+    runApp();
+    assertGenerated();
   }
 
   /**
@@ -82,9 +93,9 @@ public class ArchiveOperTest extends MyTestCase {
     generateFiles(workLocal(),
         "alpha(beta.txt) epsilon(hotel(f1.txt f2.txt)) golf(yankee(f1.txt f2.txt)) gamma.txt");
 
-    flushEnt("!alpha");
-    entPath("gamma.txt").flushEnt("hotel");
-    entPath("golf/yankee").flushEnt("!zulu");
+    vers(1).flushEnt("!alpha");
+    vers(1).path("gamma.txt").flushEnt("hotel");
+    vers(1).path("golf/yankee").flushEnt("!zulu");
 
     flushRegistry();
 
@@ -305,8 +316,6 @@ public class ArchiveOperTest extends MyTestCase {
   private ArchiveEntry.Builder ent() {
     if (mArchiveEntryBuilder == null) {
       mArchiveEntryBuilder = ArchiveEntry.newBuilder();
-      // Set some reasonable defaults; for test purposes, assume version 1
-      mArchiveEntryBuilder.version(1);
     }
     return mArchiveEntryBuilder;
   }
@@ -317,12 +326,12 @@ public class ArchiveOperTest extends MyTestCase {
     return rb;
   }
 
-  private ArchiveOperTest entPath(String path) {
+  private ArchiveOperTest path(String path) {
     ent().path(new File(path));
     return this;
   }
 
-  private ArchiveOperTest entVersion(int version) {
+  private ArchiveOperTest vers(int version) {
     ent().version(version);
     return this;
   }
