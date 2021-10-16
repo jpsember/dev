@@ -307,6 +307,7 @@ public class ArchiveOperTest extends MyTestCase {
   }
 
   private void validate(JSMap registry, JSMap hiddenRegistry) {
+    todo("can we use scripts here?");
     prepareProject();
     if (registry == null)
       registry = map();
@@ -317,7 +318,6 @@ public class ArchiveOperTest extends MyTestCase {
     if (hiddenRegistry != null)
       files().writePretty(new File(configDir, ".archive_registry.json"), hiddenRegistry);
 
-    addArg("validate");
     runApp();
     assertGenerated();
   }

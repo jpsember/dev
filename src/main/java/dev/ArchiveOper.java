@@ -111,7 +111,7 @@ import dev.gen.archive.ArchiveRegistry;
  *        
  * Run the archive operation to push the file to the archive:
  * 
- *    dev archive
+ *    dev archive update
  * 
  * Additional fields can be added to the map above:
  * 
@@ -126,7 +126,7 @@ import dev.gen.archive.ArchiveRegistry;
  * Run the archive operation with these arguments:
  * 
  *    dev archive push foo
- *    dev archive
+ *    dev archive update
  *    
  * The first line registers the object with the local registry.  The second call actually performs the pushing
  * to the archive.  Multiple files can be added before a final "dev archive" call is made.
@@ -134,7 +134,7 @@ import dev.gen.archive.ArchiveRegistry;
  * Alternatively, if the object has a key that is different from its path (e.g. "moo"):
  * 
  *    dev archive push moo
- *    dev archive
+ *    dev archive update
  *    
  * 
  * Removing an object from the archive
@@ -142,7 +142,7 @@ import dev.gen.archive.ArchiveRegistry;
  * To make the archive stop tracking "<project root directory>/abc/xyz/foo":
  * 
  *    dev archive forget foo        (or "moo", if that is the key)
- *    dev archive
+ *    dev archive update
  *    
  * 
  * Note that neither the local copy of an object, nor any previously pushed versions in the external data store,
@@ -192,6 +192,7 @@ public final class ArchiveOper extends AppOper {
     mForgetPathArg = cmdLineArgs().nextArgIf("forget", "");
     mOffloadPathArg = cmdLineArgs().nextArgIf("offload", "");
     mValidateOnly = cmdLineArgs().nextArgIf("validate");
+    mPerformFlag = cmdLineArgs().nextArgIf("perform");
   }
 
   private void fixPaths() {
@@ -204,8 +205,41 @@ public final class ArchiveOper extends AppOper {
     mTemporaryFile = fileWithinProjectDir("_SKIP_temp.zip");
   }
 
+  enum Oper {
+    PERFORM, PUSH, FORGET, OFFLOAD
+  };
+
+  private Oper mOper;
+
+  private void setOper(Oper oper, boolean flag) {
+    if (flag) {
+      auxSetOper(oper);
+    }
+  }
+
+  private void setOper(Oper oper, String arg) {
+    setOper(oper, nonEmpty(arg));
+  }
+
+  private void auxSetOper(Oper oper) {
+    if (mOper != null && mOper != oper)
+      setError("Multiple operations selected:", mOper, oper);
+    mOper = oper;
+  }
+
   @Override
   public void perform() {
+    {
+      setOper(Oper.PERFORM, mPerformFlag);
+      setOper(Oper.PUSH, mPushPathArg);
+      setOper(Oper.FORGET, mForgetPathArg);
+      setOper(Oper.OFFLOAD, mOffloadPathArg);
+
+      if (mOper == null) {
+        alert("Assuming 'perform' was desired; in future, this will be mandatory");
+        setOper(Oper.PERFORM, true);
+      }
+    }
     auxPerform();
     flushRegistries();
   }
@@ -219,16 +253,22 @@ public final class ArchiveOper extends AppOper {
     readGlobalRegistry();
     readHiddenRegistry();
 
-    if (mValidateOnly)
+    if (mValidateOnly) {
+      //die("no longer supported");
       return;
+    }
 
-    if (nonEmpty(mPushPathArg)) {
+    switch (mOper) {
+    case PUSH:
       markForPushing(mPushPathArg);
-    } else if (nonEmpty(mForgetPathArg)) {
+      break;
+    case FORGET:
       markForForgetting(mForgetPathArg);
-    } else if (nonEmpty(mOffloadPathArg)) {
+      break;
+    case OFFLOAD:
       markForOffloading(mOffloadPathArg);
-    } else {
+      break;
+    case PERFORM: {
       processForgetFlags();
       updateEntries();
       flushRegistries();
@@ -238,6 +278,8 @@ public final class ArchiveOper extends AppOper {
           .put("offloaded", mOffloadedCount)//
           .put("forgotten", mForgottenCount)//
       );
+    }
+      break;
     }
   }
 
@@ -891,6 +933,7 @@ public final class ArchiveOper extends AppOper {
 
   // ------------------------------------------------------------------
 
+  private boolean mPerformFlag;
   private boolean mValidateOnly;
   private File mProjectDirectory;
   private File mTemporaryFile;
