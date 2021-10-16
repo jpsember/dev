@@ -104,6 +104,15 @@ public class ArchiveOperTest extends MyTestCase {
   }
 
   /**
+   * Mark a directory for offloading
+   */
+  @Test
+  public void offloadMark() {
+    addArg("offload", "alpha");
+    execute();
+  }
+
+  /**
    * Push new versions of a couple of items
    */
   @Test

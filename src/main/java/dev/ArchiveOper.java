@@ -426,11 +426,15 @@ public final class ArchiveOper extends AppOper {
     return mRegistryLocal.entries().getOrDefault(mKey, ArchiveEntry.DEFAULT_INSTANCE);
   }
 
+  private void storeHidden(ArchiveEntry entry) {
+    mRegistryLocal.entries().put(mKey, entry.build());
+  }
+
   private void storeLocalVersion(int version) {
     ArchiveEntry ent = hiddenEntry();
     if (ent.version() == version)
       return;
-    mRegistryLocal.entries().put(mKey, ent.toBuilder().version(version).build());
+    storeHidden(ent.toBuilder().version(version));
   }
 
   private void updateEntries() {
@@ -441,17 +445,20 @@ public final class ArchiveOper extends AppOper {
 
       mKey = ent.getKey();
       mEntry = entry.toBuilder();
-
+      ArchiveEntry origHidden = hiddenEntry();
+      mHiddenEntry = origHidden.toBuilder();
       mSourceFile = absoluteFileForEntry(mKey, mEntry);
 
       updateEntry();
 
       ArchiveEntry updatedEntry = mEntry.build();
-      if (updatedEntry.equals(entry))
-        continue;
-
-      log("...storing new version of entry:", mKey, INDENT, updatedEntry);
-      modifiedEntries.put(mKey, updatedEntry);
+      if (!updatedEntry.equals(entry)) {
+        log("...storing new version of entry:", mKey, INDENT, updatedEntry);
+        modifiedEntries.put(mKey, updatedEntry);
+      }
+      ArchiveEntry updatedHidden = mHiddenEntry.build();
+      if (!updatedHidden.equals(origHidden))
+        mRegistryLocal.entries().put(mKey, updatedHidden);
     }
     mRegistryGlobal.entries().putAll(modifiedEntries);
   }
@@ -501,7 +508,7 @@ public final class ArchiveOper extends AppOper {
   }
 
   private void markForPushing(String userArg) {
-    String key = keyFromUserArg(userArg);
+    String key = optKeyFromUserArg(userArg);
 
     if (key == null) {
 
@@ -556,7 +563,10 @@ public final class ArchiveOper extends AppOper {
     return first(foundKeys);
   }
 
-  private String keyFromUserArg(String userArg) {
+  /**
+   * Determine key from user argument. Returns null if no key/object pair found
+   */
+  private String optKeyFromUserArg(String userArg) {
     String key = null;
     ArchiveEntry entry = mRegistryGlobal.entries().get(userArg);
     if (entry != null) {
@@ -578,58 +588,60 @@ public final class ArchiveOper extends AppOper {
   }
 
   private void markForForgetting(String userArg) {
-    String key = keyFromUserArg(userArg);
-    ArchiveEntry foundEntry = entryForKey(key, "No entry found for:", userArg);
+    String key = optKeyFromUserArg(userArg);
+    ArchiveEntry foundEntry = entryForKey(key, "No object found for:", userArg);
+    if (foundEntry.push() == Boolean.TRUE || foundEntry.offload() == Boolean.TRUE)
+      setError("Object has unexpected state:", key, INDENT, foundEntry);
+
     ArchiveEntry updatedEntry = foundEntry.toBuilder().forget(true).build();
     if (!updatedEntry.equals(foundEntry)) {
-      pr("...marking for forget:", key);
+      log("Marking for forget:", key);
       mRegistryGlobal.entries().put(key, updatedEntry);
     } else
-      pr("...already marked for forget:", key);
+      pr("Already marked for forget:", key);
   }
 
   private void markForOffloading(String userArg) {
-    String key = null;
-    ArchiveEntry entry = mRegistryGlobal.entries().get(userArg);
-    if (entry != null) {
-      key = userArg;
-    } else {
-      File absFile = new File(userArg).getAbsoluteFile();
-      // Ensure it is a file within the project directory
-      File relativeToProject = relativeToProjectDirectory(absFile);
-      key = optKeyForFile(relativeToProject);
-    }
-    if (nullOrEmpty(key))
-      setError("No entry found for:", userArg);
-
-    ArchiveEntry foundEntry = mRegistryGlobal.entries().get(key);
-    ArchiveEntry updatedEntry = foundEntry.toBuilder().forget(true).build();
+    String key = optKeyFromUserArg(userArg);
+    ArchiveEntry foundEntry = entryForKey(key, "No object found for:", userArg);
+    if (foundEntry.version() == 0 || foundEntry.push() == Boolean.TRUE || foundEntry.forget() == Boolean.TRUE)
+      setError("Object has unexpected state:", key, INDENT, foundEntry);
+    ArchiveEntry updatedEntry = foundEntry.toBuilder().offload(true).build();
     if (!updatedEntry.equals(foundEntry)) {
-      pr("...marking for forget:", key);
+      log("Marking for offloading:", key);
       mRegistryGlobal.entries().put(key, updatedEntry);
     } else
-      pr("...already marked for forget:", key);
+      pr("Already marked for offload:", key);
+  }
+
+  private void validateEntryStates(ArchiveEntry entry, ArchiveEntry hiddenEntry, File sourceFile) {
+    todo("finish this");
   }
 
   private void updateEntry() {
-    // If version is zero, assume pushing; also, set directory flag appropriately
-    if (mEntry.version() == 0) {
-      File absPath = fileWithinProjectDir(mEntry.path());
-      if (!absPath.exists())
-        setError("no file exists:", mKey, INDENT, mEntry);
-      if (absPath.isDirectory())
+
+    validateEntryStates(mEntry, mHiddenEntry, mSourceFile);
+
+    if (mHiddenEntry.offload() == Boolean.TRUE) {
+      log("Ignoring offloaded entry:",mKey);
+      return;
+    }
+
+    // If item has never been pushed, do so
+    if (mEntry.version() == 0 && mEntry.push() != Boolean.TRUE) {
+      log("Entry has never been pushed, doing so:",mKey);
+      Files.assertExists(mSourceFile);
+      if (mSourceFile.isDirectory()) {
         mEntry.directory(true);
+      }
       mEntry.push(true);
     }
 
-    ArchiveEntry hiddenEntry = mRegistryLocal.entries().get(mKey);
-    if (hiddenEntry == null)
-      throw badState("no hidden entry found for:", mKey);
-
     // Push new version from local to cloud if push signal was given
     //
+    todo("the offload flag should be consulted before this illegal state is allowed to occur");
     if (mEntry.push() == Boolean.TRUE) {
-      if (hiddenEntry.offload() == Boolean.TRUE)
+      if (mHiddenEntry.offload() == Boolean.TRUE)
         throw badState("attempt to push offloaded entry:", mEntry);
       pushEntry();
       mPushedCount++;
@@ -643,10 +655,7 @@ public final class ArchiveOper extends AppOper {
       log("...offloading entry:", mKey);
       mOffloadedCount++;
       mEntry.offload(null);
-      mRegistryLocal.entries().put(mKey, hiddenEntry().toBuilder().offload(true).build());
-    }
-
-    if (hiddenEntry().offload() == Boolean.TRUE) {
+      mHiddenEntry.offload(true);
       File sourcePath = mSourceFile;
       if (sourcePath.exists()) {
         log("...deleting local copy of offloaded entry:", mKey);
@@ -657,15 +666,13 @@ public final class ArchiveOper extends AppOper {
       }
       return;
     }
-
-    if (!mSourceFile.exists()) {
-      mRegistryLocal.entries().remove(mKey);
-    }
+    //    
+    //    if (!mSourceFile.exists()) {
+    //      mRegistryLocal.entries().remove(mKey);
+    //    }
     int mostRecentVersion = Math.max(1, mEntry.version());
-
     if (mostRecentVersion == hiddenEntry().version())
       return;
-
     pullVersion(mostRecentVersion);
     mPulledCount++;
   }
@@ -915,6 +922,7 @@ public final class ArchiveOper extends AppOper {
 
   private String mKey;
   private ArchiveEntry.Builder mEntry;
+  private ArchiveEntry.Builder mHiddenEntry;
   private File mSourceFile;
   private String mPushPathArg;
   private String mForgetPathArg;
