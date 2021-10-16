@@ -1,9 +1,0 @@
-    { "entries" : {     "alpha" : {            "path" : "",
-                                            "version" : 1,
-                                  },
-                    "gamma.txt" : {            "path" : "",
-                                            "version" : 1
-                                  }
-                  },
-      "version" : "2.0"
-    }

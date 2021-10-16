@@ -110,8 +110,16 @@ public class ArchiveOperTest extends MyTestCase {
    */
   @Test
   public void forgetMark() {
+    generateFiles(workLocal(), "alpha(beta.txt) gamma.txt");
+
+    flushEnt("!alpha");
+    flushEnt("gamma.txt");
+
+    flushRegistry();
+
     addArg("forget", "alpha");
-    execute();
+    runApp();
+    assertGenerated();
   }
 
   /**
@@ -119,7 +127,17 @@ public class ArchiveOperTest extends MyTestCase {
    */
   @Test
   public void forgotten() {
-    execute();
+    generateFiles(workLocal(), "alpha(beta.txt) gamma.txt");
+
+    ent().forget(true);
+    flushEnt("!alpha");
+    
+    flushEnt("gamma.txt");
+
+    flushRegistry();
+
+    runApp();
+    assertGenerated();
   }
 
   /**
