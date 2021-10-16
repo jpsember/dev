@@ -79,14 +79,16 @@ public class ArchiveOperTest extends MyTestCase {
    */
   @Test
   public void pushViaPathConflict() {
-    prepareWorkCopies();
+    generateFiles(workLocal(),
+        "alpha(beta.txt) epsilon(hotel(f1.txt f2.txt)) golf(yankee(f1.txt f2.txt)) gamma.txt");
 
-    // First call is to mark item for pushing
-    //
+    flushEnt("!alpha");
+    entPath("gamma.txt").flushEnt("hotel");
+    entPath("golf/yankee").flushEnt("!zulu");
+
+    flushRegistry();
+
     addArg("push", relative("epsilon/hotel"));
-    runApp();
-
-    // Second is to actually perform the pushing
     runApp();
 
     assertGenerated();
@@ -301,10 +303,12 @@ public class ArchiveOperTest extends MyTestCase {
   // ------------------------------------------------------------------
 
   private ArchiveEntry.Builder ent() {
-    checkState(mKey != null, "no key defined for entry");
-    if (mb == null)
-      mb = ArchiveEntry.newBuilder();
-    return mb;
+    if (mArchiveEntryBuilder == null) {
+      mArchiveEntryBuilder = ArchiveEntry.newBuilder();
+      // Set some reasonable defaults; for test purposes, assume version 1
+      mArchiveEntryBuilder.version(1);
+    }
+    return mArchiveEntryBuilder;
   }
 
   private ArchiveRegistry.Builder reg() {
@@ -313,9 +317,23 @@ public class ArchiveOperTest extends MyTestCase {
     return rb;
   }
 
+  private ArchiveOperTest entPath(String path) {
+    ent().path(new File(path));
+    return this;
+  }
+
+  private ArchiveOperTest entVersion(int version) {
+    ent().version(version);
+    return this;
+  }
+
   private void flushEnt(String key) {
+    boolean isDir = key.startsWith("!");
+    key = chompPrefix(key, "!");
+    if (isDir)
+      ent().directory(true);
     reg().entries().put(key, ent().build());
-    mb = null;
+    mArchiveEntryBuilder = null;
   }
 
   private void flushRegistry() {
@@ -327,7 +345,7 @@ public class ArchiveOperTest extends MyTestCase {
   }
 
   private void auxFlushRegistry(String name) {
-    checkState(mb == null, "entry not flushed:", mb);
+    checkState(mArchiveEntryBuilder == null, "entry not flushed:", mArchiveEntryBuilder);
     ArchiveRegistry reg = reg().build();
     File configDir = new File(workLocal(), "project_config");
     files().mkdirs(configDir);
@@ -335,8 +353,7 @@ public class ArchiveOperTest extends MyTestCase {
     rb = null;
   }
 
-  private String mKey;
-  private ArchiveEntry.Builder mb;
+  private ArchiveEntry.Builder mArchiveEntryBuilder;
   private ArchiveRegistry.Builder rb;
 
   // ------------------------------------------------------------------
