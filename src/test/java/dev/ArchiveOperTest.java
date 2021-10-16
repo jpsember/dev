@@ -145,8 +145,23 @@ public class ArchiveOperTest extends MyTestCase {
    */
   @Test
   public void offloadMark() {
+    generateFiles(workLocal(), "alpha(beta.txt) delta.txt");
+
+    vers(1).flushEnt("!alpha");
+    vers(1).path("delta.txt").flushEnt("delta");
+    flushRegistry();
+
+    // Use same values for hidden registry
+    //
+    vers(1).flushEnt("!alpha");
+    vers(1).path("delta.txt").flushEnt("delta");
+    flushHiddenRegistry();
+
     addArg("offload", "alpha");
-    execute();
+
+    runApp();
+
+    assertGenerated();
   }
 
   /**
@@ -224,28 +239,6 @@ public class ArchiveOperTest extends MyTestCase {
     RuntimeException e = app.getError();
     if (e != null)
       files().writeString(generatedFile("_error_.txt"), e.toString());
-  }
-
-  private void execute() {
-    prepareWorkCopies();
-    runApp();
-    assertGenerated();
-  }
-
-  private void prepareWorkCopies() {
-    // Create copies of the local and remote directories (where they exist)
-    // so that we only modify the copies during the unit test 
-
-    File unitTestSourceData = new File(testDataDir(), name());
-
-    File templateLocal = new File(unitTestSourceData, "local");
-    File templateRemote = new File(unitTestSourceData, "remote");
-
-    files().copyDirectory(templateLocal, workLocal());
-    prepareProject();
-    if (templateRemote.exists()) {
-      files().copyDirectory(templateRemote, workRemote());
-    }
   }
 
   /**

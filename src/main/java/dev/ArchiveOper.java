@@ -207,7 +207,7 @@ public final class ArchiveOper extends AppOper {
   @Override
   public void perform() {
     auxPerform();
-    flushRegistry();
+    flushRegistries();
   }
 
   private void auxPerform() {
@@ -231,7 +231,7 @@ public final class ArchiveOper extends AppOper {
     } else {
       processForgetFlags();
       updateEntries();
-      flushRegistry();
+      flushRegistries();
       log(map().put("entries", mRegistryGlobal.entries().size())//
           .put("pushed", mPushedCount)//
           .put("pulled", mPulledCount)//
@@ -396,24 +396,10 @@ public final class ArchiveOper extends AppOper {
     return updatedRegistry.build();
   }
 
-  private void flushRegistry() {
+  private void flushRegistries() {
     if (!mRegistryGlobalOriginal.equals(mRegistryGlobal)) {
-      JSMap registryMap;
-      {
-        registryMap = mRegistryGlobal.toJson();
-
-        // Make the registry more legible to a human by removing some unnecessary key/value pairs, where possible
-
-        JSMap m2 = registryMap.getMap("entries");
-        todo("implement offload feature");
-        for (String k : m2.keySet()) {
-          JSMap m = m2.getMap(k);
-          m.remove("offload");
-        }
-      }
-
       log("...global registry has been modified, writing updated version");
-      files().writePretty(registerGlobalFile(), registryMap);
+      files().writePretty(registerGlobalFile(), mRegistryGlobal);
     }
 
     if (!mRegistryLocalOriginal.equals(mRegistryLocal)) {
@@ -623,13 +609,13 @@ public final class ArchiveOper extends AppOper {
     validateEntryStates(mEntry, mHiddenEntry, mSourceFile);
 
     if (mHiddenEntry.offload() == Boolean.TRUE) {
-      log("Ignoring offloaded entry:",mKey);
+      log("Ignoring offloaded entry:", mKey);
       return;
     }
 
     // If item has never been pushed, do so
     if (mEntry.version() == 0 && mEntry.push() != Boolean.TRUE) {
-      log("Entry has never been pushed, doing so:",mKey);
+      log("Entry has never been pushed, doing so:", mKey);
       Files.assertExists(mSourceFile);
       if (mSourceFile.isDirectory()) {
         mEntry.directory(true);
