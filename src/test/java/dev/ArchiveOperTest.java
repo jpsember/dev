@@ -165,6 +165,27 @@ public class ArchiveOperTest extends MyTestCase {
   }
 
   /**
+   * Perform offloading
+   */
+  @Test
+  public void offloadPerform() {
+    generateFiles(workLocal(), "alpha(beta.txt) delta.txt");
+
+    ent().offload(true);
+    vers(1).flushEnt("!alpha");
+    vers(1).path("delta.txt").flushEnt("delta");
+    flushRegistry();
+
+    vers(1).flushEnt("!alpha");
+    vers(1).path("delta.txt").flushEnt("delta");
+    flushHiddenRegistry();
+
+    runApp();
+
+    assertGenerated();
+  }
+
+  /**
    * Push new versions of a couple of items
    */
   @Test
