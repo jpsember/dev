@@ -58,6 +58,7 @@ public class ArchiveOperTest extends MyTestCase {
 
     flushRegistry();
 
+    addArg("update");
     runApp();
     assertGenerated();
   }
@@ -79,6 +80,7 @@ public class ArchiveOperTest extends MyTestCase {
     runApp();
 
     // Second is to actually perform the pushing
+    addArg("update");
     runApp();
 
     assertGenerated();
@@ -136,6 +138,7 @@ public class ArchiveOperTest extends MyTestCase {
 
     flushRegistry();
 
+    addArg("update");
     runApp();
     assertGenerated();
   }
@@ -180,6 +183,7 @@ public class ArchiveOperTest extends MyTestCase {
     vers(1).path("delta.txt").flushEnt("delta");
     flushHiddenRegistry();
 
+    addArg("update");
     runApp();
 
     assertGenerated();
@@ -212,6 +216,7 @@ public class ArchiveOperTest extends MyTestCase {
     runApp();
 
     // Run to actually perform the push
+    addArg("update");
     runApp();
 
     assertGenerated();
@@ -318,6 +323,7 @@ public class ArchiveOperTest extends MyTestCase {
     if (hiddenRegistry != null)
       files().writePretty(new File(configDir, ".archive_registry.json"), hiddenRegistry);
 
+    addArg("update");
     runApp();
     assertGenerated();
   }

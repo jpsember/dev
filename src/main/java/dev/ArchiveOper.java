@@ -191,8 +191,7 @@ public final class ArchiveOper extends AppOper {
     mPushPathArg = cmdLineArgs().nextArgIf("push", "");
     mForgetPathArg = cmdLineArgs().nextArgIf("forget", "");
     mOffloadPathArg = cmdLineArgs().nextArgIf("offload", "");
-    mValidateOnly = cmdLineArgs().nextArgIf("validate");
-    mPerformFlag = cmdLineArgs().nextArgIf("perform");
+    mUpdateOperationFlag = cmdLineArgs().nextArgIf("update");
   }
 
   private void fixPaths() {
@@ -206,7 +205,7 @@ public final class ArchiveOper extends AppOper {
   }
 
   enum Oper {
-    PERFORM, PUSH, FORGET, OFFLOAD
+    UPDATE, PUSH, FORGET, OFFLOAD
   };
 
   private Oper mOper;
@@ -230,35 +229,34 @@ public final class ArchiveOper extends AppOper {
   @Override
   public void perform() {
     {
-      setOper(Oper.PERFORM, mPerformFlag);
+      setOper(Oper.UPDATE, mUpdateOperationFlag);
       setOper(Oper.PUSH, mPushPathArg);
       setOper(Oper.FORGET, mForgetPathArg);
       setOper(Oper.OFFLOAD, mOffloadPathArg);
 
-      if (mOper == null) {
-        alert("Assuming 'perform' was desired; in future, this will be mandatory");
-        setOper(Oper.PERFORM, true);
-      }
     }
     auxPerform();
     flushRegistries();
   }
 
   private void auxPerform() {
-
     // TODO: when error occurs, does registry need to be flushed?  do we care?
-
     fixPaths();
 
     readGlobalRegistry();
     readHiddenRegistry();
 
-    if (mValidateOnly) {
-      //die("no longer supported");
-      return;
+    if (mOper == null && !testMode()) {
+      alert("Assuming 'perform' was desired; in future, this will be mandatory");
+      setOper(Oper.UPDATE, true);
     }
+    if (mOper == null)
+      setError("No operation selected");
 
     switch (mOper) {
+    default:
+      setError("No operation selected!");
+      break;
     case PUSH:
       markForPushing(mPushPathArg);
       break;
@@ -268,7 +266,7 @@ public final class ArchiveOper extends AppOper {
     case OFFLOAD:
       markForOffloading(mOffloadPathArg);
       break;
-    case PERFORM: {
+    case UPDATE: {
       processForgetFlags();
       updateEntries();
       flushRegistries();
@@ -933,8 +931,7 @@ public final class ArchiveOper extends AppOper {
 
   // ------------------------------------------------------------------
 
-  private boolean mPerformFlag;
-  private boolean mValidateOnly;
+  private boolean mUpdateOperationFlag;
   private File mProjectDirectory;
   private File mTemporaryFile;
 
