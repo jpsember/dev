@@ -32,6 +32,8 @@ import java.util.List;
 import org.junit.Test;
 
 import dev.Main;
+import dev.gen.archive.ArchiveEntry;
+import dev.gen.archive.ArchiveRegistry;
 import js.app.App;
 import js.data.DataUtil;
 import js.file.Files;
@@ -54,7 +56,11 @@ public class ArchiveOperTest extends MyTestCase {
    */
   @Test
   public void pushViaPath() {
-    prepareWorkCopies();
+
+    generateFiles(workLocal(),
+        "alpha(beta.txt) epsilon(hotel(f1.txt f2.txt)) golf(yankee(f1.txt f2.txt)) gamma.txt");
+
+    flushRegistry();
 
     // First call is to mark item for pushing
     //
@@ -209,6 +215,10 @@ public class ArchiveOperTest extends MyTestCase {
     }
   }
 
+  /**
+   * If not already done, set the project directory to the generated 'local'
+   * directory
+   */
   private void prepareProject() {
     if (!mProjectPrepared) {
       mProjectPrepared = true;
@@ -228,13 +238,20 @@ public class ArchiveOperTest extends MyTestCase {
     return mArgs;
   }
 
+  /**
+   * Get generated 'local' directory
+   */
   private File workLocal() {
     if (mWorkLocal == null) {
+      prepareProject();
       mWorkLocal = generatedFile("local");
     }
     return mWorkLocal;
   }
 
+  /**
+   * Get generated 'remote' directory
+   */
   private File workRemote() {
     if (mWorkRemote == null) {
       mWorkRemote = generatedFile("remote");
@@ -269,6 +286,139 @@ public class ArchiveOperTest extends MyTestCase {
     File placedWithinWorkLocal = new File(workLocal(), path);
     return Files.fileRelativeToDirectory(placedWithinWorkLocal, Files.currentDirectory());
   }
+
+  private void generateFiles(File startDirectory, String script) {
+    mCursor = 0;
+    mScript = script;
+    mParent = startDirectory;
+    mParentStack = arrayList();
+    genHelper();
+
+  }
+
+  // ------------------------------------------------------------------
+  // Generating an ArchiveRegistry
+  // ------------------------------------------------------------------
+
+  private ArchiveEntry.Builder ent() {
+    checkState(mKey != null, "no key defined for entry");
+    if (mb == null)
+      mb = ArchiveEntry.newBuilder();
+    return mb;
+  }
+
+  private ArchiveRegistry.Builder reg() {
+    if (rb == null)
+      rb = ArchiveRegistry.newBuilder();
+    return rb;
+  }
+
+  private void flushEnt(String key) {
+    reg().entries().put(key, ent().build());
+    mb = null;
+  }
+
+  private void flushRegistry() {
+    auxFlushRegistry("archive_registry.json");
+  }
+
+  private void flushHiddenRegistry() {
+    auxFlushRegistry(".archive_registry.json");
+  }
+
+  private void auxFlushRegistry(String name) {
+    checkState(mb == null, "entry not flushed:", mb);
+    ArchiveRegistry reg = reg().build();
+    File configDir = new File(workLocal(), "project_config");
+    files().mkdirs(configDir);
+    files().writePretty(new File(configDir, name), reg);
+    rb = null;
+  }
+
+  private String mKey;
+  private ArchiveEntry.Builder mb;
+  private ArchiveRegistry.Builder rb;
+
+  // ------------------------------------------------------------------
+  // Generating a directory via a script
+  // ------------------------------------------------------------------
+
+  private boolean done() {
+    return mCursor == mScript.length();
+  }
+
+  private char peek() {
+    if (done())
+      return 0;
+    return mScript.charAt(mCursor);
+  }
+
+  private char readChar() {
+    return mScript.charAt(mCursor++);
+  }
+
+  private void skipWhitespace() {
+    while (!done() && peek() <= ' ')
+      mCursor++;
+  }
+
+  private boolean isFilenameChar(char c) {
+    return (c >= '0' && c <= '9') || (c >= 'a' && c <= 'z') || ".".indexOf(c) >= 0;
+  }
+
+  private void readChar(char ch) {
+    if (peek() != ch)
+      scriptError();
+    readChar();
+  }
+
+  private void scriptError() {
+    badArg("unexpected char:", mScript.substring(0, mCursor), ">", mScript.substring(mCursor));
+  }
+
+  private void genHelper() {
+    while (true) {
+      skipWhitespace();
+      char c = peek();
+      if (c == 0 || c == ')')
+        return;
+
+      if (!isFilenameChar(c))
+        scriptError();
+      int i = mCursor;
+      int j = i;
+      while (isFilenameChar(peek())) {
+        readChar();
+        j++;
+      }
+      String fname = mScript.substring(i, j);
+      File nextFile = new File(mParent, fname);
+
+      skipWhitespace();
+      if (peek() == '(') {
+        // process a directory
+        mParentStack.add(mParent);
+        mParent = nextFile;
+        files().mkdirs(mParent);
+        readChar('(');
+        genHelper();
+        readChar(')');
+        mParent = pop(mParentStack);
+      } else {
+        // create a file
+        File flatFile = nextFile;
+        files().writeString(flatFile, "This is " + fname);
+      }
+      skipWhitespace();
+    }
+  }
+
+  private String mScript;
+  private int mCursor;
+  private File mParent;
+  private List<File> mParentStack;
+
+  // ------------------------------------------------------------------
 
   private List<String> mArgs;
   private File mWorkLocal;
