@@ -131,7 +131,7 @@ public class ArchiveOperTest extends MyTestCase {
 
     ent().forget(true);
     flushEnt("!alpha");
-    
+
     flushEnt("gamma.txt");
 
     flushRegistry();
@@ -154,29 +154,31 @@ public class ArchiveOperTest extends MyTestCase {
    */
   @Test
   public void pushUpdate() {
-    prepareWorkCopies();
+    generateFiles(workLocal(), "alpha(beta.txt) epsilon.txt delta.txt");
+
+    vers(1).flushEnt("!alpha");
+    vers(1).path("epsilon.txt").flushEnt("epsilon");
+    vers(1).path("delta.txt").flushEnt("delta");
+    flushRegistry();
+
+    // Use same values for hidden registry
+    //
+    vers(1).flushEnt("!alpha");
+    vers(1).path("epsilon.txt").flushEnt("epsilon");
+    vers(1).path("delta.txt").flushEnt("delta");
+
+    flushHiddenRegistry();
 
     addArg("push", "alpha");
     runApp();
 
-    addArg("push", "delta.txt");
+    addArg("push", relative("delta.txt"));
     runApp();
 
+    // Run to actually perform the push
     runApp();
 
     assertGenerated();
-  }
-
-  @Test
-  public void updateVersion() {
-    addArg("validate");
-    execute();
-  }
-
-  @Test
-  public void updateVersionFails() {
-    addArg("validate");
-    execute();
   }
 
   @Test
