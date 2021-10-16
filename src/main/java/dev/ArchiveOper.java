@@ -178,10 +178,10 @@ public final class ArchiveOper extends AppOper {
     return arrayList(//
         "[dir <path>] : project root directory", CR, //
         "[mock_remote <path>] : directory simulating cloud archive device", CR, //
-        "[push <path>] : mark file or directory for pushing new version", CR, //
-        "[forget <path>] : stop tracking file or directory within archive", CR, //
-        "[offload <path>] : delete local copy of object", CR, //
-        "[validate] : perform validation only (for test purposes)");
+        "( push <path>     : mark file or directory for pushing new version", CR, //
+        "| forget <path>   : stop tracking file or directory within archive", CR, //
+        "| offload <path>  : delete local copy of object", CR, //
+        "| update)         : perform requested actions, synchronize remote and local objects");
   }
 
   @Override
@@ -247,7 +247,7 @@ public final class ArchiveOper extends AppOper {
     readHiddenRegistry();
 
     if (mOper == null && !testMode()) {
-      alert("Assuming 'perform' was desired; in future, this will be mandatory");
+      alert("Assuming 'update' was desired; in future, this will be mandatory");
       setOper(Oper.UPDATE, true);
     }
     if (mOper == null)
