@@ -606,25 +606,19 @@ public final class ArchiveOper extends AppOper {
       setPending(mHiddenEntry, Oper.PUSH);
     }
 
-    todo("make sure we're clearing the pending flags where appropriate");
-    // Push new version from local to cloud if push signal was given
-    //
-    if (mHiddenEntry.pending() == Oper.PUSH) {
+    switch (mHiddenEntry.pending()) {
+    default:
+      unexpectedStateError(mKey);
+      break;
+    case PUSH:
       if (mHiddenEntry.offload())
         unexpectedStateError(mKey);
-      mHiddenEntry.pending(null);
       pushEntry();
       mPushedCount++;
-      return;
-    }
-
-    // If user has requested to offload this entry, flag this fact within the hidden registry,
-    // and delete the local copy
-    //
-    if (mHiddenEntry.pending() == Oper.OFFLOAD) {
+      break;
+    case OFFLOAD:
       log("...offloading entry:", mKey);
       mOffloadedCount++;
-      mHiddenEntry.pending(null);
       mHiddenEntry.offload(true);
       File sourcePath = mSourceFile;
       if (sourcePath.exists()) {
@@ -634,13 +628,17 @@ public final class ArchiveOper extends AppOper {
         else
           files().deleteFile(sourcePath);
       }
-      return;
+      break;
+    case NONE: {
+      int mostRecentVersion = Math.max(1, mEntry.version());
+      if (mostRecentVersion != mHiddenEntry.version())
+
+        pullVersion(mostRecentVersion);
+      mPulledCount++;
     }
-    int mostRecentVersion = Math.max(1, mEntry.version());
-    if (mostRecentVersion == mHiddenEntry.version())
-      return;
-    pullVersion(mostRecentVersion);
-    mPulledCount++;
+      break;
+    }
+    mHiddenEntry.pending(null);
   }
 
   private boolean singleFile() {
