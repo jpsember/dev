@@ -344,9 +344,12 @@ public final class ArchiveOper extends AppOper {
   private void readHiddenRegistry() {
     File hiddenFile = registerLocalFile();
     LocalRegistry registry = Files.parseAbstractDataOpt(LocalRegistry.DEFAULT_INSTANCE, hiddenFile);
+    if (EXTRA)
+      pr("read hidden registry:", INDENT, registry);
     mRegistryLocalOriginal = registry;
     registry = updateHiddenRegistry(registry, mRegistryGlobal);
-    if (EXTRA)pr("updated:", INDENT, registry);
+    if (EXTRA)
+      pr("updated hidden registry:", INDENT, registry);
     mRegistryLocal = registry.toBuilder();
   }
 
@@ -448,21 +451,6 @@ public final class ArchiveOper extends AppOper {
     }
   }
 
-  private LocalEntry hiddenEntry() {
-    return mRegistryLocal.entries().getOrDefault(mKey, LocalEntry.DEFAULT_INSTANCE);
-  }
-
-  private void storeHidden(LocalEntry entry) {
-    mRegistryLocal.entries().put(mKey, entry.build());
-  }
-
-  private void storeLocalVersion(int version) {
-    LocalEntry ent = hiddenEntry();
-    if (ent.version() == version)
-      return;
-    storeHidden(ent.toBuilder().version(version));
-  }
-
   private void updateEntries() {
     Map<String, ArchiveEntry> modifiedEntries = hashMap();
 
@@ -471,7 +459,8 @@ public final class ArchiveOper extends AppOper {
 
       mKey = ent.getKey();
       mEntry = entry.toBuilder();
-      LocalEntry origHidden = hiddenEntry();
+
+      LocalEntry origHidden = mRegistryLocal.entries().get(mKey);
       mHiddenEntry = origHidden.toBuilder();
       mSourceFile = absoluteFileForEntry(mKey, mEntry);
 
@@ -564,6 +553,9 @@ public final class ArchiveOper extends AppOper {
         b.directory(true);
       log("...creating new entry with id", key);
       mRegistryGlobal.entries().put(key, b.build());
+
+      // Create a new local entry as well
+      mRegistryLocal.entries().put(key, LocalEntry.DEFAULT_INSTANCE);
     }
 
     LocalEntry entry = localEntryForKey(key);
@@ -704,12 +696,8 @@ public final class ArchiveOper extends AppOper {
       }
       return;
     }
-    //    
-    //    if (!mSourceFile.exists()) {
-    //      mRegistryLocal.entries().remove(mKey);
-    //    }
     int mostRecentVersion = Math.max(1, mEntry.version());
-    if (mostRecentVersion == hiddenEntry().version())
+    if (mostRecentVersion == mHiddenEntry.version())
       return;
     pullVersion(mostRecentVersion);
     mPulledCount++;
@@ -766,7 +754,7 @@ public final class ArchiveOper extends AppOper {
       files().deleteFile(sourceFile);
 
     mEntry.version(nextVersionNumber);
-    storeLocalVersion(mEntry.version());
+    mHiddenEntry.version(nextVersionNumber);
   }
 
   private void pullVersion(int desiredVersion) {
@@ -825,8 +813,7 @@ public final class ArchiveOper extends AppOper {
     }
 
     files().deleteFile(tempFile());
-
-    storeLocalVersion(desiredVersion);
+    mHiddenEntry.version(desiredVersion);
   }
 
   private void createBackupOfOldLocalVersion(String backupName, File sourceFileOrDirectory,

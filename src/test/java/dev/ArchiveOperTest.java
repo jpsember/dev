@@ -54,11 +54,11 @@ public class ArchiveOperTest extends MyTestCase {
     generateFiles(workLocal(),
         "alpha(beta.txt) epsilon(hotel(f1.txt f2.txt)) golf(yankee(f1.txt f2.txt)) gamma.txt");
 
+    global();
     flushEnt("!alpha");
     path("epsilon/hotel").flushEnt("!hotel");
     path("golf/yankee").flushEnt("!zulu");
     flushEnt("gamma.txt");
-
     flushRegistry();
 
     addArg("update");
@@ -71,10 +71,10 @@ public class ArchiveOperTest extends MyTestCase {
    */
   @Test
   public void pushViaPath() {
-
     generateFiles(workLocal(),
         "alpha(beta.txt) epsilon(hotel(f1.txt f2.txt)) golf(yankee(f1.txt f2.txt)) gamma.txt");
 
+    global();
     flushRegistry();
 
     // First call is to mark item for pushing
@@ -165,16 +165,17 @@ public class ArchiveOperTest extends MyTestCase {
    */
   @Test
   public void offloadMark() {
+    todo("add test for an offloaded object that isn't the most recent version");
     generateFiles(workLocal(), "alpha(beta.txt) delta.txt");
 
+    global();
     vers(1).flushEnt("!alpha");
     vers(1).path("delta.txt").flushEnt("delta");
     flushRegistry();
 
-    // Use same values for hidden registry
-    //
+    local();
     vers(1).flushEnt("!alpha");
-    vers(1).path("delta.txt").flushEnt("delta");
+    vers(1).flushEnt("delta");
     flushRegistry();
 
     addArg("offload", "alpha");
@@ -221,12 +222,10 @@ public class ArchiveOperTest extends MyTestCase {
     vers(1).path("delta.txt").flushEnt("delta");
     flushRegistry();
 
-    // Use same values for hidden registry
-    //
     local();
     vers(1).flushEnt("!alpha");
-    vers(1).path("epsilon.txt").flushEnt("epsilon");
-    vers(1).path("delta.txt").flushEnt("delta");
+    vers(1).flushEnt("epsilon");
+    vers(1).flushEnt("delta");
     flushRegistry();
 
     addArg("push", "alpha");
