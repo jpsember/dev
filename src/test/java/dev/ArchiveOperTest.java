@@ -488,10 +488,8 @@ public class ArchiveOperTest extends MyTestCase {
    */
   private void flushEnt(String key) {
     if (isGlobal()) {
-      boolean isDir = key.startsWith("!");
+      ent().directory(key.startsWith("!"));
       key = chompPrefix(key, "!");
-      if (isDir)
-        ent().directory(true);
       reg().entries().put(key, ent().build());
       mArchiveEntryBuilder = null;
     } else {

@@ -6,7 +6,7 @@ fields {
 
   // If true, it's a directory, vs a single file
   //
-  ? bool directory;
+  bool directory;
 
   // If not empty, archives only files in the specified directory with these extensions, and leaves
   // others intact.

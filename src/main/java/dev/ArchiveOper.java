@@ -302,9 +302,9 @@ public final class ArchiveOper extends AppOper {
         if (!RegExp.patternMatchesString(RELATIVE_PATH_PATTERN, pt.toString()))
           problemText = "Illegal path";
         else {
-          if (ent.version() != 0 || isTrue(ent.directory())) {
+          if (ent.version() != 0 || ent.directory()) {
             File actualFile = fileWithinProjectDir(pt);
-            if (actualFile.exists() && actualFile.isDirectory() != isTrue(ent.directory()))
+            if (actualFile.exists() && actualFile.isDirectory() != ent.directory())
               problemText = "Directory flag is incorrect";
           }
         }
@@ -641,7 +641,7 @@ public final class ArchiveOper extends AppOper {
 
       if (Files.empty(entry.path()))
         setError("Missing path:", key);
-      if (isTrue(entry.directory()))
+      if (entry.directory())
         if (local.version() > entry.version())
           setError("Local version greater than global:", key);
 
@@ -704,7 +704,7 @@ public final class ArchiveOper extends AppOper {
   }
 
   private boolean singleFile() {
-    return isFalse(mEntry.directory());
+    return !mEntry.directory();
   }
 
   /**
