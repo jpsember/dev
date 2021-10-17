@@ -39,7 +39,6 @@ import java.util.zip.ZipOutputStream;
 import js.file.DirWalk;
 import js.file.Files;
 import js.app.AppOper;
-import js.base.BasePrinter;
 import js.json.JSList;
 import js.json.JSMap;
 import js.parsing.RegExp;
@@ -280,42 +279,10 @@ public final class ArchiveOper extends AppOper {
     }
   }
 
-  private static final Pattern RELATIVE_PATH_PATTERN = RegExp
-      .pattern("^\\.?\\w+(?:\\/\\.?\\w+)*(?:\\.\\w+)*$");
-
-  private String contextExpr(Object contextOrNull) {
-    return "(" + nullTo(contextOrNull, "no context given") + ")";
-  }
-
   private void validateGlobalRegistry(ArchiveRegistry registry, Object context) {
-    BasePrinter p = new BasePrinter();
-
     String expected = ArchiveRegistry.DEFAULT_INSTANCE.version();
     if (!registry.version().equals(expected))
-      p.pr("*** Bad version number:", registry.version(), "; expected", expected);
-    else {
-      for (Entry<String, ArchiveEntry> entry : registry.entries().entrySet()) {
-        String key = entry.getKey();
-        ArchiveEntry ent = entry.getValue();
-        File pt = ent.path();
-        String problemText = null;
-        if (!RegExp.patternMatchesString(RELATIVE_PATH_PATTERN, pt.toString()))
-          problemText = "Illegal path";
-        else {
-          if (ent.version() != 0 || ent.directory()) {
-            File actualFile = fileWithinProjectDir(pt);
-            if (actualFile.exists() && actualFile.isDirectory() != ent.directory())
-              problemText = "Directory flag is incorrect";
-          }
-        }
-        if (nonEmpty(problemText))
-          p.pr("***", problemText, "; key:", key, INDENT, ent, OUTDENT);
-      }
-    }
-
-    String errorMessage = p.toString();
-    if (nonEmpty(errorMessage))
-      setError("Problems with archive registry", contextExpr(context), ":", INDENT, errorMessage);
+      setError("Bad version number:", registry.version(), "; expected", expected);
   }
 
   private void readGlobalRegistry() {
@@ -532,8 +499,9 @@ public final class ArchiveOper extends AppOper {
     }
 
     LocalEntry entry = localEntryForKey(key);
+    if (entry.offload() || entry.pending() == Oper.FORGET)
+      unexpectedStateError(key);
 
-    todo("Fail if user has marked this as forgotten, or offloaded");
     LocalEntry updatedEntry = setPending(entry, Oper.PUSH).build();
     if (!updatedEntry.equals(entry)) {
       log("...marking for push:", key);
@@ -588,11 +556,18 @@ public final class ArchiveOper extends AppOper {
     return entry.toBuilder().pending(oper);
   }
 
+  private void unexpectedStateError(String key) {
+    ArchiveEntry global = mRegistryGlobal.entries().getOrDefault(key, ArchiveEntry.DEFAULT_INSTANCE);
+    LocalEntry local = mRegistryLocal.entries().getOrDefault(key, LocalEntry.DEFAULT_INSTANCE);
+    setError("Unexpected state for object:", key, CR, "Global:", INDENT, global, OUTDENT, "Local:", INDENT,
+        local);
+  }
+
   private void markForForgetting(String userArg) {
     String key = optKeyFromUserArg(userArg);
     LocalEntry foundEntry = localEntryForKey(key, "No object found for:", userArg);
     if (foundEntry.pending() == Oper.PUSH || foundEntry.pending() == Oper.OFFLOAD)
-      setError("Object has unexpected state:", key, INDENT, foundEntry);
+      unexpectedStateError(key);
 
     LocalEntry updatedEntry = setPending(foundEntry, Oper.FORGET).build();
     if (!updatedEntry.equals(foundEntry)) {
@@ -606,7 +581,7 @@ public final class ArchiveOper extends AppOper {
     String key = optKeyFromUserArg(userArg);
     LocalEntry foundEntry = localEntryForKey(key, "No object found for:", userArg);
     if (foundEntry.version() == 0 || foundEntry.pending() == Oper.PUSH || foundEntry.pending() == Oper.FORGET)
-      setError("Object has unexpected state:", key, INDENT, foundEntry);
+      unexpectedStateError(key);
     LocalEntry updatedEntry = foundEntry.toBuilder().offload(true).build();
     if (!updatedEntry.equals(foundEntry)) {
       log("Marking for offloading:", key);
@@ -634,10 +609,9 @@ public final class ArchiveOper extends AppOper {
     todo("make sure we're clearing the pending flags where appropriate");
     // Push new version from local to cloud if push signal was given
     //
-    todo("the offload flag should be consulted before this illegal state is allowed to occur");
     if (mHiddenEntry.pending() == Oper.PUSH) {
       if (mHiddenEntry.offload())
-        throw badState("attempt to push offloaded entry:", mEntry);
+        unexpectedStateError(mKey);
       mHiddenEntry.pending(null);
       pushEntry();
       mPushedCount++;
@@ -707,7 +681,7 @@ public final class ArchiveOper extends AppOper {
     File sourceFile;
     if (singleFile()) {
       if (specificFilesOnly())
-        setError("file_ext can only be specified for directories;", mKey);
+        setError("file_extensions can only be specified for directories;", mKey);
       sourceFile = mSourceFile;
     } else
       sourceFile = createZipFile(mSourceFile);
@@ -868,13 +842,23 @@ public final class ArchiveOper extends AppOper {
   // Checking object states for validity before performing operations
   // ------------------------------------------------------------------
 
+  private static final Pattern RELATIVE_PATH_PATTERN = RegExp
+      .pattern("^\\.?\\w+(?:\\/\\.?\\w+)*(?:\\.\\w+)*$");
+
   private void validateEntryStates() {
+    JSMap errorSummary = map();
+
     for (Entry<String, ArchiveEntry> ent : mRegistryGlobal.entries().entrySet()) {
       String key = ent.getKey();
       ArchiveEntry entry = ent.getValue();
       LocalEntry local = mRegistryLocal.entries().getOrDefault(key, LocalEntry.DEFAULT_INSTANCE);
       mValidationErrorMessage = null;
 
+      if (!RegExp.patternMatchesString(RELATIVE_PATH_PATTERN, entry.path().toString()))
+        setValidationError("Illegal path");
+
+      if (local.pending() == Oper.UPDATE)
+        setValidationError("Unsupported pending operation");
       if (Files.empty(entry.path()))
         setValidationError("Missing path");
       if (local.version() > entry.version())
@@ -886,10 +870,11 @@ public final class ArchiveOper extends AppOper {
       }
 
       if (mValidationErrorMessage != null)
-        setError("Object failed validation! Key:", key, CR, "Global entry:", INDENT, entry, OUTDENT,
-            "Local entry:", INDENT, local, OUTDENT, "Message:", mValidationErrorMessage);
-      todo("add more validations");
+        errorSummary.put(key,
+            map().put("error", mValidationErrorMessage).put("local", local).put("global", entry));
     }
+    if (errorSummary.nonEmpty())
+      setError("Object(s) failed validation", INDENT, errorSummary);
   }
 
   private void setValidationError(String message) {

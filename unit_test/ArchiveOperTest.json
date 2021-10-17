@@ -9,8 +9,8 @@
                 "pushViaPathConflict" : 7015,
                  "validateBadVersion" : 3719,
            "validateBadVersionHidden" : 9017,
-  "validateLocalVersionExceedsGlobal" : 8529,
-            "validatePathBadFilename" : 6863,
-           "validatePathIllegalChars" : 7653,
-            "validatePathNotRelative" : 1841
+  "validateLocalVersionExceedsGlobal" : 5654,
+            "validatePathBadFilename" : 4869,
+           "validatePathIllegalChars" : 2605,
+            "validatePathNotRelative" : 1909
 }
