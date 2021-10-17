@@ -1,0 +1,12 @@
+fields {
+
+  int version;
+
+  // If true, file is not to be stored locally (and is deleted if it exists)
+  //
+  ? bool offload;
+
+  // If not empty, the pending operation for this entry (push, offload, forget)
+  //
+  ? string pending;
+}

@@ -1,24 +1,16 @@
 fields {
 
-  File path;
-
   int version;
+
+  File path;
 
   // If true, it's a directory, vs a single file
   //
   ? bool directory;
-
-  ? bool push;
-
-  ? bool offload;
 
   // If not empty, archives only files in the specified directory with these extensions, and leaves
   // others intact.
   // Does not recurse into subdirectories (though this may change)
   //
   ? * string file_extensions;
-
-  // Marked for forgetting (remove from registry, but don't delete from file system or S3)
-  //
-  ? bool forget;
 }

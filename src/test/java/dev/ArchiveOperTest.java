@@ -31,9 +31,12 @@ import java.util.List;
 
 import org.junit.Test;
 
+import dev.ArchiveOper.Oper;
 import dev.Main;
 import dev.gen.archive.ArchiveEntry;
 import dev.gen.archive.ArchiveRegistry;
+import dev.gen.archive.LocalEntry;
+import dev.gen.archive.LocalRegistry;
 import js.app.App;
 import js.data.DataUtil;
 import js.file.Files;
@@ -95,10 +98,16 @@ public class ArchiveOperTest extends MyTestCase {
     generateFiles(workLocal(),
         "alpha(beta.txt) epsilon(hotel(f1.txt f2.txt)) golf(yankee(f1.txt f2.txt)) gamma.txt");
 
+    global();
     vers(1).flushEnt("!alpha");
     vers(1).path("gamma.txt").flushEnt("hotel");
     vers(1).path("golf/yankee").flushEnt("!zulu");
+    flushRegistry();
 
+    local();
+    vers(1).flushEnt("alpha");
+    vers(1).flushEnt("hotel");
+    vers(1).flushEnt("zulu");
     flushRegistry();
 
     addArg("push", relative("epsilon/hotel"));
@@ -114,9 +123,14 @@ public class ArchiveOperTest extends MyTestCase {
   public void forgetMark() {
     generateFiles(workLocal(), "alpha(beta.txt) gamma.txt");
 
-    flushEnt("!alpha");
-    flushEnt("gamma.txt");
+    global();
+    vers(1).flushEnt("!alpha");
+    vers(1).flushEnt("gamma.txt");
+    flushRegistry();
 
+    local();
+    vers(1).flushEnt("!alpha");
+    vers(1).flushEnt("gamma.txt");
     flushRegistry();
 
     addArg("forget", "alpha");
@@ -125,17 +139,20 @@ public class ArchiveOperTest extends MyTestCase {
   }
 
   /**
-   * Forget an object, erasing it from the global (and local) registries
+   * Perform a pending forget, erasing it from the global (and local) registries
    */
   @Test
-  public void forgotten() {
+  public void forgetPerform() {
     generateFiles(workLocal(), "alpha(beta.txt) gamma.txt");
 
-    ent().forget(true);
-    flushEnt("!alpha");
+    global();
+    vers(1).flushEnt("!alpha");
+    vers(1).flushEnt("gamma.txt");
+    flushRegistry();
 
-    flushEnt("gamma.txt");
-
+    local();
+    vers(1).pending(Oper.FORGET).flushEnt("!alpha");
+    vers(1).flushEnt("gamma.txt");
     flushRegistry();
 
     addArg("update");
@@ -158,7 +175,7 @@ public class ArchiveOperTest extends MyTestCase {
     //
     vers(1).flushEnt("!alpha");
     vers(1).path("delta.txt").flushEnt("delta");
-    flushHiddenRegistry();
+    flushRegistry();
 
     addArg("offload", "alpha");
 
@@ -174,14 +191,16 @@ public class ArchiveOperTest extends MyTestCase {
   public void offloadPerform() {
     generateFiles(workLocal(), "alpha(beta.txt) delta.txt");
 
-    ent().offload(true);
+    global();
     vers(1).flushEnt("!alpha");
     vers(1).path("delta.txt").flushEnt("delta");
     flushRegistry();
 
+    local();
+    pending(Oper.OFFLOAD);
     vers(1).flushEnt("!alpha");
-    vers(1).path("delta.txt").flushEnt("delta");
-    flushHiddenRegistry();
+    vers(1).flushEnt("delta");
+    flushRegistry();
 
     addArg("update");
     runApp();
@@ -196,6 +215,7 @@ public class ArchiveOperTest extends MyTestCase {
   public void pushUpdate() {
     generateFiles(workLocal(), "alpha(beta.txt) epsilon.txt delta.txt");
 
+    global();
     vers(1).flushEnt("!alpha");
     vers(1).path("epsilon.txt").flushEnt("epsilon");
     vers(1).path("delta.txt").flushEnt("delta");
@@ -203,11 +223,11 @@ public class ArchiveOperTest extends MyTestCase {
 
     // Use same values for hidden registry
     //
+    local();
     vers(1).flushEnt("!alpha");
     vers(1).path("epsilon.txt").flushEnt("epsilon");
     vers(1).path("delta.txt").flushEnt("delta");
-
-    flushHiddenRegistry();
+    flushRegistry();
 
     addArg("push", "alpha");
     runApp();
@@ -360,50 +380,123 @@ public class ArchiveOperTest extends MyTestCase {
     return mArchiveEntryBuilder;
   }
 
-  private ArchiveRegistry.Builder reg() {
-    if (rb == null)
-      rb = ArchiveRegistry.newBuilder();
-    return rb;
+  private LocalEntry.Builder localEnt() {
+    if (mLocalEntryBuilder == null) {
+      mLocalEntryBuilder = LocalEntry.newBuilder();
+    }
+    return mLocalEntryBuilder;
   }
 
+  private ArchiveRegistry.Builder reg() {
+    if (mGlobalRegistry == null)
+      mGlobalRegistry = ArchiveRegistry.newBuilder();
+    return mGlobalRegistry;
+  }
+
+  private LocalRegistry.Builder localReg() {
+    if (mLocalRegistry == null)
+      mLocalRegistry = LocalRegistry.newBuilder();
+    return mLocalRegistry;
+  }
+
+  /**
+   * Make subsequent operations operate on the global registry
+   */
+  private ArchiveOperTest global() {
+    mRegIndex = 1;
+    return this;
+  }
+
+  /**
+   * Make subsequent operations operate on the local registry
+   */
+  private ArchiveOperTest local() {
+    mRegIndex = 2;
+    return this;
+  }
+
+  private boolean isGlobal() {
+    checkState(mRegIndex != 0);
+    return mRegIndex == 1;
+  }
+
+  /**
+   * Set the path field (must be global registry)
+   */
   private ArchiveOperTest path(String path) {
+    checkState(isGlobal());
     ent().path(new File(path));
     return this;
   }
 
+  /**
+   * Set version (global or local)
+   */
   private ArchiveOperTest vers(int version) {
-    ent().version(version);
+    if (isGlobal())
+      ent().version(version);
+    else
+      localEnt().version(version);
     return this;
   }
 
+  /**
+   * Set pending operation (local registry)
+   */
+  private ArchiveOperTest pending(Oper oper) {
+    checkState(!isGlobal());
+    localEnt().pending(oper.toString());
+    return this;
+  }
+
+  /**
+   * Flush the current entry (global or local)
+   * 
+   * @param key
+   *          key for entry; prefix '!' indicates that the entry is a directory
+   */
   private void flushEnt(String key) {
-    boolean isDir = key.startsWith("!");
-    key = chompPrefix(key, "!");
-    if (isDir)
-      ent().directory(true);
-    reg().entries().put(key, ent().build());
-    mArchiveEntryBuilder = null;
+    if (isGlobal()) {
+      boolean isDir = key.startsWith("!");
+      key = chompPrefix(key, "!");
+      if (isDir)
+        ent().directory(true);
+      reg().entries().put(key, ent().build());
+      mArchiveEntryBuilder = null;
+    } else {
+      key = chompPrefix(key, "!");
+      localReg().entries().put(key, localEnt().build());
+      mLocalEntryBuilder = null;
+    }
   }
 
+  /**
+   * Flush current registry (global or local)
+   */
   private void flushRegistry() {
-    auxFlushRegistry("archive_registry.json");
+    if (isGlobal()) {
+      checkState(mArchiveEntryBuilder == null, "entry not flushed:", mArchiveEntryBuilder);
+      ArchiveRegistry reg = reg().build();
+      File configDir = new File(workLocal(), "project_config");
+      files().mkdirs(configDir);
+      files().writePretty(new File(configDir, "archive_registry.json"), reg);
+      mGlobalRegistry = null;
+    } else {
+      checkState(mLocalEntryBuilder == null, "entry not flushed:", mLocalEntryBuilder);
+      LocalRegistry reg = localReg().build();
+      File configDir = new File(workLocal(), "project_config");
+      files().mkdirs(configDir);
+      files().writePretty(new File(configDir, ".archive_registry.json"), reg);
+      mLocalRegistry = null;
+    }
   }
 
-  private void flushHiddenRegistry() {
-    auxFlushRegistry(".archive_registry.json");
-  }
-
-  private void auxFlushRegistry(String name) {
-    checkState(mArchiveEntryBuilder == null, "entry not flushed:", mArchiveEntryBuilder);
-    ArchiveRegistry reg = reg().build();
-    File configDir = new File(workLocal(), "project_config");
-    files().mkdirs(configDir);
-    files().writePretty(new File(configDir, name), reg);
-    rb = null;
-  }
-
+  // Which registry is being operated on (0:none; 1:global; 2:local)
+  private int mRegIndex;
   private ArchiveEntry.Builder mArchiveEntryBuilder;
-  private ArchiveRegistry.Builder rb;
+  private ArchiveRegistry.Builder mGlobalRegistry;
+  private LocalEntry.Builder mLocalEntryBuilder;
+  private LocalRegistry.Builder mLocalRegistry;
 
   // ------------------------------------------------------------------
   // Generating a directory via a script
