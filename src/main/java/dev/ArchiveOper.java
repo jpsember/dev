@@ -46,6 +46,7 @@ import js.parsing.RegExp;
 import dev.gen.archive.ArchiveEntry;
 import dev.gen.archive.ArchiveRegistry;
 import dev.gen.archive.LocalRegistry;
+import dev.gen.archive.Oper;
 import dev.gen.archive.LocalEntry;
 
 /**
@@ -205,10 +206,6 @@ public final class ArchiveOper extends AppOper {
       mMockRemoteDir = Files.getCanonicalFile(mMockRemoteDir);
     mTemporaryFile = fileWithinProjectDir("_SKIP_temp.zip");
   }
-
-  enum Oper {
-    UPDATE, PUSH, FORGET, OFFLOAD
-  };
 
   private Oper mOper;
 
@@ -474,9 +471,8 @@ public final class ArchiveOper extends AppOper {
   }
 
   private boolean isPending(LocalEntry pending, Oper oper) {
-    if (pending.pending() != null)
-      checkState(pending.pending().equals(pending.pending().toUpperCase()));
-    return (oper.toString().equals(pending.pending()));
+    todo("this method is no longer required as pending is an enum");
+    return oper == pending.pending();
   }
 
   private void processForgetFlags() {
@@ -607,7 +603,7 @@ public final class ArchiveOper extends AppOper {
   }
 
   private LocalEntry.Builder setPending(LocalEntry entry, Oper oper) {
-    return entry.toBuilder().pending(oper.toString());
+    return entry.toBuilder().pending(oper);
   }
 
   private void markForForgetting(String userArg) {
@@ -654,7 +650,7 @@ public final class ArchiveOper extends AppOper {
   }
 
   private void updateEntry() {
-    if (isTrue(mHiddenEntry.offload())) {
+    if (mHiddenEntry.offload()) {
       log("Ignoring offloaded entry:", mKey);
       return;
     }
@@ -674,7 +670,7 @@ public final class ArchiveOper extends AppOper {
     //
     todo("the offload flag should be consulted before this illegal state is allowed to occur");
     if (isPending(mHiddenEntry, Oper.PUSH)) {
-      if (isTrue(mHiddenEntry.offload()))
+      if (mHiddenEntry.offload())
         throw badState("attempt to push offloaded entry:", mEntry);
       mHiddenEntry.pending(null);
       pushEntry();

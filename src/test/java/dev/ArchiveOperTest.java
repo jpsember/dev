@@ -31,12 +31,12 @@ import java.util.List;
 
 import org.junit.Test;
 
-import dev.ArchiveOper.Oper;
 import dev.Main;
 import dev.gen.archive.ArchiveEntry;
 import dev.gen.archive.ArchiveRegistry;
 import dev.gen.archive.LocalEntry;
 import dev.gen.archive.LocalRegistry;
+import dev.gen.archive.Oper;
 import js.app.App;
 import js.data.DataUtil;
 import js.file.Files;
@@ -467,7 +467,7 @@ public class ArchiveOperTest extends MyTestCase {
    */
   private ArchiveOperTest pending(Oper oper) {
     checkState(!isGlobal());
-    localEnt().pending(oper.toString());
+    localEnt().pending(oper);
     return this;
   }
 
