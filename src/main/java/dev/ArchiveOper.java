@@ -406,20 +406,7 @@ public final class ArchiveOper extends AppOper {
 
     for (Entry<String, ArchiveEntry> ent : globalRegistry.entries().entrySet()) {
       String key = ent.getKey();
-      ArchiveEntry globalEntry = ent.getValue();
-
-      LocalEntry hiddenEntry = hiddenRegistry.entries().get(key);
-      if (hiddenEntry == null) {
-        log("...no hidden entry found for:", key);
-        hiddenEntry = LocalEntry.DEFAULT_INSTANCE;
-      }
-
-      int newVersion = hiddenEntry.version();
-      if (newVersion > globalEntry.version()) {
-        setError("*** entry", key, "hidden entry version", newVersion, "exceeds global",
-            globalEntry.version());
-      }
-
+      LocalEntry hiddenEntry = hiddenRegistry.entries().getOrDefault(key, LocalEntry.DEFAULT_INSTANCE);
       updatedRegistry.entries().put(key, hiddenEntry);
     }
     return updatedRegistry.build();
@@ -626,22 +613,6 @@ public final class ArchiveOper extends AppOper {
       mRegistryLocal.entries().put(key, updatedEntry);
     } else
       pr("Already marked for offload:", key);
-  }
-
-  private void validateEntryStates() {
-    for (Entry<String, ArchiveEntry> ent : mRegistryGlobal.entries().entrySet()) {
-      String key = ent.getKey();
-      ArchiveEntry entry = ent.getValue();
-      LocalEntry local = mRegistryLocal.entries().getOrDefault(key, LocalEntry.DEFAULT_INSTANCE);
-
-      if (Files.empty(entry.path()))
-        setError("Missing path:", key);
-      if (entry.directory())
-        if (local.version() > entry.version())
-          setError("Local version greater than global:", key);
-
-      todo("add more validations");
-    }
   }
 
   private void updateEntry() {
@@ -893,6 +864,43 @@ public final class ArchiveOper extends AppOper {
     checkState(tempFile().exists(), "failed to create: " + tempFile());
     return tempFile();
   }
+  // ------------------------------------------------------------------
+  // Checking object states for validity before performing operations
+  // ------------------------------------------------------------------
+
+  private void validateEntryStates() {
+    for (Entry<String, ArchiveEntry> ent : mRegistryGlobal.entries().entrySet()) {
+      String key = ent.getKey();
+      ArchiveEntry entry = ent.getValue();
+      LocalEntry local = mRegistryLocal.entries().getOrDefault(key, LocalEntry.DEFAULT_INSTANCE);
+      mValidationErrorMessage = null;
+
+      if (Files.empty(entry.path()))
+        setValidationError("Missing path");
+      if (local.version() > entry.version())
+        setValidationError("Local version greater than global");
+
+      if (local.offload()) {
+        if (local.pending() == Oper.PUSH)
+          setValidationError("Illegal pending operation");
+      }
+
+      if (mValidationErrorMessage != null)
+        setError("Object failed validation! Key:", key, CR, "Global entry:", INDENT, entry, OUTDENT,
+            "Local entry:", INDENT, local, OUTDENT, "Message:", mValidationErrorMessage);
+      todo("add more validations");
+    }
+  }
+
+  private void setValidationError(String message) {
+    if (mValidationErrorMessage != null)
+      return;
+    mValidationErrorMessage = message;
+  }
+
+  // If not null, message for first validation error found for an entry
+  //
+  private String mValidationErrorMessage;
 
   // ------------------------------------------------------------------
   // ArchiveEntry utilities

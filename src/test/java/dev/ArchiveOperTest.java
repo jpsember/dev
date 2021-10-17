@@ -289,6 +289,14 @@ public class ArchiveOperTest extends MyTestCase {
     validate(null, map().put("version", "foo"));
   }
 
+  @Test
+  public void validateLocalVersionExceedsGlobal() {
+    validate( //
+        map().put("entries", map().put("a", map().put("version", 5))), //
+        map().put("entries", map().put("a", map().put("version", 7))) //
+    );
+  }
+
   // ------------------------------------------------------------------
 
   private final void addArg(Object... args) {
