@@ -246,6 +246,7 @@ public final class ArchiveOper extends AppOper {
 
     readGlobalRegistry();
     readHiddenRegistry();
+    validateEntryStates();
 
     if (mOper == null && !testMode()) {
       alert("Assuming 'update' was desired; in future, this will be mandatory");
@@ -304,9 +305,9 @@ public final class ArchiveOper extends AppOper {
         if (!RegExp.patternMatchesString(RELATIVE_PATH_PATTERN, pt.toString()))
           problemText = "Illegal path";
         else {
-          if (ent.version() != 0 || ent.directory() == Boolean.TRUE) {
+          if (ent.version() != 0 || isTrue(ent.directory())) {
             File actualFile = fileWithinProjectDir(pt);
-            if (actualFile.exists() && actualFile.isDirectory() != (ent.directory() == Boolean.TRUE))
+            if (actualFile.exists() && actualFile.isDirectory() != isTrue(ent.directory()))
               problemText = "Directory flag is incorrect";
           }
         }
@@ -636,15 +637,24 @@ public final class ArchiveOper extends AppOper {
       pr("Already marked for offload:", key);
   }
 
-  private void validateEntryStates(ArchiveEntry entry, LocalEntry hiddenEntry, File sourceFile) {
-    todo("finish this");
+  private void validateEntryStates() {
+    for (Entry<String, ArchiveEntry> ent : mRegistryGlobal.entries().entrySet()) {
+      String key = ent.getKey();
+      ArchiveEntry entry = ent.getValue();
+      LocalEntry local = mRegistryLocal.entries().getOrDefault(key, LocalEntry.DEFAULT_INSTANCE);
+
+      if (Files.empty(entry.path()))
+        setError("Missing path:", key);
+      if (isTrue(entry.directory()))
+        if (local.version() > entry.version())
+          setError("Local version greater than global:", key);
+
+      todo("add more validations");
+    }
   }
 
   private void updateEntry() {
-
-    validateEntryStates(mEntry, mHiddenEntry, mSourceFile);
-
-    if (mHiddenEntry.offload() == Boolean.TRUE) {
+    if (isTrue(mHiddenEntry.offload())) {
       log("Ignoring offloaded entry:", mKey);
       return;
     }
@@ -664,7 +674,7 @@ public final class ArchiveOper extends AppOper {
     //
     todo("the offload flag should be consulted before this illegal state is allowed to occur");
     if (isPending(mHiddenEntry, Oper.PUSH)) {
-      if (mHiddenEntry.offload() == Boolean.TRUE)
+      if (isTrue(mHiddenEntry.offload()))
         throw badState("attempt to push offloaded entry:", mEntry);
       mHiddenEntry.pending(null);
       pushEntry();
@@ -698,7 +708,7 @@ public final class ArchiveOper extends AppOper {
   }
 
   private boolean singleFile() {
-    return mEntry.directory() != Boolean.TRUE;
+    return isFalse(mEntry.directory());
   }
 
   /**
