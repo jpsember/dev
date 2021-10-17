@@ -401,39 +401,33 @@ public final class ArchiveOper extends AppOper {
     return b.build();
   }
 
-  /**
-   * Updating the hidden registry is different, since we are copying many things
-   * from the global registry
-   * 
-   * TODO: the comment is no longer very accurate
-   */
   private LocalRegistry updateHiddenRegistry(LocalRegistry hiddenRegistry, ArchiveRegistry globalRegistry) {
+    // TODO: we're using 'hidden' when for clarity we should use the word 'local'
+
     LocalRegistry.Builder updatedRegistry = LocalRegistry.newBuilder();
 
     for (Entry<String, ArchiveEntry> ent : globalRegistry.entries().entrySet()) {
       String key = ent.getKey();
       ArchiveEntry globalEntry = ent.getValue();
 
-      LocalEntry originalHiddenEntry = hiddenRegistry.entries().get(key);
-      if (originalHiddenEntry == null) {
+      LocalEntry hiddenEntry = hiddenRegistry.entries().get(key);
+      if (hiddenEntry == null) {
         log("...no hidden entry found for:", key);
-        originalHiddenEntry = LocalEntry.DEFAULT_INSTANCE;
+        hiddenEntry = LocalEntry.DEFAULT_INSTANCE;
       }
 
-      int newVersion = originalHiddenEntry.version();
+      int newVersion = hiddenEntry.version();
       if (newVersion > globalEntry.version()) {
         setError("*** entry", key, "hidden entry version", newVersion, "exceeds global",
             globalEntry.version());
       }
 
-      todo("unnecessary code here");
-      LocalEntry.Builder updatedEnt = originalHiddenEntry.toBuilder();
-      updatedRegistry.entries().put(key, updatedEnt.build());
+      updatedRegistry.entries().put(key, hiddenEntry);
     }
     return updatedRegistry.build();
   }
 
-  private boolean EXTRA = true;
+  private static final boolean EXTRA = false && alert("extra logging");
 
   private void flushRegistries() {
     if (!mRegistryGlobalOriginal.equals(mRegistryGlobal)) {

@@ -165,7 +165,6 @@ public class ArchiveOperTest extends MyTestCase {
    */
   @Test
   public void offloadMark() {
-    todo("add test for an offloaded object that isn't the most recent version");
     generateFiles(workLocal(), "alpha(beta.txt) delta.txt");
 
     global();
@@ -179,6 +178,30 @@ public class ArchiveOperTest extends MyTestCase {
     flushRegistry();
 
     addArg("offload", "alpha");
+
+    runApp();
+
+    assertGenerated();
+  }
+
+  /**
+   * Verify that a new version of an offloaded object is not pulled
+   */
+  @Test
+  public void offloadWithOldVersion() {
+    generateFiles(workLocal(), "alpha(beta.txt) delta.txt");
+
+    global();
+    vers(5).flushEnt("!alpha");
+    vers(3).path("delta.txt").flushEnt("delta");
+    flushRegistry();
+
+    local();
+    vers(2).offload().flushEnt("alpha");
+    vers(1).offload().flushEnt("delta");
+    flushRegistry();
+
+    addArg("update");
 
     runApp();
 
@@ -331,8 +354,8 @@ public class ArchiveOperTest extends MyTestCase {
   }
 
   private void validate(JSMap registry, JSMap hiddenRegistry) {
-    todo("can we use scripts here?");
-    prepareProject();
+    generateFiles(workLocal(), "");
+
     if (registry == null)
       registry = map();
 
@@ -445,6 +468,15 @@ public class ArchiveOperTest extends MyTestCase {
   private ArchiveOperTest pending(Oper oper) {
     checkState(!isGlobal());
     localEnt().pending(oper.toString());
+    return this;
+  }
+
+  /**
+   * Set offload status
+   */
+  private ArchiveOperTest offload() {
+    checkState(!isGlobal());
+    localEnt().offload(true);
     return this;
   }
 
