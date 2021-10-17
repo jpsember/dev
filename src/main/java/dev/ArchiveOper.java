@@ -470,18 +470,13 @@ public final class ArchiveOper extends AppOper {
     mRegistryGlobal.entries().putAll(modifiedEntries);
   }
 
-  private boolean isPending(LocalEntry pending, Oper oper) {
-    todo("this method is no longer required as pending is an enum");
-    return oper == pending.pending();
-  }
-
   private void processForgetFlags() {
     List<String> keysToDelete = arrayList();
 
     for (Entry<String, LocalEntry> ent : mRegistryLocal.entries().entrySet()) {
       LocalEntry entry = ent.getValue();
       mKey = ent.getKey();
-      if (isPending(entry, Oper.FORGET))
+      if (entry.pending() == Oper.FORGET)
         keysToDelete.add(mKey);
     }
 
@@ -609,7 +604,7 @@ public final class ArchiveOper extends AppOper {
   private void markForForgetting(String userArg) {
     String key = optKeyFromUserArg(userArg);
     LocalEntry foundEntry = localEntryForKey(key, "No object found for:", userArg);
-    if (isPending(foundEntry, Oper.PUSH) || isPending(foundEntry, Oper.OFFLOAD))
+    if (foundEntry.pending() == Oper.PUSH || foundEntry.pending() == Oper.OFFLOAD)
       setError("Object has unexpected state:", key, INDENT, foundEntry);
 
     LocalEntry updatedEntry = setPending(foundEntry, Oper.FORGET).build();
@@ -623,7 +618,7 @@ public final class ArchiveOper extends AppOper {
   private void markForOffloading(String userArg) {
     String key = optKeyFromUserArg(userArg);
     LocalEntry foundEntry = localEntryForKey(key, "No object found for:", userArg);
-    if (foundEntry.version() == 0 || isPending(foundEntry, Oper.PUSH) || isPending(foundEntry, Oper.FORGET))
+    if (foundEntry.version() == 0 || foundEntry.pending() == Oper.PUSH || foundEntry.pending() == Oper.FORGET)
       setError("Object has unexpected state:", key, INDENT, foundEntry);
     LocalEntry updatedEntry = foundEntry.toBuilder().offload(true).build();
     if (!updatedEntry.equals(foundEntry)) {
@@ -656,7 +651,7 @@ public final class ArchiveOper extends AppOper {
     }
 
     // If item has never been pushed, do so
-    if (mEntry.version() == 0 && !isPending(mHiddenEntry, Oper.PUSH)) {
+    if (mEntry.version() == 0 && mHiddenEntry.pending() != Oper.PUSH) {
       log("Entry has never been pushed, doing so:", mKey);
       Files.assertExists(mSourceFile);
       if (mSourceFile.isDirectory()) {
@@ -669,7 +664,7 @@ public final class ArchiveOper extends AppOper {
     // Push new version from local to cloud if push signal was given
     //
     todo("the offload flag should be consulted before this illegal state is allowed to occur");
-    if (isPending(mHiddenEntry, Oper.PUSH)) {
+    if (mHiddenEntry.pending() == Oper.PUSH) {
       if (mHiddenEntry.offload())
         throw badState("attempt to push offloaded entry:", mEntry);
       mHiddenEntry.pending(null);
@@ -681,7 +676,7 @@ public final class ArchiveOper extends AppOper {
     // If user has requested to offload this entry, flag this fact within the hidden registry,
     // and delete the local copy
     //
-    if (isPending(mHiddenEntry, Oper.OFFLOAD)) {
+    if (mHiddenEntry.pending() == Oper.OFFLOAD) {
       log("...offloading entry:", mKey);
       mOffloadedCount++;
       mHiddenEntry.pending(null);
