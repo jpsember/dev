@@ -244,10 +244,6 @@ public final class ArchiveOper extends AppOper {
     readHiddenRegistry();
     validateEntryStates();
 
-    if (mOper == null && !testMode()) {
-      alert("Assuming 'update' was desired; in future, this will be mandatory");
-      setOper(Oper.UPDATE, true);
-    }
     if (mOper == null)
       setError("No operation selected");
 
