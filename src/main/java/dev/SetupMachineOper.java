@@ -100,8 +100,7 @@ public class SetupMachineOper extends AppOper {
 
     // The permissions for the private key must be restricted or the ssh program complains
     //
-    if (!files().dryRun())
-      new SystemCall().withVerbose(verbose()).arg("chmod", 600, targetFile).assertSuccess();
+    files().chmod(targetFile, 600);
   }
 
   private void prepareVI() {

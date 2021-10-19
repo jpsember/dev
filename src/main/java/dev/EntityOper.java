@@ -174,12 +174,7 @@ public class EntityOper extends AppOper {
     sb.append('\n');
     File f = new File(Files.homeDirectory(), "bin/sshe");
     files().writeString(f, sb.toString());
-    if (!dryRun()) {
-      SystemCall sc = new SystemCall();
-      sc.setVerbose(verbose());
-      sc.arg("chmod", "u+x", f);
-      sc.assertSuccess();
-    }
+    files().chmod(f,"u+x");
   }
 
   private EntityManager manager() {
