@@ -451,13 +451,18 @@ public final class ArchiveOper extends AppOper {
    * if it is not within the project directory
    */
   private File relativeToProjectDirectory(File file) {
-    File origFile = file;
-    file = Files.getCanonicalFile(file);
-    String fPath = file.toString();
-    String pPath = mProjectDirectory.toString();
-    if (!fPath.startsWith(pPath))
-      setError("file is not within project directory:", file, INDENT, "original argument:", origFile);
-    return new File(fPath.substring(pPath.length() + 1));
+    if (true) {
+      todo("verify that this works");
+      return Files.relativeToContainingDirectory(file, mProjectDirectory);
+    } else {
+      File origFile = file;
+      file = Files.getCanonicalFile(file);
+      String fPath = file.toString();
+      String pPath = mProjectDirectory.toString();
+      if (!fPath.startsWith(pPath))
+        setError("file is not within project directory:", file, INDENT, "original argument:", origFile);
+      return new File(fPath.substring(pPath.length() + 1));
+    }
   }
 
   private File relativeToProjectDirectory(String pathArg) {
