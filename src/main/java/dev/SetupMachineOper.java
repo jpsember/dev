@@ -199,10 +199,10 @@ public class SetupMachineOper extends AppOper {
 
   private String applyMacroParser(String sourceText) {
     if (mMacroMap == null) {
-      RemoteEntityInfo ii = Utils.ourEntityInfo();
+      RemoteEntityInfo entityInfo = Utils.ourEntityInfo();
       mMacroMap = map()//
-          .put("entity_id", ii.id()) //
-          .put("project_dir", Utils.determineProjectDir(ii).toString()) //
+          .put("entity_id", entityInfo.id()) //
+          .put("project_dir", entityInfo.projectDir().toString()) //
       ;
     }
     return MacroParser.parse(sourceText, mMacroMap);
