@@ -74,12 +74,12 @@ public abstract class RsyncOper extends AppOper {
 
     if (alert("using debug args")) {
       arg0 = "jv_exp";
-      arg1 = "foo/bar";
+      arg1 = "/abs/target/foo/bar";
     }
 
-    mSourceEntityPath = parseEntityPath(arg0);
+    mSourceEntityPath = new File(arg0);
     if (arg1 != null)
-      mTargetEntityPath = parseEntityPath(arg1);
+      mTargetEntityPath = new File(arg1);
     args.assertArgsDone();
   }
 
@@ -87,6 +87,8 @@ public abstract class RsyncOper extends AppOper {
   public void perform() {
 
     determinePaths();
+
+    halt();
 
     SystemCall s = new SystemCall();
     boolean verbosity = verbose();
@@ -107,37 +109,12 @@ public abstract class RsyncOper extends AppOper {
 
     s.arg("--exclude-from=" + constructExcludeList());
 
-    s.arg(Files.join(mSourceBaseDir, mSourceRelativeToProject));
+    s.arg(mResolvedSource);
 
-    RemoteEntityInfo ent = EntityManager.sharedInstance().activeEntity();
+    RemoteEntityInfo ent = remoteEntity();
     checkArgument(ent.port() > 0, "bad port:", INDENT, ent);
 
     s.arg("-e", "ssh -p" + ent.port());
-
-    // Determine the target directory
-
-    File target = Files.join(mTargetBaseDir, mTargetRelativeToProject);
-    //   checkArgument(sourceDirString.startsWith(sourceBaseDirStr));
-    //      String sourceOffsetString = sourceDirString.substring(sourceBaseDirStr.length());
-    //      targetDirString = targetBaseDir() + sourceOffsetString;
-
-    // Omit the target directory name, so rsync will create one with the same name as the source.
-    //String targetDirString = Files.parent(target).toString();
-
-    // Omit the target directory name, so rsync will create one with the same name as the source.
-    // targetDirString = removeLastPathElement(targetDirString);
-
-    //    // Special case: if sending the entire source directory, generate a warning if the source 
-    //    // directory name differs from that of the target (project) directory name, since
-    //    // it will create a different target directory.
-    //    if (sourceDirString.length() == sourceBaseDirStr.length()) {
-    //      String sourceDirName = lastPathElement(sourceDirString);
-    //      String targetDirName = lastPathElement(targetBaseDir().toString());
-    //      if (!sourceDirName.equals(targetDirName)) {
-    //        pr("*** Target directory will not lie within the project directory:", INDENT, sourceDirName, CR,
-    //            targetBaseDir());
-    //      }
-    //    }
 
     {
       StringBuilder sb = new StringBuilder();
@@ -149,7 +126,7 @@ public abstract class RsyncOper extends AppOper {
       sb.append(ent.url());
       sb.append(':');
 
-      sb.append(target);
+      sb.append(mResolvedTarget);
       s.arg(sb);
     }
 
@@ -164,41 +141,50 @@ public abstract class RsyncOper extends AppOper {
 
     if (!isPull()) {
 
-      RemoteEntityInfo remoteEntity = EntityManager.sharedInstance().activeEntity();
-
-      
-      
-      
+      File sourceRelativeToProject = null;
       {
         // If no source directory was given, assume the current directory
         //
         File sourceDir = mSourceEntityPath;
-        if (Files.empty(sourceDir))
-          sourceDir = Files.currentDirectory();
 
-        // The source project directory is the root of the git repository containing the source directory
-        //
-        mSourceBaseDir = Files.parent(
-            Files.getFileWithinParents(sourceDir, ".git", "source git repository containing", sourceDir));
+        if (Files.empty(sourceDir)) {
+          sourceDir = new File(".");
+          if (alert("verifying"))
+            checkState(!sourceDir.isAbsolute());
+        }
 
-        // The target project directory is found in the remote entity data structure
-        //
-        mTargetBaseDir = Files.assertAbsolute(remoteEntity.projectDir());
+        if (sourceDir.isAbsolute()) {
+          mResolvedSource = sourceDir;
+        } else {
+          // The source project directory is the root of the git repository containing the source directory
+          //
+          File sourceBaseDir = Files.parent(
+              Files.getFileWithinParents(sourceDir, ".git", "source git repository containing", sourceDir));
 
-        mSourceRelativeToProject = Files.relativeToContainingDirectory(sourceDir, mSourceBaseDir);
+          sourceRelativeToProject = Files.relativeToContainingDirectory(sourceDir, sourceBaseDir);
+          mResolvedSource = Files.join(sourceBaseDir, sourceRelativeToProject);
+        }
       }
-      
+
       {
-        // If no target directory was given, assume 
+        // If no target directory was given, assume it has the same relative path as the source directory
         File targetDir = mTargetEntityPath;
         if (Files.empty(targetDir)) {
-          mTargetRelativeToProject = mSourceRelativeToProject;
+          if (sourceRelativeToProject == null)
+            throw badArg("Absolute source directory given with no target directory");
+          mResolvedTarget = Files.join(targetBaseDir(), sourceRelativeToProject);
         } else {
+
           if (targetDir.isAbsolute())
-            mTargetRelativeToProject = Files.relativeToContainingDirectory(targetDir,
-                remoteEntity.projectDir());
-          else
-            mTargetRelativeToProject = targetDir;
+            mResolvedTarget = targetDir;
+          //          
+          //            targetRelativeToProject = Files.relativeToContainingDirectory(targetDir,
+          //                remoteEntity().projectDir());
+          else {
+            mResolvedTarget = Files.join(targetBaseDir(), targetDir);
+          }
+          todo("if target dir was provided, and is absolute, ignore the target basedir");
+          // mResolvedTarget = Files.join(mTargetBaseDir, targetRelativeToProject);
         }
       }
 
@@ -209,10 +195,8 @@ public abstract class RsyncOper extends AppOper {
     if (verbose()) {
       pr("source arg:", mSourceEntityPath);
       pr("target arg:", mTargetEntityPath);
-      pr("source base:", mSourceBaseDir);
-      pr("target base:", mTargetBaseDir);
-      pr("source rel:", mSourceRelativeToProject);
-      pr("target rel:", mTargetRelativeToProject);
+      pr("source resolved:", mResolvedSource);
+      pr("target resolved:", mResolvedTarget);
     }
   }
 
@@ -230,25 +214,6 @@ public abstract class RsyncOper extends AppOper {
     }
     return mExcludeExpressionsList;
   }
-
-  //  /**
-  //   * Construct EntityPath by parsing a string "[<remote_id>:]<path>]"
-  //   */
-  //  private EntityPath parseEntityPath(String expr) {
-  //    int colon = expr.indexOf(':');
-  //    String entityId = null;
-  //    String path = expr;
-  //    if (colon >= 0) {
-  //      entityId = expr.substring(0, colon);
-  //      path = expr.substring(colon + 1);
-  //    }
-  //    checkArgument(path.length() > 0, "can't parse entity path:", expr);
-  //
-  //    File relPath = new File(path);
-  //    if (!relPath.isAbsolute())
-  //      relPath = new File(Files.currentDirectory(), relPath.toString());
-  //    return EntityPath.newBuilder().entityId(entityId).path(Files.getCanonicalFile(relPath)).build();
-  //  }
 
   /**
    * Generate a file containing an exclude list to be passed to rsync
@@ -273,64 +238,17 @@ public abstract class RsyncOper extends AppOper {
     return tempFile;
   }
 
-  /**
-   * Construct EntityPath by parsing a string "[<remote_id>:]<path>]"
-   */
-  protected File parseEntityPath(String expr) {
-    todo("normalize paths later, when we know which is remote and which is local");
-    return new File(expr);
-    //    int colon = expr.indexOf(':');
-    //    String entityId = null;
-    //    String path = expr;
-    //    if (colon >= 0) {
-    //      entityId = expr.substring(0, colon);
-    //      path = expr.substring(colon + 1);
-    //    }
-    //    checkArgument(path.length() > 0, "can't parse entity path:", expr);
-    //
-    //    File relPath = new File(path);
-    //    if (!relPath.isAbsolute())
-    //      relPath = new File(Files.currentDirectory(), relPath.toString());
-    //    return EntityPath.newBuilder().entityId(entityId).path(Files.getCanonicalFile(relPath)).build();
+  private RemoteEntityInfo remoteEntity() {
+    return EntityManager.sharedInstance().activeEntity();
   }
 
-  //  // ------------------------------------------------------------------
-  //  // Some utility methods for working with paths
-  //  // ------------------------------------------------------------------
-  //
-  //  /**
-  //   * Determine index of last '/' within a path. Expects a path that doesn't end
-  //   * with '/', and that contains at least two elements.
-  //   */
-  //
-  //  private static int lastPathElementDelimeter(String path) {
-  //    int i = path.lastIndexOf('/');
-  //    checkState(i > 0 && i < path.length() - 1, "path must have more than one element, and not end with '/':",
-  //        path);
-  //    return i;
-  //  }
-  //
-  //  /**
-  //   * Get the last path element (without '/')
-  //   */
-  //  private static String lastPathElement(String path) {
-  //    return path.substring(lastPathElementDelimeter(path) + 1);
-  //  }
-  //
-  //  /**
-  //   * Remove the last path element (and its '/' delimeter)
-  //   */
-  //  private static String removeLastPathElement(String path) {
-  //    return path.substring(0, lastPathElementDelimeter(path));
-  //  }
-  //
-  //  // ------------------------------------------------------------------
+  private File targetBaseDir() {
+    return Files.assertAbsolute(remoteEntity().projectDir());
+  }
 
-  private List<String> mExcludeExpressionsList;
   protected File mSourceEntityPath = Files.DEFAULT;
   protected File mTargetEntityPath = Files.DEFAULT;
-  private File mSourceBaseDir;
-  private File mTargetBaseDir;
-  private File mSourceRelativeToProject;
-  private File mTargetRelativeToProject;
+  private File mResolvedSource;
+  private File mResolvedTarget;
+  private List<String> mExcludeExpressionsList;
 }
