@@ -22,7 +22,8 @@ public final class Utils {
     String marker = "/" + ent.user() + "/";
     int j = s.indexOf(marker);
     checkState(j >= 0, "can't find substring:", marker, "within:", s);
-    String homeDir = s.substring(0, j + marker.length());
+    // Trim the trailing '/'
+    String homeDir = s.substring(0, j + marker.length() - 1);
     return new File(homeDir);
   }
 
