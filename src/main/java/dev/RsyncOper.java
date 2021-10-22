@@ -74,12 +74,13 @@ public abstract class RsyncOper extends AppOper {
 
     if (alert("using debug args")) {
       arg0 = "jv_exp";
-      arg1 = "/abs/target/foo/bar";
+      arg1 = ""; //"rel/target/foo/bar";
     }
 
     mSourceEntityPath = new File(arg0);
     if (arg1 != null)
       mTargetEntityPath = new File(arg1);
+
     args.assertArgsDone();
   }
 
@@ -109,28 +110,35 @@ public abstract class RsyncOper extends AppOper {
 
     s.arg("--exclude-from=" + constructExcludeList());
 
-    s.arg(mResolvedSource);
-
-    RemoteEntityInfo ent = remoteEntity();
-    checkArgument(ent.port() > 0, "bad port:", INDENT, ent);
-
-    s.arg("-e", "ssh -p" + ent.port());
-
-    {
-      StringBuilder sb = new StringBuilder();
-
-      checkArgument(nonEmpty(ent.user()), "no user:", INDENT, ent);
-      checkArgument(nonEmpty(ent.url()), "no url:", INDENT, ent);
-      sb.append(ent.user());
-      sb.append('@');
-      sb.append(ent.url());
-      sb.append(':');
-
-      sb.append(mResolvedTarget);
-      s.arg(sb);
-    }
+    addMachineArg(s, mResolvedSource, isPull());
+    addMachineArg(s, mResolvedTarget, !isPull());
 
     s.assertSuccess();
+  }
+
+  private void addMachineArg(SystemCall s, File resolvedPath, boolean isRemote) {
+    if (!isRemote)
+      s.arg(resolvedPath);
+    else {
+      RemoteEntityInfo ent = remoteEntity();
+      checkArgument(ent.port() > 0, "bad port:", INDENT, ent);
+
+      s.arg("-e", "ssh -p" + ent.port());
+
+      {
+        StringBuilder sb = new StringBuilder();
+
+        checkArgument(nonEmpty(ent.user()), "no user:", INDENT, ent);
+        checkArgument(nonEmpty(ent.url()), "no url:", INDENT, ent);
+        sb.append(ent.user());
+        sb.append('@');
+        sb.append(ent.url());
+        sb.append(':');
+
+        sb.append(resolvedPath);
+        s.arg(sb);
+      }
+    }
   }
 
   /**
@@ -138,65 +146,89 @@ public abstract class RsyncOper extends AppOper {
    * problems
    */
   private void determinePaths() {
-
-    if (!isPull()) {
-
-      File sourceRelativeToProject = null;
-      {
-        // If no source directory was given, assume the current directory
-        //
-        File sourceDir = mSourceEntityPath;
-
-        if (Files.empty(sourceDir)) {
-          sourceDir = new File(".");
-          if (alert("verifying"))
-            checkState(!sourceDir.isAbsolute());
-        }
-
-        if (sourceDir.isAbsolute()) {
-          mResolvedSource = sourceDir;
-        } else {
-          // The source project directory is the root of the git repository containing the source directory
-          //
-          File sourceBaseDir = Files.parent(
-              Files.getFileWithinParents(sourceDir, ".git", "source git repository containing", sourceDir));
-
-          sourceRelativeToProject = Files.relativeToContainingDirectory(sourceDir, sourceBaseDir);
-          mResolvedSource = Files.join(sourceBaseDir, sourceRelativeToProject);
-        }
-      }
-
-      {
-        // If no target directory was given, assume it has the same relative path as the source directory
-        File targetDir = mTargetEntityPath;
-        if (Files.empty(targetDir)) {
-          if (sourceRelativeToProject == null)
-            throw badArg("Absolute source directory given with no target directory");
-          mResolvedTarget = Files.join(targetBaseDir(), sourceRelativeToProject);
-        } else {
-
-          if (targetDir.isAbsolute())
-            mResolvedTarget = targetDir;
-          //          
-          //            targetRelativeToProject = Files.relativeToContainingDirectory(targetDir,
-          //                remoteEntity().projectDir());
-          else {
-            mResolvedTarget = Files.join(targetBaseDir(), targetDir);
-          }
-          todo("if target dir was provided, and is absolute, ignore the target basedir");
-          // mResolvedTarget = Files.join(mTargetBaseDir, targetRelativeToProject);
-        }
-      }
-
-    } else {
-      throw notSupported("not finished yet");
-    }
-
+    if (!isPull())
+      determinePushPaths();
+    else
+      determinePullPaths();
     if (verbose()) {
       pr("source arg:", mSourceEntityPath);
       pr("target arg:", mTargetEntityPath);
       pr("source resolved:", mResolvedSource);
       pr("target resolved:", mResolvedTarget);
+    }
+  }
+
+  private void determinePushPaths() {
+
+    File sourceRelativeToProject = null;
+    {
+      // If no source directory was given, assume the current directory
+      //
+      File sourceDir = mSourceEntityPath;
+
+      if (Files.empty(sourceDir)) {
+        sourceDir = new File(".");
+        if (alert("verifying"))
+          checkState(!sourceDir.isAbsolute());
+      }
+
+      if (sourceDir.isAbsolute()) {
+        mResolvedSource = sourceDir;
+      } else {
+        // The source project directory is the root of the git repository containing the source directory
+        //
+        File sourceBaseDir = localProjectDir(sourceDir);
+        //            Files.getFileWithinParents(sourceDir, ".git", "source git repository containing", sourceDir));
+
+        sourceRelativeToProject = Files.relativeToContainingDirectory(sourceDir, sourceBaseDir);
+        mResolvedSource = Files.join(sourceBaseDir, sourceRelativeToProject);
+      }
+    }
+
+    {
+      // If no target directory was given, assume it has the same relative path as the source directory
+      File targetDir = mTargetEntityPath;
+      if (Files.empty(targetDir)) {
+        if (sourceRelativeToProject == null)
+          throw badArg("Absolute source directory given with no target directory");
+        mResolvedTarget = Files.join(remoteProjectDir(), sourceRelativeToProject);
+      } else {
+        if (targetDir.isAbsolute())
+          mResolvedTarget = targetDir;
+        else
+          mResolvedTarget = Files.join(remoteProjectDir(), targetDir);
+      }
+    }
+  }
+
+  private void determinePullPaths() {
+
+    File sourceRelativeToProject = null;
+    {
+      if (Files.empty(mSourceEntityPath))
+        throw badArg("No remote path given");
+      if (mSourceEntityPath.isAbsolute()) {
+        mResolvedSource = mSourceEntityPath;
+      } else {
+        sourceRelativeToProject = mSourceEntityPath;
+        mResolvedSource = Files.join(remoteProjectDir(), sourceRelativeToProject);
+      }
+    }
+
+    {
+      // If no target directory was given, assume it has the same relative path as the source directory
+      File targetDir = mTargetEntityPath;
+      if (Files.empty(targetDir)) {
+        if (sourceRelativeToProject == null)
+          throw badArg("Absolute source directory given with no target directory");
+        File localBaseDir = localProjectDir(null);
+        mResolvedTarget = Files.join(localBaseDir, sourceRelativeToProject);
+      } else {
+        if (targetDir.isAbsolute())
+          mResolvedTarget = targetDir;
+        else
+          mResolvedTarget = Files.join(localProjectDir(null), targetDir);
+      }
     }
   }
 
@@ -242,7 +274,19 @@ public abstract class RsyncOper extends AppOper {
     return EntityManager.sharedInstance().activeEntity();
   }
 
-  private File targetBaseDir() {
+  private File localProjectDir(File fileWithinProjectOrNull) {
+    if (Files.empty(fileWithinProjectOrNull))
+      fileWithinProjectOrNull = Files.currentDirectory();
+
+    File arg = fileWithinProjectOrNull;
+    if (Files.empty(arg))
+      arg = Files.currentDirectory();
+
+    return Files
+        .parent(Files.getFileWithinParents(arg, ".git", "git repository containing current directory"));
+  }
+
+  private File remoteProjectDir() {
     return Files.assertAbsolute(remoteEntity().projectDir());
   }
 
