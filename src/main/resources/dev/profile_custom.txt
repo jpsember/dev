@@ -51,3 +51,7 @@ export PATH=.:$HOME/bin:$HOME/.local/bin:$PATH
 # Remove duplicates in PATH
 #
 export PATH="$(perl -e 'print join(":", grep { not $seen{$_}++ } split(/:/, $ENV{PATH}))')"
+
+# Start in the project directory
+#
+cd $PROJECT_DIR
