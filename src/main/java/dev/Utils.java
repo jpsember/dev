@@ -24,6 +24,7 @@ public final class Utils {
     checkState(j >= 0, "can't find substring:", marker, "within:", s);
     // Trim the trailing '/'
     String homeDir = s.substring(0, j + marker.length() - 1);
+    pr("...project dir is:", quote(homeDir));
     return new File(homeDir);
   }
 

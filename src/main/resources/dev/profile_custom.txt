@@ -1,7 +1,7 @@
 # Included by .profile
 #
 
-export PROJECT_DIR="$HOME/[!project_dir]"
+export PROJECT_DIR="[!project_dir]"
 
 
 # Set prompt
