@@ -52,6 +52,29 @@ import js.file.Files;
  * [] An extensive list of files to omit is provided, so they (in many cases) don't need to be 
  *      provided by the user
  * 
+ * 
+ * Things to investigate
+ * =====================
+ * Rsync has a clunky way of distinguishing between copying a directory vs copying its contents.
+ * If the source directory has a trailing slash, it interprets this as copying the contents; otherwise,
+ * it copies the directory.  
+ * 
+ * For our purposes, we usually want to copy a directory, and without changing its name; so we probably
+ * want to NOT add a trailing slash to the source, and also trim the last directory's name from the target path.
+ * 
+ * It is also tricky because this behaviour only applies to directories, and we don't know ahead of time
+ * (if we're pulling in something from a remote machine) whether we're talking about a directory or a file.
+ * If we're pushing, then we know if it's a directory; if we're pulling, we could see if a file already exists
+ * on the local machine, and see if it is a directory or not.  Failing that, we could guess if it's a directory
+ * based upon whether it has an extension (and probably generate all sorts of errors if we try to push/pull 
+ * directories that have extensions).
+ * 
+ * We may want to disallow renaming a directory (or file) that is being pulled... e.g., allow it to be 
+ * placed in a different directory, but ensure that the last path element matches.
+ * 
+ * At present, if absolute file paths are given, it complains about missing other paths.  We could check if the
+ * absolute path lies within the project, and if so, assume the missing path should be the symmetric counterpart.
+ * 
  * </pre>
  */
 public abstract class RsyncOper extends AppOper {
@@ -189,8 +212,14 @@ public abstract class RsyncOper extends AppOper {
       if (Files.empty(targetDir)) {
         if (sourceRelativeToProject == null)
           throw badArg("Absolute source directory given with no target directory");
-        mResolvedTarget = Files.join(remoteProjectDir(), sourceRelativeToProject);
+
+        // Omit the final component (xxx/yyy[/foo]) otherwise if foo is a directory,
+        // we will end up with xxx/yyy/foo/foo on the target.
+
+        File truncatedSource = Files.parent(sourceRelativeToProject);
+        mResolvedTarget = Files.join(remoteProjectDir(), truncatedSource);
       } else {
+        die("haven't yet dealt with the copy directory contents vs copy directory (i.e. by adding '/')");
         if (targetDir.isAbsolute())
           mResolvedTarget = targetDir;
         else
@@ -220,9 +249,11 @@ public abstract class RsyncOper extends AppOper {
         if (sourceRelativeToProject == null)
           throw badArg("Absolute source directory given with no target directory");
         File localBaseDir = localProjectDir();
-        mResolvedTarget = Files.join(localBaseDir, sourceRelativeToProject);
+        File truncatedSource = Files.parent(sourceRelativeToProject);
+        mResolvedTarget = Files.join(localBaseDir, truncatedSource);
       } else {
-        if (targetDir.isAbsolute())
+        die("haven't yet dealt with the copy directory contents vs copy directory (i.e. by adding '/')");
+         if (targetDir.isAbsolute())
           mResolvedTarget = targetDir;
         else
           mResolvedTarget = Files.join(localProjectDir(), targetDir);

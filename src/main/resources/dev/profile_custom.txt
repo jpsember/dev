@@ -1,6 +1,8 @@
 # Included by .profile
 #
 
+export PROJECT_DIR="$HOME/[!project_dir]"
+
 
 # Set prompt
 export PS1="([!entity_id]) \W} "

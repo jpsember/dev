@@ -30,6 +30,7 @@ import java.io.File;
 import java.util.Arrays;
 import java.util.List;
 
+import dev.gen.RemoteEntityInfo;
 import js.app.AppOper;
 import js.app.CmdLineArgs;
 import js.base.SystemCall;
@@ -81,8 +82,7 @@ public class SetupMachineOper extends AppOper {
   }
 
   private void validateOS() {
-    mEntityName = Files.readString(files().fileWithinSecrets("entity_name.txt")).trim();
-    mLocalTest = mEntityName.equals("osx");
+    mLocalTest = Utils.ourEntityInfo().id().equals("osx");
   }
 
   private void prepareSSH() {
@@ -149,14 +149,22 @@ public class SetupMachineOper extends AppOper {
     files().mkdirs(fileWithinHome("bin"));
 
     writeWithBackup(fileWithinHome(".inputrc"), files().fileWithinSecrets("inputrc.txt"));
-    writeWithBackup(fileWithinHome(".entity_name.txt"), mEntityName);
 
-    File profileFile = assertExists(fileWithinHome(".profile"));
-
+    // There are two bash configuration files we are interested in:
+    //
+    // .profile          : a standard file read by bash when shell scripts are run
+    // .profile_custom   : an additional configuration file that we will create, and will be included by .profile
+    //
     final String customFilename = ".profile_custom";
+
+    File bashProfileMain = assertExists(fileWithinHome(".profile"));
+    File bashProfileAux = fileWithinHome(customFilename);
+
+    // Append (or modify existing) text to include the auxilliary profile from the main one
+    //
     String newContent;
     {
-      String text = Files.readString(profileFile);
+      String text = Files.readString(bashProfileMain);
       String delimText = "# <<< generated code; do not edit\n";
 
       List<Integer> delims = arrayList();
@@ -169,7 +177,7 @@ public class SetupMachineOper extends AppOper {
         cursor = loc + delimText.length();
       }
       if (delims.size() != 0 && delims.size() != 2)
-        throw badState("unexpected occurrences of delimeter text in", profileFile);
+        throw badState("unexpected occurrences of delimeter text in", bashProfileMain);
 
       {
         String insertContent = "source ~/" + customFilename + "\n";
@@ -181,8 +189,8 @@ public class SetupMachineOper extends AppOper {
         }
       }
     }
-    writeWithBackup(profileFile, applyMacroParser(newContent));
-    writeWithBackup(fileWithinHome(customFilename), applyMacroParser(resourceString("profile_custom.txt")));
+    writeWithBackup(bashProfileMain, applyMacroParser(newContent));
+    writeWithBackup(bashProfileAux, applyMacroParser(resourceString("profile_custom.txt")));
   }
 
   private String resourceString(String filename) {
@@ -191,8 +199,11 @@ public class SetupMachineOper extends AppOper {
 
   private String applyMacroParser(String sourceText) {
     if (mMacroMap == null) {
+      RemoteEntityInfo ii = Utils.ourEntityInfo();
       mMacroMap = map()//
-          .put("entity_id", mEntityName);
+          .put("entity_id", ii.id()) //
+          .put("project_dir", Utils.determineProjectDir(ii).toString()) //
+      ;
     }
     return MacroParser.parse(sourceText, mMacroMap);
   }
@@ -323,7 +334,6 @@ public class SetupMachineOper extends AppOper {
     return mEffectiveHomeDir;
   }
 
-  private String mEntityName;
   private File mEffectiveHomeDir;
   private boolean mEclipseMode;
 

@@ -61,9 +61,15 @@ public class SecretsOper extends AppOper {
       File sourceDir = files().projectSecretsDirectory();
 
       files().copyDirectory(sourceDir, mSecretsWorkDir);
-      File entityNameFile = new File(mSecretsWorkDir, "entity_name.txt");
-      checkState(entityNameFile.exists(), "did not find:", entityNameFile);
-      files().writeString(entityNameFile, ent.id());
+
+      File entityInfoFile = new File(mSecretsWorkDir, Files.SECRETS_FILE_ENTITY_INFO);
+      files().writePretty(entityInfoFile, ent);
+
+      //      if (false) {
+      //        File entityNameFile = new File(mSecretsWorkDir, Files.SECRETS_FILE_ENTITY_NAME);
+      //        checkState(entityNameFile.exists(), "did not find:", entityNameFile);
+      //        files().writeString(entityNameFile, ent.id());
+      //      }
     }
 
     SystemCall s = new SystemCall();
@@ -102,8 +108,6 @@ public class SecretsOper extends AppOper {
     }
 
     s.call();
-    pr("system call info:", INDENT, s.toJson());
-
     s.assertSuccess();
     if (!verbose())
       discardSecretsWorkDir();
