@@ -56,6 +56,8 @@ import js.file.Files;
  */
 public abstract class RsyncOper extends AppOper {
 
+  private static final boolean EXPERIMENT = false && alert("performing experiment");
+
   /**
    * The 'pull' operation should override this method to return true
    */
@@ -72,7 +74,7 @@ public abstract class RsyncOper extends AppOper {
     if (args.hasNextArg())
       arg1 = args.nextArg();
 
-    if (alert("using debug args")) {
+    if (EXPERIMENT) {
       arg0 = "jv_exp";
       arg1 = ""; //"rel/target/foo/bar";
     }
@@ -88,8 +90,8 @@ public abstract class RsyncOper extends AppOper {
   public void perform() {
 
     determinePaths();
-
-    halt();
+    if (EXPERIMENT)
+      halt();
 
     SystemCall s = new SystemCall();
     boolean verbosity = verbose();
@@ -175,11 +177,7 @@ public abstract class RsyncOper extends AppOper {
       if (sourceDir.isAbsolute()) {
         mResolvedSource = sourceDir;
       } else {
-        // The source project directory is the root of the git repository containing the source directory
-        //
-        File sourceBaseDir = localProjectDir(sourceDir);
-        //            Files.getFileWithinParents(sourceDir, ".git", "source git repository containing", sourceDir));
-
+        File sourceBaseDir = localProjectDir();
         sourceRelativeToProject = Files.relativeToContainingDirectory(sourceDir, sourceBaseDir);
         mResolvedSource = Files.join(sourceBaseDir, sourceRelativeToProject);
       }
@@ -221,21 +219,21 @@ public abstract class RsyncOper extends AppOper {
       if (Files.empty(targetDir)) {
         if (sourceRelativeToProject == null)
           throw badArg("Absolute source directory given with no target directory");
-        File localBaseDir = localProjectDir(null);
+        File localBaseDir = localProjectDir();
         mResolvedTarget = Files.join(localBaseDir, sourceRelativeToProject);
       } else {
         if (targetDir.isAbsolute())
           mResolvedTarget = targetDir;
         else
-          mResolvedTarget = Files.join(localProjectDir(null), targetDir);
+          mResolvedTarget = Files.join(localProjectDir(), targetDir);
       }
     }
   }
 
   private List<String> excludeExpressionList() {
-    if (mExcludeExpressionsList == null) {
+    if (mCachedExcludeExpressionsList == null) {
       List<String> strings = arrayList();
-      mExcludeExpressionsList = strings;
+      mCachedExcludeExpressionsList = strings;
       String script = Files.readString(getClass(), "rsync_excludes.txt");
       for (String s : split(script, '\n')) {
         s = s.trim();
@@ -244,7 +242,7 @@ public abstract class RsyncOper extends AppOper {
         strings.add(s);
       }
     }
-    return mExcludeExpressionsList;
+    return mCachedExcludeExpressionsList;
   }
 
   /**
@@ -274,25 +272,24 @@ public abstract class RsyncOper extends AppOper {
     return EntityManager.sharedInstance().activeEntity();
   }
 
-  private File localProjectDir(File fileWithinProjectOrNull) {
-    if (Files.empty(fileWithinProjectOrNull))
-      fileWithinProjectOrNull = Files.currentDirectory();
-
-    File arg = fileWithinProjectOrNull;
-    if (Files.empty(arg))
-      arg = Files.currentDirectory();
-
-    return Files
-        .parent(Files.getFileWithinParents(arg, ".git", "git repository containing current directory"));
+  private File localProjectDir() {
+    if (mCachedLocalProjectDir == null)
+      mCachedLocalProjectDir = Files.parent(Files.getFileWithinParents(Files.currentDirectory(), ".git",
+          "git repository containing current directory"));
+    return mCachedLocalProjectDir;
   }
 
   private File remoteProjectDir() {
-    return Files.assertAbsolute(remoteEntity().projectDir());
+    if (mCachedRemoteProjectDir == null)
+      mCachedRemoteProjectDir = Files.assertAbsolute(remoteEntity().projectDir());
+    return mCachedRemoteProjectDir;
   }
 
   protected File mSourceEntityPath = Files.DEFAULT;
   protected File mTargetEntityPath = Files.DEFAULT;
   private File mResolvedSource;
   private File mResolvedTarget;
-  private List<String> mExcludeExpressionsList;
+  private List<String> mCachedExcludeExpressionsList;
+  private File mCachedLocalProjectDir;
+  private File mCachedRemoteProjectDir;
 }
