@@ -9,10 +9,16 @@ export PROJECT_DIR="[!project_dir]"
 
 if [[ $TERMCAP =~ screen ]]
 then
-	# We're in a 'screen' session
-  	export PS1="{SCREEN: [!entity_id]} \W> "
+  # We're in a 'screen' session
+  export PS1="{{{SCREEN: [!entity_id]}}} \W> "
+  echo "================ This is a screen session ================"
+  echo
+  echo "To leave session running and exit:  ^a ^d"
+  echo "To quit session and exit: ^d"
+  echo "To resume screen session: screen -r"
+  echo
 else
-	export PS1="([!entity_id]) \W} "
+  export PS1="([!entity_id]) \W} "
 fi
 
 alias ls="ls -l"
