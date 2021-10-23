@@ -1,4 +1,5 @@
-# Included by .profile
+# Designed to be included (sourced) by the normal shell startup script
+# (e.g., .profile or .bash_profile)
 #
 
 export PROJECT_DIR="[!project_dir]"

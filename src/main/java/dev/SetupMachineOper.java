@@ -75,6 +75,7 @@ public class SetupMachineOper extends AppOper {
     prepareSSH();
     prepareBash();
     prepareVI();
+    prepareScreen();
     prepareGit();
     prepareAWS();
     verifyPython();
@@ -106,6 +107,11 @@ public class SetupMachineOper extends AppOper {
   private void prepareVI() {
     log("...prepareVI");
     writeWithBackup(fileWithinHome(".vimrc"), resourceString("vimrc.txt"));
+  }
+
+  private void prepareScreen() {
+    log("...prepareScreen");
+    writeWithBackup(fileWithinHome(".screenrc"), resourceString("screenrc.txt"));
   }
 
   private void prepareGit() {
