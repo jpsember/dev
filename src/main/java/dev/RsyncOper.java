@@ -249,11 +249,16 @@ public abstract class RsyncOper extends AppOper {
         if (sourceRelativeToProject == null)
           throw badArg("Absolute source directory given with no target directory");
         File localBaseDir = localProjectDir();
-        File truncatedSource = Files.parent(sourceRelativeToProject);
-        mResolvedTarget = Files.join(localBaseDir, truncatedSource);
+        // If pulling an immediate subdirectory of the project dir, it's a special case
+        if (sourceRelativeToProject.getParent() == null) {
+          mResolvedTarget = localBaseDir;
+        } else {
+          File truncatedSource = Files.parent(sourceRelativeToProject);
+          mResolvedTarget = Files.join(localBaseDir, truncatedSource);
+        }
       } else {
         die("haven't yet dealt with the copy directory contents vs copy directory (i.e. by adding '/')");
-         if (targetDir.isAbsolute())
+        if (targetDir.isAbsolute())
           mResolvedTarget = targetDir;
         else
           mResolvedTarget = Files.join(localProjectDir(), targetDir);
