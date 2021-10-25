@@ -60,7 +60,7 @@ alias f='pushd_builtin'
 
 # Include our custom ~/bin directory in the path, as well as .local/bin which tensorflow installation warns about if missing:
 #
-export PATH=.:$HOME/bin:$HOME/.local/bin:$PATH
+export PATH=.:$HOME/bin:$HOME/.local/bin:$PROJECT_DIR/source/scripts:$PATH
 
 # Remove duplicates in PATH
 #
