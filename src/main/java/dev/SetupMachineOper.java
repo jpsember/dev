@@ -138,7 +138,7 @@ public class SetupMachineOper extends AppOper {
       setError("Python 3 verification failed");
     }
     if (!sc.systemOut().contains("Python 3.7"))
-      setError("Unexpected python version:", INDENT, sc.systemOut());
+      pr("*** Unexpected python version:", INDENT, sc.systemOut());
   }
 
   private String assertRelative(String path) {
