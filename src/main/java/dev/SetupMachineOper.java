@@ -79,6 +79,7 @@ public class SetupMachineOper extends AppOper {
     prepareGit();
     prepareAWS();
     verifyPython();
+    verifyJava();
     runSetupScript();
   }
 
@@ -139,6 +140,13 @@ public class SetupMachineOper extends AppOper {
     }
     if (!sc.systemOut().contains("Python 3.7"))
       pr("*** Unexpected python version:", INDENT, sc.systemOut());
+  }
+
+  private void verifyJava() {
+    log("...verifying Java version");
+    String version = System.getProperty("java.version");
+    if (!version.startsWith("1.8."))
+      pr("*** Unexpected Java version:", version);
   }
 
   private String assertRelative(String path) {
