@@ -84,7 +84,6 @@ public class SetupMachineOper extends AppOper {
   }
 
   private void validateOS() {
-    mLocalTest = Utils.ourEntityInfo().id().equals("osx");
   }
 
   private void prepareSSH() {
@@ -94,15 +93,17 @@ public class SetupMachineOper extends AppOper {
     files().mkdirs(sshDir);
     writeWithBackup(new File(sshDir, "authorized_keys"), files().fileWithinSecrets("authorized_keys.txt"));
 
-    // Install public/private key pair for accessing GitHub
+    // Install public/private key pairs for accessing GitHub
     //
-    writeWithBackup(new File(sshDir, "id_rsa.pub"), files().fileWithinSecrets("id_rsa.pub.txt"));
-    File targetFile = new File(sshDir, "id_rsa");
-    writeWithBackup(targetFile, files().fileWithinSecrets("id_rsa.txt"));
-
-    // The permissions for the private key must be restricted or the ssh program complains
-    //
-    files().chmod(targetFile, 600);
+    String[] keyNames = { "id_rsa", "id_ed25519", };
+    for (String keyName : keyNames) {
+      writeWithBackup(new File(sshDir, keyName + ".pub"), files().fileWithinSecrets(keyName + ".pub.txt"));
+      File targetFile = new File(sshDir, keyName);
+      writeWithBackup(targetFile, files().fileWithinSecrets(keyName + ".txt"));
+      // The permissions for the private key must be restricted or the ssh program complains
+      //
+      files().chmod(targetFile, 600);
+    }
   }
 
   private void prepareVI() {
@@ -329,28 +330,8 @@ public class SetupMachineOper extends AppOper {
    * Get a file within the (effective) home directory
    */
   private File fileWithinHome(String relativePath) {
-    return new File(effectiveHomeDir(), assertRelative(relativePath));
+    return new File(Files.homeDirectory(), assertRelative(relativePath));
   }
 
-  /**
-   * Get the 'effective' home directory. This is Files.homeDirectory() unless
-   * we're running in mLocalTest mode
-   */
-  private File effectiveHomeDir() {
-    if (mEffectiveHomeDir == null) {
-      File homeDir = Files.homeDirectory();
-      if (mLocalTest) {
-        homeDir = new File(Files.homeDirectory(), "_temp_home");
-        files().mkdirs(homeDir);
-      }
-      mEffectiveHomeDir = homeDir;
-    }
-    return mEffectiveHomeDir;
-  }
-
-  private File mEffectiveHomeDir;
   private boolean mEclipseMode;
-
-  // Have this start of null, to ensure we initialize it before attempting to use it
-  private Boolean mLocalTest;
 }
