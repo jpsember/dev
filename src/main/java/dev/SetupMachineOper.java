@@ -78,7 +78,8 @@ public class SetupMachineOper extends AppOper {
     prepareScreen();
     prepareGit();
     prepareAWS();
-    verifyPython();
+    if (false)
+      verifyPython();
     verifyJava();
     runSetupScript();
   }

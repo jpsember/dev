@@ -62,6 +62,28 @@ alias f='pushd_builtin'
 #
 export PATH=.:$HOME/bin:$HOME/.local/bin:$PROJECT_DIR/source/scripts:$PATH
 
+
+
+#####
+# 
+# Configure pyenv (not sure this will work consistently across RPi and Intel machines)
+#
+export PYENV_ROOT="$HOME/.pyenv"
+export PATH="$PATH:$PYENV_ROOT/bin"
+
+# Allow pyenv to select specific Python versions
+#
+eval "$(pyenv init --path)"
+#
+#####
+
+
+
+
+
+
+
+
 # Remove duplicates in PATH
 #
 export PATH="$(perl -e 'print join(":", grep { not $seen{$_}++ } split(/:/, $ENV{PATH}))')"
