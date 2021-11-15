@@ -28,8 +28,13 @@ fi
 # Also, using apt generates an error about it not being recommended for scripts; apt-get might work.
 #
 sudo apt-get update
+sudo apt-get -y install awscli screen libffi-dev libssl-dev
 
-sudo apt-get -y install awscli screen
+# The libffi-dev and libssl-dev packages are necessary to make 3.7.3 install correctly.  
+# See https://askubuntu.com/questions/1210822/no-module-name-ctypes-when-trying-to-pip-install
+# and https://github.com/pyenv/pyenv/issues/950#issuecomment-408408898 
+#
+
 
 # Set some defaults
 #
