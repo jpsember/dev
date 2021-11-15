@@ -29,4 +29,8 @@ fi
 #
 sudo apt-get update
 
-sudo apt-get -y install git awscli screen
+sudo apt-get -y install awscli screen
+
+# Set some defaults
+#
+git config pull.rebase false
