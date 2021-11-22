@@ -66,7 +66,7 @@ public class SecretsOper extends AppOper {
 
   @Override
   protected List<Object> getAdditionalArgs() {
-    return arrayList("[encrypt] password <password> [entity <entity_id>]");
+    return arrayList("[encrypt] passphrase <text> [entity <id>]");
   }
 
   @Override
