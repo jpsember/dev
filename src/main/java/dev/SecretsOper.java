@@ -26,11 +26,28 @@ package dev;
 
 import static js.base.Tools.*;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.security.SecureRandom;
+import java.security.spec.KeySpec;
+import java.util.List;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
+import java.util.zip.ZipOutputStream;
 
-import dev.gen.RemoteEntityInfo;
+import javax.crypto.Cipher;
+import javax.crypto.SecretKey;
+import javax.crypto.SecretKeyFactory;
+import javax.crypto.spec.GCMParameterSpec;
+import javax.crypto.spec.PBEKeySpec;
+import javax.crypto.spec.SecretKeySpec;
+
 import js.app.AppOper;
-import js.base.SystemCall;
+import js.app.CmdLineArgs;
+import js.file.DirWalk;
 import js.file.Files;
 
 public class SecretsOper extends AppOper {
@@ -42,82 +59,167 @@ public class SecretsOper extends AppOper {
 
   @Override
   public String getHelpDescription() {
-    return "send secrets directory to remote machine";
+    return "decrypt (or encrypt) secrets";
   }
 
-  private static final String SECRETS_DIR_NAME = "_secrets_temp_";
+  @Override
+  protected List<Object> getAdditionalArgs() {
+    return arrayList("[encrypt] password <password>");
+  }
+
+  @Override
+  protected void processAdditionalArgs() {
+    CmdLineArgs args = app().cmdLineArgs();
+    while (args.hasNextArg()) {
+      String arg = args.nextArg();
+      switch (arg) {
+      case "encrypt":
+        mEncryptMode = true;
+        break;
+      case "passphrase":
+        mPassPhrase = args.nextArg();
+        break;
+      default:
+        throw badArg("extraneous argument:", arg);
+      }
+    }
+    args.assertArgsDone();
+  }
+
+  /**
+   * Encrypt bytes using passphrase and AES encryption
+   */
+  private static byte[] encryptData(String passPhrase, byte[] data) {
+    try {
+      SecureRandom secureRandom = new SecureRandom();
+      byte[] nonce = new byte[12];
+      secureRandom.nextBytes(nonce);
+      SecretKey secretKey = generateSecretKey(passPhrase, nonce);
+      Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
+      GCMParameterSpec parameterSpec = new GCMParameterSpec(128, nonce);
+      cipher.init(Cipher.ENCRYPT_MODE, secretKey, parameterSpec);
+      byte[] encryptedData = cipher.doFinal(data);
+      ByteBuffer byteBuffer = ByteBuffer.allocate(4 + nonce.length + encryptedData.length);
+      byteBuffer.putInt(nonce.length);
+      byteBuffer.put(nonce);
+      byteBuffer.put(encryptedData);
+      return byteBuffer.array();
+    } catch (Throwable t) {
+      throw asRuntimeException(t);
+    }
+  }
+
+  /**
+   * Decrypt bytes that were encrypted via encryptData()
+   */
+  private static byte[] decryptData(String passPhrase, byte[] data) {
+    try {
+      ByteBuffer byteBuffer = ByteBuffer.wrap(data);
+      int nonceSize = byteBuffer.getInt();
+      checkArgument(nonceSize >= 12 && nonceSize < 16, "bad nonce size");
+      byte[] nonce = new byte[nonceSize];
+      byteBuffer.get(nonce);
+      SecretKey secretKey = generateSecretKey(passPhrase, nonce);
+      byte[] cipherBytes = new byte[byteBuffer.remaining()];
+      byteBuffer.get(cipherBytes);
+      Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
+      GCMParameterSpec parameterSpec = new GCMParameterSpec(128, nonce);
+      cipher.init(Cipher.DECRYPT_MODE, secretKey, parameterSpec);
+      return cipher.doFinal(cipherBytes);
+    } catch (Throwable t) {
+      throw asRuntimeException(t);
+    }
+  }
+
+  private static SecretKey generateSecretKey(String passphrase, byte[] nonce) {
+    // Remove whitespace from passphrase, and convert to lower case
+    passphrase = passphrase.replaceAll("\\s", "").toLowerCase();
+    checkArgument(passphrase.length() >= 8, "passphrase is too short");
+    try {
+      KeySpec spec = new PBEKeySpec(passphrase.toCharArray(), nonce, 65536, 128); // AES-128
+      SecretKeyFactory secretKeyFactory = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA1");
+      byte[] key = secretKeyFactory.generateSecret(spec).getEncoded();
+      return new SecretKeySpec(key, "AES");
+    } catch (Throwable t) {
+      throw asRuntimeException(t);
+    }
+  }
+
+  private byte[] zipDirectory(File directory) {
+    try {
+      DirWalk dirWalk = new DirWalk(directory);
+      ByteArrayOutputStream byteArrayStream = new ByteArrayOutputStream();
+      ZipOutputStream zipStream = new ZipOutputStream(byteArrayStream);
+      for (File relFile : dirWalk.filesRelative()) {
+        String relPath = relFile.toString();
+        ZipEntry zipEntry = new ZipEntry(relPath);
+        zipStream.putNextEntry(zipEntry);
+        zipStream.write(Files.toByteArray(new File(dirWalk.directory(), relPath)));
+        zipStream.closeEntry();
+      }
+      zipStream.close();
+      return byteArrayStream.toByteArray();
+    } catch (IOException e) {
+      throw Files.asFileException(e);
+    }
+  }
+
+  private void unzipDirectory(byte[] zippedBytes, File targetDir) {
+    if (targetDir.exists()) {
+      files().backupManager().backupAndDelete(targetDir);
+    }
+    files().mkdirs(targetDir);
+    try {
+      ZipInputStream zipStream = new ZipInputStream(new ByteArrayInputStream(zippedBytes));
+      byte[] buffer = new byte[2048];
+      ZipEntry zipEntry;
+      while ((zipEntry = zipStream.getNextEntry()) != null) {
+        String relativePath = zipEntry.getName();
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        int length;
+        while ((length = zipStream.read(buffer)) > 0) {
+          outputStream.write(buffer, 0, length);
+        }
+        byte[] content = outputStream.toByteArray();
+        File targetFile = new File(targetDir, relativePath);
+        files().mkdirs(Files.parent(targetFile));
+        files().write(content, targetFile);
+      }
+    } catch (IOException e) {
+      throw Files.asFileException(e);
+    }
+  }
+
+  /* private */ void testEncryption() {
+    String passphrase = "abcdefghijklmno Pqrstuvwx    \n\n yz";
+    String message = "hellohellohello";
+    byte[] encrypted = encryptData(passphrase, message.getBytes());
+    byte[] decrypted = decryptData(passphrase, encrypted);
+    String result = new String(decrypted);
+    checkArgument(result.equals(message));
+  }
 
   @Override
   public void perform() {
-
-    RemoteEntityInfo ent = EntityManager.sharedInstance().activeEntity();
-
-    {
-      // Construct a modified version of the secrets directory, one with a customized entity name
-      mSecretsWorkDir = new File(Files.getDesktopDirectory(), SECRETS_DIR_NAME);
-      discardSecretsWorkDir();
-      files().mkdirs(mSecretsWorkDir);
-
-      File sourceDir = files().projectSecretsDirectory();
-
-      files().copyDirectory(sourceDir, mSecretsWorkDir);
-
-      File entityInfoFile = new File(mSecretsWorkDir, Files.SECRETS_FILE_ENTITY_INFO);
-      files().writePretty(entityInfoFile, ent);
-
-      //      if (false) {
-      //        File entityNameFile = new File(mSecretsWorkDir, Files.SECRETS_FILE_ENTITY_NAME);
-      //        checkState(entityNameFile.exists(), "did not find:", entityNameFile);
-      //        files().writeString(entityNameFile, ent.id());
-      //      }
+    checkArgument(!nullOrEmpty(mPassPhrase), "Please provide a passphrase");
+    if (mEncryptMode) {
+      byte[] zipFileBytes = zipDirectory(files().projectSecretsDirectory());
+      byte[] encrypted = encryptData(mPassPhrase, zipFileBytes);
+      File target = files().fileWithinProjectConfigDirectory("encrypted_secrets.bin");
+      files().write(encrypted, target);
+    } else {
+      byte[] encrypted = Files.toByteArray(files().fileWithinProjectConfigDirectory("encrypted_secrets.bin"));
+      byte[] decrypted = decryptData(mPassPhrase, encrypted);
+      File secretsDir = files().projectSecretsDirectory();
+      if (false && alert("using alternative secrets dir"))
+        secretsDir = new File(files().projectDirectory(), "_experiment_secrets_");
+      unzipDirectory(decrypted, secretsDir);
+      todo(
+          "the entity_info.json file has NOT been modified.  It should maybe be moved out of the secrets directory?");
     }
-
-    SystemCall s = new SystemCall();
-    boolean verbosity = verbose();
-    s.withVerbose(verbosity);
-    s.arg("rsync");
-    s.arg("--archive");
-
-    if (verbosity)
-      s.arg("--verbose");
-    if (dryRun())
-      s.arg("--dry-run");
-
-    String sourceDirString = mSecretsWorkDir.toString() + "/"; // Copy the contents of the directory, since target already exists
-    s.arg(sourceDirString);
-    checkArgument(ent.port() > 0, "bad port:", INDENT, ent);
-    s.arg("-e", "ssh -p" + ent.port());
-
-    // Determine the target directory
-
-    String targetDirString;
-    targetDirString = new File(ent.projectDir(), "secrets").toString();
-
-    {
-      StringBuilder sb = new StringBuilder();
-
-      checkArgument(nonEmpty(ent.user()), "no user:", INDENT, ent);
-      checkArgument(nonEmpty(ent.url()), "no url:", INDENT, ent);
-      sb.append(ent.user());
-      sb.append('@');
-      sb.append(ent.url());
-      sb.append(':');
-
-      sb.append(targetDirString);
-      s.arg(sb);
-    }
-
-    s.call();
-    s.assertSuccess();
-    if (!verbose())
-      discardSecretsWorkDir();
   }
 
-  private void discardSecretsWorkDir() {
-    String name = mSecretsWorkDir.getName();
-    checkArgument(name.equals(SECRETS_DIR_NAME));
-    files().deleteDirectory(mSecretsWorkDir);
-  }
+  private boolean mEncryptMode;
+  private String mPassPhrase;
 
-  private File mSecretsWorkDir;
 }

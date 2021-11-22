@@ -291,15 +291,11 @@ public final class ArchiveOper extends AppOper {
   }
 
   private File registerGlobalFile() {
-    return fileWithinConfigDir("archive_registry.json");
+    return files().fileWithinProjectConfigDirectory("archive_registry.json");
   }
 
   private File registerLocalFile() {
-    return fileWithinConfigDir(".archive_registry.json");
-  }
-
-  private File fileWithinConfigDir(String path) {
-    return new File(files().projectConfigDirectory(), Files.assertRelative(path));
+    return files().fileWithinProjectConfigDirectory(".archive_registry.json");
   }
 
   private void readHiddenRegistry() {
