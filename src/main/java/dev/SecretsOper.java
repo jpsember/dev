@@ -225,7 +225,7 @@ public class SecretsOper extends AppOper {
 
       byte[] encrypted = Files.toByteArray(files().fileWithinProjectConfigDirectory("encrypted_secrets.bin"));
       byte[] decrypted = decryptData(mPassPhrase, encrypted);
-      File secretsDir = files().projectSecretsDirectory();
+      File secretsDir = files().optFileWithinProject("secrets");
       unzipDirectory(decrypted, secretsDir);
 
       // Write entity info
