@@ -34,6 +34,7 @@ import java.nio.ByteBuffer;
 import java.security.SecureRandom;
 import java.security.spec.KeySpec;
 import java.util.List;
+import java.util.Set;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 import java.util.zip.ZipOutputStream;
@@ -45,6 +46,7 @@ import javax.crypto.spec.GCMParameterSpec;
 import javax.crypto.spec.PBEKeySpec;
 import javax.crypto.spec.SecretKeySpec;
 
+import dev.gen.RemoteEntityInfo;
 import js.app.AppOper;
 import js.app.CmdLineArgs;
 import js.file.DirWalk;
@@ -64,7 +66,7 @@ public class SecretsOper extends AppOper {
 
   @Override
   protected List<Object> getAdditionalArgs() {
-    return arrayList("[encrypt] password <password>");
+    return arrayList("[encrypt] password <password> [entity <entity_id>]");
   }
 
   @Override
@@ -78,6 +80,9 @@ public class SecretsOper extends AppOper {
         break;
       case "passphrase":
         mPassPhrase = args.nextArg();
+        break;
+      case "entity":
+        mEntityId = args.nextArg();
         break;
       default:
         throw badArg("extraneous argument:", arg);
@@ -145,12 +150,17 @@ public class SecretsOper extends AppOper {
     }
   }
 
-  private byte[] zipDirectory(File directory) {
+  private byte[] zipDirectory(File directory, String... omitFileList) {
+    Set<File> omitSet = hashSet();
+    for (String omitFile : omitFileList)
+      omitSet.add(new File(omitFile));
     try {
       DirWalk dirWalk = new DirWalk(directory);
       ByteArrayOutputStream byteArrayStream = new ByteArrayOutputStream();
       ZipOutputStream zipStream = new ZipOutputStream(byteArrayStream);
       for (File relFile : dirWalk.filesRelative()) {
+        if (omitSet.contains(relFile))
+          continue;
         String relPath = relFile.toString();
         ZipEntry zipEntry = new ZipEntry(relPath);
         zipStream.putNextEntry(zipEntry);
@@ -203,23 +213,28 @@ public class SecretsOper extends AppOper {
   public void perform() {
     checkArgument(!nullOrEmpty(mPassPhrase), "Please provide a passphrase");
     if (mEncryptMode) {
-      byte[] zipFileBytes = zipDirectory(files().projectSecretsDirectory());
+      // Omit this system's entity info file, as it will be replaced for each remote system that installs the secrets
+      byte[] zipFileBytes = zipDirectory(files().projectSecretsDirectory(), Files.SECRETS_FILE_ENTITY_INFO);
       byte[] encrypted = encryptData(mPassPhrase, zipFileBytes);
       File target = files().fileWithinProjectConfigDirectory("encrypted_secrets.bin");
       files().write(encrypted, target);
     } else {
+      checkArgument(!nullOrEmpty(mEntityId), "Please specify the id of this entity");
+      RemoteEntityInfo entityInfo = EntityManager.sharedInstance().optionalEntryFor(mEntityId);
+      checkArgument(entityInfo != null, "no information found for entity id:", mEntityId);
+
       byte[] encrypted = Files.toByteArray(files().fileWithinProjectConfigDirectory("encrypted_secrets.bin"));
       byte[] decrypted = decryptData(mPassPhrase, encrypted);
       File secretsDir = files().projectSecretsDirectory();
-      if (false && alert("using alternative secrets dir"))
-        secretsDir = new File(files().projectDirectory(), "_experiment_secrets_");
       unzipDirectory(decrypted, secretsDir);
-      todo(
-          "the entity_info.json file has NOT been modified.  It should maybe be moved out of the secrets directory?");
+
+      // Write entity info
+      files().writePretty(new File(secretsDir, Files.SECRETS_FILE_ENTITY_INFO), entityInfo);
     }
   }
 
   private boolean mEncryptMode;
   private String mPassPhrase;
+  private String mEntityId;
 
 }
