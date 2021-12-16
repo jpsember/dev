@@ -17,4 +17,18 @@ public final class Utils {
 
   private static RemoteEntityInfo sRemoteEntityInfo;
 
+  /**
+   * <pre>
+   * 
+   * Notes specific to OSX configuration
+   * -----------------------------------
+   * 
+   * + disabling strange messages in Terminal when ending a session:
+   *    Create this file in home directory (https://stackoverflow.com/questions/32418438):
+   *       touch ~/.bash_sessions_disable
+   * 
+   *    Note, this disables more functionality related to bash sessions introduced in El Capitan.
+   * 
+   * 
+   */
 }
