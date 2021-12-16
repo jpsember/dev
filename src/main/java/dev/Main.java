@@ -57,6 +57,7 @@ public class Main extends App {
     registerOper(new SecretsOper());
     registerOper(new ArchiveOper());
     registerOper(new PrettyPrintOper());
+    registerOper(new ExtractUsefulScriptsOper());
   }
 
 }

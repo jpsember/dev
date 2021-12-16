@@ -28,9 +28,9 @@
       <version>2.6</version>
     </dependency>
 
-    <dependency>
+  	<dependency>
       <groupId>com.jsbase</groupId>
-      <artifactId>base</artifactId>
+      <artifactId>graphics</artifactId>
       <version>1.0</version>
     </dependency>
 
@@ -41,14 +41,6 @@
       <scope>test</scope>
     </dependency>
 
-	<!--  I thought I needed this, but for now just calling curl
-    <dependency>
-      <groupId>com.jsbase</groupId>
-      <artifactId>webtools</artifactId>
-      <version>1.0</version>
-    </dependency>
-	-->
-	
     <!--  Custom dependencies end   ~}              -->
 
   </dependencies>

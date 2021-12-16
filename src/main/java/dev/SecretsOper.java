@@ -200,15 +200,6 @@ public class SecretsOper extends AppOper {
     }
   }
 
-  /* private */ void testEncryption() {
-    String passphrase = "abcdefghijklmno Pqrstuvwx    \n\n yz";
-    String message = "hellohellohello";
-    byte[] encrypted = encryptData(passphrase, message.getBytes());
-    byte[] decrypted = decryptData(passphrase, encrypted);
-    String result = new String(decrypted);
-    checkArgument(result.equals(message));
-  }
-
   @Override
   public void perform() {
     checkArgument(!nullOrEmpty(mPassPhrase), "Please provide a passphrase");
