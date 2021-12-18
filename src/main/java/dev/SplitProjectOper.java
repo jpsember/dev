@@ -30,9 +30,9 @@ import java.io.File;
 import java.util.List;
 import js.app.AppOper;
 import js.app.CmdLineArgs;
-import js.base.Pair;
 import js.file.Files;
 import js.graphics.ScriptUtil;
+import js.graphics.gen.ScriptFileEntry;
 import js.json.JSList;
 import js.json.JSMap;
 
@@ -91,7 +91,7 @@ public class SplitProjectOper extends AppOper {
 
     File sourceScriptsDir = ScriptUtil.scriptDirForProject(mSourceDir);
 
-    List<Pair<String, String>> scriptList = ScriptUtil.buildScriptList(mSourceDir);
+    List<ScriptFileEntry> scriptList = ScriptUtil.buildScriptList(mSourceDir);
 
     logMap.put("script_count", scriptList.size());
 
@@ -118,18 +118,14 @@ public class SplitProjectOper extends AppOper {
             Files.infoMap(targetProjectDir));
         File targetScriptsDir = files().mkdirs(ScriptUtil.scriptDirForProject(targetProjectDir));
         for (int j = 0; j < chunkSize; j++) {
-          Pair<String, String> entry = scriptList.get(cursor + j);
-          String imageName = entry.first;
-          String scriptName = entry.second;
-          if (nonEmpty(imageName)) {
-            File imageFile = new File(mSourceDir, imageName);
-            files().copyFile(imageFile, new File(targetProjectDir, imageName));
+          ScriptFileEntry entry = scriptList.get(cursor + j);
+          if (nonEmpty(entry.imageName())) {
+            File imageFile = new File(mSourceDir, entry.imageName());
+            files().copyFile(imageFile, new File(targetProjectDir, entry.imageName()));
           }
-          {
-            File scriptFile = new File(sourceScriptsDir, scriptName);
-            if (scriptFile.exists())
-              files().copyFile(scriptFile, new File(targetScriptsDir, imageName));
-          }
+          File scriptFile = new File(sourceScriptsDir, entry.scriptName());
+          if (scriptFile.exists())
+            files().copyFile(scriptFile, new File(targetScriptsDir, entry.scriptName()));
         }
         chunks.add(map().put("dir", targetProjectDir.toString()).put("count", chunkSize));
       }
