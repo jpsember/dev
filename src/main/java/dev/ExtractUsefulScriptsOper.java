@@ -30,28 +30,26 @@ import java.io.File;
 import java.util.List;
 import js.app.AppOper;
 import js.app.CmdLineArgs;
-import js.file.DirWalk;
 import js.file.Files;
-import js.graphics.ImgUtil;
 import js.graphics.ScriptUtil;
-import js.graphics.gen.Script;
+import js.graphics.gen.ScriptFileEntry;
 import js.json.JSMap;
 
 public class ExtractUsefulScriptsOper extends AppOper {
 
   @Override
   public String userCommand() {
-    return "extractuseful";
+    return "trim-project";
   }
 
   @Override
   public String getHelpDescription() {
-    return "extract useful scripts";
+    return "delete unused images and scripts";
   }
 
   @Override
   protected List<Object> getAdditionalArgs() {
-    return arrayList("[source_dir] [target_dir]");
+    return arrayList("[source_dir]");
   }
 
   @Override
@@ -64,9 +62,7 @@ public class ExtractUsefulScriptsOper extends AppOper {
       case 0:
         mSourceDir = Files.absolute(new File(arg));
         break;
-      case 1:
-        mTargetDir = Files.absolute(new File(arg));
-        break;
+
       default:
         throw badArg("extraneous argument:", arg);
       }
@@ -76,45 +72,29 @@ public class ExtractUsefulScriptsOper extends AppOper {
 
     if (mSourceDir == null)
       mSourceDir = Files.currentDirectory();
-    if (mTargetDir == null) {
-      mTargetDir = Files.getDesktopFile("_useful_" + mSourceDir.getName());
-    }
-    if (mTargetDir.exists())
-      setError("Target directory already exists:", mTargetDir);
   }
-
-  private File mSourceDir;
-  private File mTargetDir;
 
   @Override
   public void perform() {
 
-    JSMap logMap = map();
+    JSMap logMap = map().put("source_dir", mSourceDir.getPath());
 
-    File targetScripts = ScriptUtil.scriptDirForProject(mTargetDir);
-    files().mkdirs(targetScripts);
-    if (verbose()) {
-      logMap.put("target_dir", mTargetDir.getPath());
-      logMap.put("source_dir", mSourceDir.getPath());
-    }
+    List<ScriptFileEntry> scriptEntries = ScriptUtil.buildScriptList(mSourceDir);
+    File scriptDir = ScriptUtil.scriptDirForProject(mSourceDir);
 
-    halt("refactor to use ScriptUtil.scriptEntries");
-    DirWalk w = new DirWalk(mSourceDir).withExtensions(ImgUtil.IMAGE_EXTENSIONS);
-
-    int inputImages = w.files().size();
+    int inputImages = scriptEntries.size();
     int outputCount = 0;
 
-    for (File f : w.files()) {
-      File scriptPath = ScriptUtil.scriptPathForImage(f);
-      if (!scriptPath.exists())
+    for (ScriptFileEntry ent : scriptEntries) {
+      File scriptPath = new File(scriptDir, ent.scriptName());
+      if (scriptPath.exists() && ScriptUtil.isUseful(ScriptUtil.from(scriptPath))) {
+        outputCount++;
         continue;
-      Script script = ScriptUtil.from(scriptPath);
-      if (!ScriptUtil.isUseful(script))
-        continue;
-
-      files().copyFile(f, new File(mTargetDir, f.getName()));
-      files().copyFile(scriptPath, new File(targetScripts, scriptPath.getName()));
-      outputCount++;
+      }
+      if (scriptPath.exists())
+        files().deleteFile(scriptPath);
+      if (nonEmpty(ent.imageName()))
+        files().deleteFile(new File(mSourceDir, ent.imageName()));
     }
 
     if (verbose()) {
@@ -123,5 +103,7 @@ public class ExtractUsefulScriptsOper extends AppOper {
       pr(logMap);
     }
   }
+
+  private File mSourceDir;
 
 }

@@ -117,7 +117,8 @@ public class RemoveExtraneousScriptElementsOper extends AppOper {
 
         if (modScript.equals(script))
           continue;
-        log("Modified:", ent.scriptName(), INDENT, script, CR, "New content:", CR, modScript);
+        if (false)
+          log("Modified:", ent.scriptName(), INDENT, script, CR, "New content:", CR, modScript);
         ScriptUtil.write(files(), modScript, scriptPath);
         scriptsModified++;
       }
