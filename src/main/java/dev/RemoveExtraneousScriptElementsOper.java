@@ -38,11 +38,15 @@ import js.graphics.gen.Script;
 import js.graphics.gen.ScriptFileEntry;
 import js.json.JSMap;
 
+/**
+ * For scripts that have a single polygon element, trims any other elements from
+ * the script
+ */
 public class RemoveExtraneousScriptElementsOper extends AppOper {
 
   @Override
   public String userCommand() {
-    return "trimelements";
+    return "trim-elements";
   }
 
   @Override
