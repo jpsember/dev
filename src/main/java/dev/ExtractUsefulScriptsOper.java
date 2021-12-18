@@ -62,12 +62,11 @@ public class ExtractUsefulScriptsOper extends AppOper {
       String arg = args.nextArg();
       switch (count) {
       case 0:
-        mSourceDir = Files.absolute(new File(args.nextArg()));
+        mSourceDir = Files.absolute(new File(arg));
         break;
       case 1:
-        mTargetDir = Files.absolute(new File(args.nextArg()));
+        mTargetDir = Files.absolute(new File(arg));
         break;
-
       default:
         throw badArg("extraneous argument:", arg);
       }
@@ -95,7 +94,7 @@ public class ExtractUsefulScriptsOper extends AppOper {
     File targetScripts = ScriptUtil.scriptDirForProject(mTargetDir);
     files().mkdirs(targetScripts);
     if (verbose()) {
-      logMap.put("target_dir", targetScripts.getPath());
+      logMap.put("target_dir", mTargetDir.getPath());
       logMap.put("source_dir", mSourceDir.getPath());
     }
 
