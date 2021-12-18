@@ -30,28 +30,29 @@ import java.io.File;
 import java.util.List;
 import js.app.AppOper;
 import js.app.CmdLineArgs;
-import js.file.DirWalk;
 import js.file.Files;
-import js.graphics.ImgUtil;
+import js.graphics.PolygonElement;
+import js.graphics.ScriptElement;
 import js.graphics.ScriptUtil;
 import js.graphics.gen.Script;
+import js.graphics.gen.ScriptFileEntry;
 import js.json.JSMap;
 
-public class ExtractUsefulScriptsOper extends AppOper {
+public class RemoveExtraneousScriptElementsOper extends AppOper {
 
   @Override
   public String userCommand() {
-    return "extractuseful";
+    return "trimelements";
   }
 
   @Override
   public String getHelpDescription() {
-    return "extract useful scripts";
+    return "remove extraneous ScriptElements from project";
   }
 
   @Override
   protected List<Object> getAdditionalArgs() {
-    return arrayList("[source_dir] [target_dir]");
+    return arrayList("[project_dir]");
   }
 
   @Override
@@ -64,9 +65,6 @@ public class ExtractUsefulScriptsOper extends AppOper {
       case 0:
         mSourceDir = Files.absolute(new File(arg));
         break;
-      case 1:
-        mTargetDir = Files.absolute(new File(arg));
-        break;
       default:
         throw badArg("extraneous argument:", arg);
       }
@@ -76,52 +74,58 @@ public class ExtractUsefulScriptsOper extends AppOper {
 
     if (mSourceDir == null)
       mSourceDir = Files.currentDirectory();
-    if (mTargetDir == null) {
-      mTargetDir = Files.getDesktopFile("_useful_" + mSourceDir.getName());
-    }
-    if (mTargetDir.exists())
-      setError("Target directory already exists:", mTargetDir);
   }
-
-  private File mSourceDir;
-  private File mTargetDir;
 
   @Override
   public void perform() {
 
-    JSMap logMap = map();
+    JSMap logMap = map() //
+        .put("source_dir", mSourceDir.getPath());
 
-    File targetScripts = ScriptUtil.scriptDirForProject(mTargetDir);
-    files().mkdirs(targetScripts);
-    if (verbose()) {
-      logMap.put("target_dir", mTargetDir.getPath());
-      logMap.put("source_dir", mSourceDir.getPath());
-    }
+    File scriptsDir = ScriptUtil.scriptDirForProject(mSourceDir);
 
-    halt("refactor to use ScriptUtil.scriptEntries");
-    DirWalk w = new DirWalk(mSourceDir).withExtensions(ImgUtil.IMAGE_EXTENSIONS);
+    int scriptsProcessed = 0;
+    int scriptsModified = 0;
 
-    int inputImages = w.files().size();
-    int outputCount = 0;
+    for (ScriptFileEntry ent : ScriptUtil.buildScriptList(mSourceDir)) {
 
-    for (File f : w.files()) {
-      File scriptPath = ScriptUtil.scriptPathForImage(f);
+      File scriptPath = new File(scriptsDir, ent.scriptName());
       if (!scriptPath.exists())
         continue;
-      Script script = ScriptUtil.from(scriptPath);
-      if (!ScriptUtil.isUseful(script))
-        continue;
 
-      files().copyFile(f, new File(mTargetDir, f.getName()));
-      files().copyFile(scriptPath, new File(targetScripts, scriptPath.getName()));
-      outputCount++;
+      scriptsProcessed++;
+      Script script = ScriptUtil.from(scriptPath);
+      List<PolygonElement> polys = ScriptUtil.polygonElements(script);
+      if (polys.size() > 0) {
+
+        if (polys.size() > 1) {
+          pr("*** Multiple polygons found:", ent.scriptName(), INDENT, script);
+          continue;
+        }
+
+        if (script.items().size() == 1)
+          continue;
+
+        List<ScriptElement> modList = arrayList();
+        modList.addAll(polys);
+
+        Script modScript = script.toBuilder().items(modList).build();
+
+        if (modScript.equals(script))
+          continue;
+        log("Modified:", ent.scriptName(), INDENT, script, CR, "New content:", CR, modScript);
+        ScriptUtil.write(files(), modScript, scriptPath);
+        scriptsModified++;
+      }
     }
 
     if (verbose()) {
-      logMap.put("input_count", inputImages) //
-          .put("output_count", outputCount);
+      logMap.put("input_count", scriptsProcessed) //
+          .put("modified_count", scriptsModified);
       pr(logMap);
     }
   }
+
+  private File mSourceDir;
 
 }
