@@ -136,6 +136,9 @@ public class EntityOper extends AppOper {
   }
 
   private void addEntity(String id) {
+    if (!Files.homeDirectory().toString().equals("/Users/home")) {
+      setError("For simplicity, at present, this command should only be run from Jeff's machine");
+    }
     RemoteEntityInfo foundEnt = manager().optionalEntryFor(id);
     if (foundEnt != null) {
       setError("entity already exists:", INDENT, foundEnt);
@@ -173,7 +176,7 @@ public class EntityOper extends AppOper {
     sb.append('\n');
     File f = new File(Files.homeDirectory(), "bin/sshe");
     files().writeString(f, sb.toString());
-    files().chmod(f,"u+x");
+    files().chmod(f, "u+x");
   }
 
   private EntityManager manager() {
