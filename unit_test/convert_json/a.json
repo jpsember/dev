@@ -1,0 +1,13 @@
+{ "b1" : 0,
+  "b3" : "AQIDBP/+/fx/gA==`b",
+  "d1" : 0.0,
+  "d3" : [ 1.234,12340.0,1.234E8 ],
+  "f1" : 0.0,
+  "f3" : [ 1.234,12340.0,1.234E8 ],
+  "i1" : 0,
+  "i3" : "AQAAAAIAAAADAAAABAAAAA==`i",
+  "l1" : 0,
+  "l3" : "AQAAAAAAAAACAAAAAAAAAAMAAAAAAAAABAAAAAAAAAA=`l",
+  "s1" : 0,
+  "s3" : "AQACAAMABAA=`s"
+}

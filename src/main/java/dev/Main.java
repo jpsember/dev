@@ -60,6 +60,7 @@ public class Main extends App {
     registerOper(new ExtractUsefulScriptsOper());
     registerOper(new SplitProjectOper());
     registerOper(new RemoveExtraneousScriptElementsOper());
+    registerOper(new ConvertJsonOper());
   }
 
 }
