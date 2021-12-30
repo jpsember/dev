@@ -13,3 +13,6 @@ clear
 dev json-convert unit_test/convert_json convert_output -v
 
 cat convert_output/a.json
+cat convert_output/b.json
+echo ""
+

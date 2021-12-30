@@ -51,7 +51,7 @@ public class ConvertJsonOper extends AppOper {
 
   @Override
   protected List<Object> getAdditionalArgs() {
-    return arrayList("[source_dir [target_dir]]");
+    return arrayList("[ compact | pretty ]* [source_dir [target_dir]]");
   }
 
   @Override
@@ -60,17 +60,29 @@ public class ConvertJsonOper extends AppOper {
     CmdLineArgs args = app().cmdLineArgs();
     while (args.hasNextArg()) {
       String arg = args.nextArg();
-      switch (count) {
-      case 0:
-        mSourceDir = Files.absolute(new File(arg));
+
+      switch (arg) {
+      case "compact":
+        mMode = MODE_COMPACT;
         break;
-      case 1:
-        mTargetDir = Files.absolute(new File(arg));
+      case "pretty":
+        mMode = MODE_PRETTY;
         break;
-      default:
-        throw badArg("extraneous argument:", arg);
+      default: {
+        switch (count) {
+        case 0:
+          mSourceDir = Files.absolute(new File(arg));
+          break;
+        case 1:
+          mTargetDir = Files.absolute(new File(arg));
+          break;
+        default:
+          throw badArg("extraneous argument:", arg);
+        }
+        count++;
       }
-      count++;
+        break;
+      }
     }
     args.assertArgsDone();
 
@@ -94,10 +106,12 @@ public class ConvertJsonOper extends AppOper {
 
     for (File absFile : w.files()) {
       String sourceText = Files.readString(absFile);
-      boolean wasPretty = sourceText.trim().contains("\n");
+      int targetMode = mMode;
+      if (targetMode == MODE_ADAPTIVE)
+        targetMode = sourceText.trim().contains("\n") ? MODE_PRETTY : MODE_COMPACT;
       JSMap sourceMap = new JSMap(sourceText);
       JSMap targetMap = (JSMap) mRewriter.rewrite(sourceMap);
-      String targetText = wasPretty ? targetMap.prettyPrint() : targetMap.toString();
+      String targetText = (targetMode == MODE_PRETTY) ? targetMap.prettyPrint() : targetMap.toString();
       files().writeString(Files.join(mTargetDir, w.rel(absFile)), targetText);
     }
 
@@ -136,7 +150,12 @@ public class ConvertJsonOper extends AppOper {
 
   };
 
+  private static final int MODE_ADAPTIVE = 0;
+  private static final int MODE_PRETTY = 1;
+  private static final int MODE_COMPACT = 2;
+
   private File mSourceDir;
   private File mTargetDir;
+  private int mMode = MODE_ADAPTIVE;
 
 }
