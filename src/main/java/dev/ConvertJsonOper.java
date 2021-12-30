@@ -30,9 +30,12 @@ import java.io.File;
 import java.util.List;
 import js.app.AppOper;
 import js.app.CmdLineArgs;
+import js.data.DataUtil;
 import js.file.DirWalk;
 import js.file.Files;
+import js.json.JSList;
 import js.json.JSMap;
+import js.json.JSRewrite;
 
 public class ConvertJsonOper extends AppOper {
 
@@ -93,9 +96,7 @@ public class ConvertJsonOper extends AppOper {
       String sourceText = Files.readString(absFile);
       boolean wasPretty = sourceText.trim().contains("\n");
       JSMap sourceMap = new JSMap(sourceText);
-
-      todo("...perform conversion");
-      JSMap targetMap = sourceMap;
+      JSMap targetMap = (JSMap) mRewriter.rewrite(sourceMap);
       String targetText = wasPretty ? targetMap.prettyPrint() : targetMap.toString();
       files().writeString(Files.join(mTargetDir, w.rel(absFile)), targetText);
     }
@@ -106,6 +107,34 @@ public class ConvertJsonOper extends AppOper {
       pr(logMap);
     }
   }
+
+  private JSRewrite mRewriter = new JSRewrite() {
+    private final char DELIM = DataUtil.DATA_TYPE_DELIMITER.charAt(0);
+
+    @Override
+    public Object rewrite(String string) {
+      Object output = string;
+      if (string.length() >= 2 && string.charAt(string.length() - 2) == DELIM) {
+        String suffix = string.substring(string.length() - 2);
+        switch (suffix) {
+        case DataUtil.DATA_TYPE_SUFFIX_BYTE:
+          output = JSList.with(DataUtil.parseBase64(string));
+          break;
+        case DataUtil.DATA_TYPE_SUFFIX_SHORT:
+          output = JSList.with(DataUtil.parseBase64Shorts(string));
+          break;
+        case DataUtil.DATA_TYPE_SUFFIX_INT:
+          output = JSList.with(DataUtil.parseBase64Ints(string));
+          break;
+        case DataUtil.DATA_TYPE_SUFFIX_LONG:
+          output = JSList.with(DataUtil.parseBase64Longs(string));
+          break;
+        }
+      }
+      return output;
+    }
+
+  };
 
   private File mSourceDir;
   private File mTargetDir;
