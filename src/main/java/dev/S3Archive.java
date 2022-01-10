@@ -40,7 +40,7 @@ import js.parsing.RegExp;
 
 public class S3Archive extends BaseObject implements ArchiveDevice {
 
-  public S3Archive(String profileName, String bucketName, String subfolderPath, File projectDirectory) {
+  public S3Archive(String profileName, String bucketName, String subfolderPath, File projectDirectoryOrNull) {
     checkArgument(RegExp.patternMatchesString("^\\w+(?:\\.\\w+)*(?:\\/\\w+(?:\\.\\w+)*)*$", bucketName),
         "bucket name should be of form xxx.yyy/aaa/bbb.ccc");
     mProfileName = profileName;
@@ -51,7 +51,10 @@ public class S3Archive extends BaseObject implements ArchiveDevice {
       mSubfolderPrefix = subfolderPath + "/";
     } else
       mSubfolderPrefix = "";
-    mRootDirectory = Files.assertDirectoryExists(projectDirectory, "root directory");
+    if (Files.nonEmpty(projectDirectoryOrNull))
+      mRootDirectory = Files.assertDirectoryExists(projectDirectoryOrNull, "root directory");
+    else
+      mRootDirectory = null;
   }
 
   @Override
@@ -119,7 +122,8 @@ public class S3Archive extends BaseObject implements ArchiveDevice {
     SystemCall sc = s3APICall();
     sc.arg("list-objects-v2");
     sc.arg("--bucket", mBareBucket);
-    sc.arg("--prefix", prefix);
+    if (!nullOrEmpty(prefix))
+      sc.arg("--prefix", prefix);
     checkSuccess(sc, null);
 
     JSMap result = new JSMap(sc.systemOut());
@@ -145,7 +149,8 @@ public class S3Archive extends BaseObject implements ArchiveDevice {
   private SystemCall s3APICall() {
     SystemCall sc = new SystemCall();
     sc.setVerbose(verbose());
-    sc.directory(mRootDirectory);
+    if (mRootDirectory != null)
+      sc.directory(mRootDirectory);
     sc.arg("aws", "s3api", "--profile", mProfileName);
     return sc;
   }

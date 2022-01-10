@@ -30,71 +30,54 @@ import java.io.File;
 import java.util.List;
 
 import dev.gen.CloudFileEntry;
-import dev.gen.ExperimentConfig;
+import dev.gen.FetchCloudConfig;
 import js.app.AppOper;
-import js.file.Files;
 import js.json.JSMap;
 
-public class ExperimentOper extends AppOper {
+public class FetchCloudFilesOper extends AppOper {
 
   @Override
   public String userCommand() {
-    loadTools();
-    return "exp";
+    return "fetchcloud";
   }
 
   @Override
   public String getHelpDescription() {
-    return "quick experiment";
+    return "read files from S3";
   }
 
   @Override
   public void perform() {
+    FetchCloudConfig config = config();
+    checkArgument(!config.subfolderPath().isEmpty(), "subfolder_path must not be empty");
+    
     File authFile = files().fileWithinSecrets("s3_auth.json");
     JSMap m = JSMap.from(authFile);
-
     String profile = m.get("profile");
-    if (false && alert("using bogus profile"))
-      profile = "android_app";
-    S3Archive archive = new S3Archive(profile, m.get("account_name"), "cloud_writer", null);
+    S3Archive archive = new S3Archive(profile, m.get("account_name"), config.subfolderPath(), null);
     archive.setVerbose(verbose());
     ArchiveDevice device = archive;
 
-    if (true) {
-      List<CloudFileEntry> entries = device.listFiles(null);
-      pr(entries);
-      return;
-    }
-
-    if (true) {
-      boolean exists = device.fileExists("experiment_NONE.txt");
-      pr("exists:", exists);
-      return;
-    }
-
-    if (true) {
-      File sample = Files.getDesktopFile("experiment_read.txt");
-      pr("attempting to pull:", sample);
-      device.pull("experiment.txt", sample);
-      pr("read:", Files.infoMap(sample));
-      return;
-    }
-
-    if (true) {
-      File sample = Files.getDesktopFile("experiment.txt");
-      files().writeString(sample, "hello");
-      pr("attempting to push:", sample);
-      device.push(sample, "experiment.txt");
-      return;
-    }
-
     List<CloudFileEntry> entries = device.listFiles(null);
-    pr(entries);
+    log("found", entries.size(), "files");
+
+    int fetched = 0;
+    for (CloudFileEntry ent : entries) {
+      if (fetched >= config.maxFetchCount())
+        break;
+      File dest = new File(ent.name());
+      if (dest.exists())
+        continue;
+      todo("have a stats file that keeps track of most recent file fetched to skip it and any earlier ones");
+      fetched++;
+      log("fetching #", fetched, INDENT, ent);
+      device.pull(ent.name(), dest);
+    }
   }
 
   @Override
-  public ExperimentConfig defaultArgs() {
-    return ExperimentConfig.DEFAULT_INSTANCE;
+  public FetchCloudConfig defaultArgs() {
+    return FetchCloudConfig.DEFAULT_INSTANCE;
   }
 
 }

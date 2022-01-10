@@ -903,8 +903,7 @@ public final class ArchiveOper extends AppOper {
       else {
         File authFile = files().fileWithinSecrets("s3_auth.json");
         JSMap m = JSMap.from(authFile);
-        mDevice = new S3Archive(m.get("profile"), m.get("account_name"),
-            "archive", mProjectDirectory);
+        mDevice = new S3Archive(m.get("profile"), m.get("account_name"), "archive", mProjectDirectory);
       }
       mDevice.setDryRun(dryRun());
     }
