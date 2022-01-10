@@ -50,13 +50,16 @@ public class FetchCloudFilesOper extends AppOper {
   public void perform() {
     FetchCloudConfig config = config();
     checkArgument(!config.subfolderPath().isEmpty(), "subfolder_path must not be empty");
-    
+
     File authFile = files().fileWithinSecrets("s3_auth.json");
     JSMap m = JSMap.from(authFile);
     String profile = m.get("profile");
     S3Archive archive = new S3Archive(profile, m.get("account_name"), config.subfolderPath(), null);
-    archive.setVerbose(verbose());
+    archive.setDryRun(dryRun());
     ArchiveDevice device = archive;
+
+    JSMap stats = stats();
+    String mostRecentPath = stats.opt("recent", "");
 
     List<CloudFileEntry> entries = device.listFiles(null);
     log("found", entries.size(), "files");
@@ -65,19 +68,38 @@ public class FetchCloudFilesOper extends AppOper {
     for (CloudFileEntry ent : entries) {
       if (fetched >= config.maxFetchCount())
         break;
-      File dest = new File(ent.name());
-      if (dest.exists())
+      log("...name:", ent.name());
+      if (ent.name().compareTo(mostRecentPath) <= 0) {
+        log("...name <= most recent", mostRecentPath);
         continue;
-      todo("have a stats file that keeps track of most recent file fetched to skip it and any earlier ones");
+      }
+
+      File dest = new File(ent.name());
+      if (dest.exists()) {
+        log("...already exists");
+        continue;
+      }
       fetched++;
       log("fetching #", fetched, INDENT, ent);
       device.pull(ent.name(), dest);
+
+      mostRecentPath = ent.name();
+      stats.put("recent", mostRecentPath);
+      files().writePretty(statsFile(), stats);
     }
   }
 
   @Override
   public FetchCloudConfig defaultArgs() {
     return FetchCloudConfig.DEFAULT_INSTANCE;
+  }
+
+  private JSMap stats() {
+    return JSMap.fromFileIfExists(statsFile());
+  }
+
+  private File statsFile() {
+    return new File("fetch_cloud_stats.json");
   }
 
 }

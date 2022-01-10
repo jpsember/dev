@@ -31,5 +31,5 @@ public interface ArchiveDevice {
   /**
    * Get a list of items within the archive
    */
-  List<CloudFileEntry> listFiles(String prefix);
+  List<CloudFileEntry> listFiles(String prefixOrNull);
 }

@@ -1,4 +1,4 @@
 fields {
   int max_fetch_count = 5;
-  string subfolder_path = "";
+  string subfolder_path = "cloud_writer";
 }
