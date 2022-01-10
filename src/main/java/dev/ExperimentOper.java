@@ -31,6 +31,8 @@ import java.io.File;
 import dev.gen.ExperimentConfig;
 import js.app.AppOper;
 import js.file.Files;
+import js.json.JSList;
+import js.json.JSMap;
 
 public class ExperimentOper extends AppOper {
 
@@ -47,9 +49,15 @@ public class ExperimentOper extends AppOper {
 
   @Override
   public void perform() {
-    Ngrok ng = Ngrok.sharedInstance();
-    pr("ngrok:", INDENT, ng.toJson());
-    pr("find:", Files.getFileWithinParents(new File("src"), ".git"));
+
+    File mProjectDirectory = Files.getCanonicalFile(Files.parent(files().projectConfigDirectory()));
+
+    File authFile = files().fileWithinSecrets("s3_auth.json");
+    JSMap m = JSMap.from(authFile);
+
+    ArchiveDevice device = new S3Archive(m.get("profile"), m.get("account_name"), "damir", mProjectDirectory);
+    JSList result = device.listFiles();
+    pr(result);
   }
 
   @Override

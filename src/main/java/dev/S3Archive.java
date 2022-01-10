@@ -40,8 +40,8 @@ public class S3Archive implements ArchiveDevice {
         "bucket name should be of form xxx.yyy/aaa/bbb.ccc");
     mProfileName = profileName;
     mBucketName = "s3://" + bucketName + "/";
-    mSubfolderPath = subfolderPath + "/";
-    mBucketPath = mBucketName + mSubfolderPath;
+    mSubfolderPath = subfolderPath;
+    mBucketPath = mBucketName + mSubfolderPath + "/";
     mRootDirectory = Files.assertDirectoryExists(projectDirectory, "root directory");
   }
 
@@ -85,7 +85,22 @@ public class S3Archive implements ArchiveDevice {
 
   @Override
   public JSList listFiles() {
-    throw notFinished();
+    if (isDryRun())
+      throw notSupported("not supported in dryrun");
+    SystemCall sc = s3Call();
+    sc.withVerbose(true);
+    sc.arg("ls", mBucketPath);
+
+    if (sc.exitCode() != 0) {
+      if (sc.systemErr().contains("Forbidden")) {
+        pr("***");
+        pr("*** Do you not have access to the S3 account?");
+        pr("***");
+      }
+    }
+    sc.assertSuccess();
+    JSList result = new JSList(sc.systemOut());
+    return result;
   }
 
   private SystemCall s3Call() {
