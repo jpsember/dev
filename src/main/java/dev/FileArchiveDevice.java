@@ -29,6 +29,7 @@ import static js.base.Tools.*;
 import java.io.File;
 
 import js.file.Files;
+import js.json.JSList;
 
 public class FileArchiveDevice implements ArchiveDevice {
 
@@ -63,6 +64,11 @@ public class FileArchiveDevice implements ArchiveDevice {
   public void pull(String name, File destination) {
     File source = fileWithinArchive(name);
     files().copyFile(source, destination);
+  }
+
+  @Override
+  public JSList listFiles() {
+    throw notFinished();
   }
 
   private Files files() {

@@ -30,15 +30,18 @@ import java.io.File;
 
 import js.base.SystemCall;
 import js.file.Files;
+import js.json.JSList;
 import js.parsing.RegExp;
 
 public class S3Archive implements ArchiveDevice {
 
-  public S3Archive(String profileName, String bucketName, File projectDirectory) {
+  public S3Archive(String profileName, String bucketName, String subfolderPath, File projectDirectory) {
     checkArgument(RegExp.patternMatchesString("^\\w+(?:\\.\\w+)*(?:\\/\\w+(?:\\.\\w+)*)*$", bucketName),
         "bucket name should be of form xxx.yyy/aaa/bbb.ccc");
     mProfileName = profileName;
-    mBucketPath = "s3://" + bucketName + "/";
+    mBucketName = "s3://" + bucketName + "/";
+    mSubfolderPath = subfolderPath + "/";
+    mBucketPath = mBucketName + mSubfolderPath;
     mRootDirectory = Files.assertDirectoryExists(projectDirectory, "root directory");
   }
 
@@ -80,6 +83,11 @@ public class S3Archive implements ArchiveDevice {
     sc.assertSuccess();
   }
 
+  @Override
+  public JSList listFiles() {
+    throw notFinished();
+  }
+
   private SystemCall s3Call() {
     SystemCall sc = new SystemCall();
     sc.directory(mRootDirectory);
@@ -94,7 +102,9 @@ public class S3Archive implements ArchiveDevice {
   }
 
   private final String mProfileName;
+  private final String mBucketName;
   private final String mBucketPath;
   private final File mRootDirectory;
+  private final String mSubfolderPath;
   private Boolean mDryRun;
 }
