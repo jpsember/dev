@@ -64,7 +64,7 @@ public class ExperimentOper extends AppOper {
     ArchiveDevice device = archive;
 
     if (true) {
-      List<CloudFileEntry> entries = device.listFiles();
+      List<CloudFileEntry> entries = device.listFiles(null);
       pr(entries);
       return;
     }
@@ -91,7 +91,7 @@ public class ExperimentOper extends AppOper {
       return;
     }
 
-    List<CloudFileEntry> entries = device.listFiles();
+    List<CloudFileEntry> entries = device.listFiles(null);
     pr(entries);
   }
 

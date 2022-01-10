@@ -68,7 +68,7 @@ public class FileArchiveDevice implements ArchiveDevice {
   }
 
   @Override
-  public List<CloudFileEntry> listFiles() {
+  public List<CloudFileEntry> listFiles(String prefix) {
     throw notFinished();
   }
 

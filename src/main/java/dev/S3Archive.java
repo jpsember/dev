@@ -45,7 +45,12 @@ public class S3Archive extends BaseObject implements ArchiveDevice {
         "bucket name should be of form xxx.yyy/aaa/bbb.ccc");
     mProfileName = profileName;
     mBareBucket = bucketName;
-    mSubfolderPath = subfolderPath;
+
+    if (!nullOrEmpty(subfolderPath)) {
+      checkArgument(!subfolderPath.endsWith("/"), "unexpected trailing / in subfolderPath");
+      mSubfolderPrefix = subfolderPath + "/";
+    } else
+      mSubfolderPrefix = "";
     mRootDirectory = Files.assertDirectoryExists(projectDirectory, "root directory");
   }
 
@@ -60,7 +65,7 @@ public class S3Archive extends BaseObject implements ArchiveDevice {
     SystemCall sc = s3APICall();
     sc.arg("get-object-acl");
     sc.arg("--bucket", mBareBucket);
-    sc.arg("--key", mSubfolderPath + "/" + name);
+    sc.arg("--key", mSubfolderPrefix + name);
     return checkSuccess(sc, "(NoSuchKey)");
   }
 
@@ -86,9 +91,9 @@ public class S3Archive extends BaseObject implements ArchiveDevice {
     SystemCall sc = s3APICall();
     sc.arg("put-object");
     sc.arg("--bucket", mBareBucket);
-    sc.arg("--key", mSubfolderPath + "/" + name);
+    sc.arg("--key", mSubfolderPrefix + name);
     sc.arg("--body", source.toString());
-    checkSuccess(sc,null);
+    checkSuccess(sc, null);
   }
 
   @Override
@@ -99,43 +104,39 @@ public class S3Archive extends BaseObject implements ArchiveDevice {
     SystemCall sc = s3APICall();
     sc.arg("get-object");
     sc.arg("--bucket", mBareBucket);
-    sc.arg("--key", mSubfolderPath + "/" + name);
+    sc.arg("--key", mSubfolderPrefix + name);
     sc.arg(destination);
 
-    checkSuccess(sc,null);
+    checkSuccess(sc, null);
   }
 
   @Override
-  public List<CloudFileEntry> listFiles() {
+  public List<CloudFileEntry> listFiles(String prefix) {
     if (isDryRun())
       throw notSupported("not supported in dryrun");
 
+    prefix = mSubfolderPrefix + nullToEmpty(prefix);
     SystemCall sc = s3APICall();
-
-    String prefix = mSubfolderPath + "/";
-
     sc.arg("list-objects-v2");
     sc.arg("--bucket", mBareBucket);
     sc.arg("--prefix", prefix);
-    checkSuccess(sc,null);
+    checkSuccess(sc, null);
 
     JSMap result = new JSMap(sc.systemOut());
 
     List<CloudFileEntry> fileEntryList = arrayList();
     JSList items = result.getList("Contents");
-    for (JSMap m2 : items.asMaps()) {
 
-      String key = m2.get("Key");
-      if (!alert("do we want to chomp the folder, etc?"))
-        key = chompPrefix(key, prefix);
+    for (JSMap m : items.asMaps()) {
+      String key = m.get("Key");
+      key = chompPrefix(key, mSubfolderPrefix);
 
-      todo("omit entries that end with '/' (that represent folders)");
-      if (key.isEmpty())
+      if (key.isEmpty() || key.endsWith("/"))
         continue;
 
       fileEntryList.add(CloudFileEntry.newBuilder() //
           .name(key) //
-          .size(m2.getLong("Size"))//
+          .size(m.getLong("Size"))//
           .build());
     }
     return fileEntryList;
@@ -157,7 +158,7 @@ public class S3Archive extends BaseObject implements ArchiveDevice {
 
   private final String mProfileName;
   private final File mRootDirectory;
-  private final String mSubfolderPath;
+  private final String mSubfolderPrefix;
   private final String mBareBucket;
   private Boolean mDryRun;
 }
