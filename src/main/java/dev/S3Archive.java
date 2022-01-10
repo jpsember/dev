@@ -27,10 +27,13 @@ package dev;
 import static js.base.Tools.*;
 
 import java.io.File;
+import java.util.List;
 
+import dev.gen.CloudFileEntry;
 import js.base.SystemCall;
 import js.file.Files;
 import js.json.JSList;
+import js.json.JSMap;
 import js.parsing.RegExp;
 
 public class S3Archive implements ArchiveDevice {
@@ -39,6 +42,7 @@ public class S3Archive implements ArchiveDevice {
     checkArgument(RegExp.patternMatchesString("^\\w+(?:\\.\\w+)*(?:\\/\\w+(?:\\.\\w+)*)*$", bucketName),
         "bucket name should be of form xxx.yyy/aaa/bbb.ccc");
     mProfileName = profileName;
+    mBareBucket = bucketName;
     mBucketName = "s3://" + bucketName + "/";
     mSubfolderPath = subfolderPath;
     mBucketPath = mBucketName + mSubfolderPath + "/";
@@ -84,12 +88,20 @@ public class S3Archive implements ArchiveDevice {
   }
 
   @Override
-  public JSList listFiles() {
+  public List<CloudFileEntry> listFiles() {
     if (isDryRun())
       throw notSupported("not supported in dryrun");
-    SystemCall sc = s3Call();
+
+    String prefix = mSubfolderPath + "/";
+    SystemCall sc = new SystemCall();
+    sc.directory(mRootDirectory);
+    sc.arg("aws", "--profile", mProfileName);
+    sc.arg("s3api");
+    sc.arg("list-objects-v2");
+    sc.arg("--bucket", mBareBucket);
+    sc.arg("--prefix", prefix);
+
     sc.withVerbose(true);
-    sc.arg("ls", mBucketPath);
 
     if (sc.exitCode() != 0) {
       if (sc.systemErr().contains("Forbidden")) {
@@ -99,8 +111,22 @@ public class S3Archive implements ArchiveDevice {
       }
     }
     sc.assertSuccess();
-    JSList result = new JSList(sc.systemOut());
-    return result;
+    JSMap result = new JSMap(sc.systemOut());
+
+    List<CloudFileEntry> fileEntryList = arrayList();
+    JSList items = result.getList("Contents");
+    for (JSMap m2 : items.asMaps()) {
+
+      String key = chompPrefix(m2.get("Key"), prefix);
+      if (key.isEmpty())
+        continue;
+
+      fileEntryList.add(CloudFileEntry.newBuilder() //
+          .name(key) //
+          .size(m2.getLong("Size"))//
+          .build());
+    }
+    return fileEntryList;
   }
 
   private SystemCall s3Call() {
@@ -121,5 +147,6 @@ public class S3Archive implements ArchiveDevice {
   private final String mBucketPath;
   private final File mRootDirectory;
   private final String mSubfolderPath;
+  private final String mBareBucket;
   private Boolean mDryRun;
 }

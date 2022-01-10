@@ -1,0 +1,4 @@
+fields {
+  string name;
+  long size;
+}

@@ -1,8 +1,9 @@
 package dev;
 
 import java.io.File;
+import java.util.List;
 
-import js.json.JSList;
+import dev.gen.CloudFileEntry;
 
 /**
  * Interface to a filesystem that acts as an external storage device, e.g. AWS
@@ -30,5 +31,5 @@ public interface ArchiveDevice {
   /**
    * Get a list of items within the archive
    */
-  JSList listFiles();
+  List<CloudFileEntry> listFiles();
 }

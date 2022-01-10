@@ -27,11 +27,12 @@ package dev;
 import static js.base.Tools.*;
 
 import java.io.File;
+import java.util.List;
 
+import dev.gen.CloudFileEntry;
 import dev.gen.ExperimentConfig;
 import js.app.AppOper;
 import js.file.Files;
-import js.json.JSList;
 import js.json.JSMap;
 
 public class ExperimentOper extends AppOper {
@@ -50,14 +51,16 @@ public class ExperimentOper extends AppOper {
   @Override
   public void perform() {
 
-    File mProjectDirectory = Files.getCanonicalFile(Files.parent(files().projectConfigDirectory()));
+    File projectDirectory = Files.getCanonicalFile(Files.parent(files().projectConfigDirectory()));
 
     File authFile = files().fileWithinSecrets("s3_auth.json");
     JSMap m = JSMap.from(authFile);
 
-    ArchiveDevice device = new S3Archive(m.get("profile"), m.get("account_name"), "damir", mProjectDirectory);
-    JSList result = device.listFiles();
-    pr(result);
+    ArchiveDevice device = new S3Archive(m.get("profile"), m.get("account_name"), "cloud_writer",
+        projectDirectory);
+
+    List<CloudFileEntry> entries = device.listFiles();
+    pr(entries);
   }
 
   @Override

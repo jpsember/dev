@@ -27,9 +27,10 @@ package dev;
 import static js.base.Tools.*;
 
 import java.io.File;
+import java.util.List;
 
+import dev.gen.CloudFileEntry;
 import js.file.Files;
-import js.json.JSList;
 
 public class FileArchiveDevice implements ArchiveDevice {
 
@@ -67,7 +68,7 @@ public class FileArchiveDevice implements ArchiveDevice {
   }
 
   @Override
-  public JSList listFiles() {
+  public List<CloudFileEntry> listFiles() {
     throw notFinished();
   }
 
