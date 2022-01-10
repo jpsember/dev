@@ -30,22 +30,22 @@ import java.io.File;
 import java.util.List;
 
 import dev.gen.CloudFileEntry;
+import js.base.BaseObject;
 import js.base.SystemCall;
+import js.file.FileException;
 import js.file.Files;
 import js.json.JSList;
 import js.json.JSMap;
 import js.parsing.RegExp;
 
-public class S3Archive implements ArchiveDevice {
+public class S3Archive extends BaseObject implements ArchiveDevice {
 
   public S3Archive(String profileName, String bucketName, String subfolderPath, File projectDirectory) {
     checkArgument(RegExp.patternMatchesString("^\\w+(?:\\.\\w+)*(?:\\/\\w+(?:\\.\\w+)*)*$", bucketName),
         "bucket name should be of form xxx.yyy/aaa/bbb.ccc");
     mProfileName = profileName;
     mBareBucket = bucketName;
-    mBucketName = "s3://" + bucketName + "/";
     mSubfolderPath = subfolderPath;
-    mBucketPath = mBucketName + mSubfolderPath + "/";
     mRootDirectory = Files.assertDirectoryExists(projectDirectory, "root directory");
   }
 
@@ -57,34 +57,52 @@ public class S3Archive implements ArchiveDevice {
 
   @Override
   public boolean fileExists(String name) {
-    SystemCall sc = s3Call();
-    sc.arg("ls", mBucketPath + name);
-    return sc.systemOut().contains(name);
+    SystemCall sc = s3APICall();
+    sc.arg("get-object-acl");
+    sc.arg("--bucket", mBareBucket);
+    sc.arg("--key", mSubfolderPath + "/" + name);
+    return checkSuccess(sc, "(NoSuchKey)");
+  }
+
+  private boolean checkSuccess(SystemCall sc, String optionalErrorSubstring) {
+    if (sc.exitCode() == 0)
+      return true;
+    if (!nullOrEmpty(optionalErrorSubstring)) {
+      String sysErr = sc.systemErr();
+      if (sysErr.contains(optionalErrorSubstring))
+        return false;
+    }
+    pr("*** Error:", sc.systemErr());
+    pr("***");
+    pr("*** Do you not have access to the S3 account?");
+    pr("***");
+    throw FileException.withMessage(sc.systemErr());
   }
 
   @Override
   public void push(File source, String name) {
     if (isDryRun())
       return;
-    SystemCall sc = s3Call();
-    sc.arg("cp", source.toString(), mBucketPath + name);
-    sc.assertSuccess();
+    SystemCall sc = s3APICall();
+    sc.arg("put-object");
+    sc.arg("--bucket", mBareBucket);
+    sc.arg("--key", mSubfolderPath + "/" + name);
+    sc.arg("--body", source.toString());
+    checkSuccess(sc,null);
   }
 
   @Override
   public void pull(String name, File destination) {
     if (isDryRun())
       return;
-    SystemCall sc = s3Call();
-    sc.arg("cp", mBucketPath + name, destination);
-    if (sc.exitCode() != 0) {
-      if (sc.systemErr().contains("Forbidden")) {
-        pr("***");
-        pr("*** Do you not have access to the S3 account?");
-        pr("***");
-      }
-    }
-    sc.assertSuccess();
+
+    SystemCall sc = s3APICall();
+    sc.arg("get-object");
+    sc.arg("--bucket", mBareBucket);
+    sc.arg("--key", mSubfolderPath + "/" + name);
+    sc.arg(destination);
+
+    checkSuccess(sc,null);
   }
 
   @Override
@@ -92,32 +110,26 @@ public class S3Archive implements ArchiveDevice {
     if (isDryRun())
       throw notSupported("not supported in dryrun");
 
+    SystemCall sc = s3APICall();
+
     String prefix = mSubfolderPath + "/";
-    SystemCall sc = new SystemCall();
-    sc.directory(mRootDirectory);
-    sc.arg("aws", "--profile", mProfileName);
-    sc.arg("s3api");
+
     sc.arg("list-objects-v2");
     sc.arg("--bucket", mBareBucket);
     sc.arg("--prefix", prefix);
+    checkSuccess(sc,null);
 
-    sc.withVerbose(true);
-
-    if (sc.exitCode() != 0) {
-      if (sc.systemErr().contains("Forbidden")) {
-        pr("***");
-        pr("*** Do you not have access to the S3 account?");
-        pr("***");
-      }
-    }
-    sc.assertSuccess();
     JSMap result = new JSMap(sc.systemOut());
 
     List<CloudFileEntry> fileEntryList = arrayList();
     JSList items = result.getList("Contents");
     for (JSMap m2 : items.asMaps()) {
 
-      String key = chompPrefix(m2.get("Key"), prefix);
+      String key = m2.get("Key");
+      if (!alert("do we want to chomp the folder, etc?"))
+        key = chompPrefix(key, prefix);
+
+      todo("omit entries that end with '/' (that represent folders)");
       if (key.isEmpty())
         continue;
 
@@ -129,10 +141,11 @@ public class S3Archive implements ArchiveDevice {
     return fileEntryList;
   }
 
-  private SystemCall s3Call() {
+  private SystemCall s3APICall() {
     SystemCall sc = new SystemCall();
+    sc.setVerbose(verbose());
     sc.directory(mRootDirectory);
-    sc.arg("aws", "s3", "--profile", mProfileName);
+    sc.arg("aws", "s3api", "--profile", mProfileName);
     return sc;
   }
 
@@ -143,8 +156,6 @@ public class S3Archive implements ArchiveDevice {
   }
 
   private final String mProfileName;
-  private final String mBucketName;
-  private final String mBucketPath;
   private final File mRootDirectory;
   private final String mSubfolderPath;
   private final String mBareBucket;

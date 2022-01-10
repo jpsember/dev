@@ -56,8 +56,40 @@ public class ExperimentOper extends AppOper {
     File authFile = files().fileWithinSecrets("s3_auth.json");
     JSMap m = JSMap.from(authFile);
 
-    ArchiveDevice device = new S3Archive(m.get("profile"), m.get("account_name"), "cloud_writer",
-        projectDirectory);
+    String profile = m.get("profile");
+    if (false && alert("using bogus profile"))
+      profile = "android_app";
+    S3Archive archive = new S3Archive(profile, m.get("account_name"), "cloud_writer", projectDirectory);
+    archive.setVerbose(verbose());
+    ArchiveDevice device = archive;
+
+    if (true) {
+      List<CloudFileEntry> entries = device.listFiles();
+      pr(entries);
+      return;
+    }
+
+    if (true) {
+      boolean exists = device.fileExists("experiment_NONE.txt");
+      pr("exists:", exists);
+      return;
+    }
+
+    if (true) {
+      File sample = Files.getDesktopFile("experiment_read.txt");
+      pr("attempting to pull:", sample);
+      device.pull("experiment.txt", sample);
+      pr("read:", Files.infoMap(sample));
+      return;
+    }
+
+    if (true) {
+      File sample = Files.getDesktopFile("experiment.txt");
+      files().writeString(sample, "hello");
+      pr("attempting to push:", sample);
+      device.push(sample, "experiment.txt");
+      return;
+    }
 
     List<CloudFileEntry> entries = device.listFiles();
     pr(entries);
