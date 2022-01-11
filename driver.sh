@@ -15,4 +15,4 @@ fi
 
 # We need to include *all* dependendencies in the classpath:
 #
-java -Dfile.encoding=UTF-8 -classpath $APPLOC:$MVN/commons-io/commons-io/2.6/commons-io-2.6.jar:$MVN/com/jsbase/base/1.0/base-1.0.jar:$MVN/com/jsbase/graphics/1.0/graphics-1.0.jar:$MVN/com/jsbase/webtools/1.0/graphics-1.0.jar dev/Main "$@"
+java -Dfile.encoding=UTF-8 -classpath $APPLOC:$MVN/commons-io/commons-io/2.6/commons-io-2.6.jar:$MVN/com/jsbase/base/1.0/base-1.0.jar:$MVN/com/jsbase/graphics/1.0/graphics-1.0.jar:$MVN/com/jsbase/webtools/1.0/webtools-1.0.jar dev/Main "$@"
