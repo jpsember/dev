@@ -29,10 +29,12 @@ import static js.base.Tools.*;
 import java.io.File;
 import java.util.List;
 
-import dev.gen.CloudFileEntry;
 import dev.gen.FetchCloudConfig;
 import js.app.AppOper;
 import js.json.JSMap;
+import js.webtools.ArchiveDevice;
+import js.webtools.S3Archive;
+import js.webtools.gen.CloudFileEntry;
 
 public class FetchCloudFilesOper extends AppOper {
 

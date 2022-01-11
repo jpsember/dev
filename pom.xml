@@ -36,6 +36,12 @@
 
     <dependency>
       <groupId>com.jsbase</groupId>
+      <artifactId>webtools</artifactId>
+      <version>1.0</version>
+    </dependency>
+
+    <dependency>
+      <groupId>com.jsbase</groupId>
       <artifactId>testutil</artifactId>
       <version>1.0</version>
       <scope>test</scope>
