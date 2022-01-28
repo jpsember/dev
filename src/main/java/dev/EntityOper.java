@@ -63,8 +63,6 @@ public class EntityOper extends AppOper {
         if (mOperName != null && !arg.equals(mOperName))
           throw badArg("cannot process multiple operations:", mOperName, arg);
         mOperName = arg;
-      } else if (arg.equals("OVERRIDE")) {
-        mOverrideFlag = true;
       } else {
         if (mIdArg != null)
           throw badArg("extraneous argument:", arg);
@@ -75,8 +73,6 @@ public class EntityOper extends AppOper {
     }
     args.assertArgsDone();
   }
-
-  private boolean mOverrideFlag;
 
   @Override
   public void perform() {
@@ -141,12 +137,6 @@ public class EntityOper extends AppOper {
   }
 
   private void addEntity(String id) {
-    if (!mOverrideFlag) {
-      setError("For simplicity, at present, this command should only be run from Jeff's machine.",CR, //
-          "Include the argument 'OVERRIDE' if you really want to do this."
-          );
-    }
-   
     RemoteEntityInfo foundEnt = manager().optionalEntryFor(id);
     if (foundEnt != null) {
       setError("entity already exists:", INDENT, foundEnt);
