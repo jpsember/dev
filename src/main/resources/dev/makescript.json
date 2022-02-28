@@ -1,0 +1,4 @@
+{
+ "sh" : ["#!/usr/bin/env bash", "set -eu"]
+,"py" : ["#!/usr/bin/env python3"]
+}

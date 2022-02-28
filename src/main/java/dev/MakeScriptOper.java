@@ -32,6 +32,8 @@ import java.util.List;
 import js.app.AppOper;
 import js.app.CmdLineArgs;
 import js.file.Files;
+import js.json.JSList;
+import js.json.JSMap;
 
 public class MakeScriptOper extends AppOper {
 
@@ -47,79 +49,36 @@ public class MakeScriptOper extends AppOper {
 
   @Override
   protected List<Object> getAdditionalArgs() {
-    return arrayList("(bash | python)* <script_name>");
+    return arrayList("<script_name[.ext]>");
   }
 
   @Override
   protected void processAdditionalArgs() {
     CmdLineArgs args = app().cmdLineArgs();
-
-    int argNum = INIT_INDEX;
-    outer: while (args.hasNextArg()) {
-      argNum++;
-      String arg = args.peekNextArg();
-      switch (argNum) {
-      default:
-        break outer;
-      case 0: {
-        switch (arg) {
-        case "bash":
-          mType = ScriptType.BASH;
-          args.nextArg();
-          break;
-        case "python":
-          mType = ScriptType.PYTHON;
-          args.nextArg();
-          break;
-        }
-      }
-        break;
-
-      case 1:
-        String ext = null;
-        switch (mType) {
-        default:
-          throw notSupported();
-        case BASH:
-          ext = "sh";
-          break;
-        case PYTHON:
-          ext = "py";
-          break;
-        }
-        mTargetFile = Files.setExtension(new File(args.nextArg()), ext);
-      }
-    }
+    String path = args.nextArg();
+    mExt = ifNullOrEmpty(Files.getExtension(path), "sh");
+    mTargetFile = new File(Files.setExtension(path, mExt));
     args.assertArgsDone();
   }
 
-  enum ScriptType {
-    BASH, PYTHON,
-  };
-
   @Override
   public void perform() {
-    StringBuilder sb = new StringBuilder();
-    switch (mType) {
-    default:
-      throw notSupported();
-    case BASH: {
-      sb.append("#!/usr/bin/env bash\n");
-      sb.append("set -eu\n");
-      sb.append("\n");
-    }
-      break;
-    case PYTHON: {
-      sb.append("#!/usr/bin/env python3\n");
-      sb.append("\n");
-    }
-      break;
-    }
-    files().writeString(mTargetFile, sb.toString());
+    JSList template = template().optJSList(mExt);
+    if (template == null)
+      throw setError("Unsupported extension:", mExt);
+    String content = String.join("\n", template.asStrings()) + "\n\n";
+    files().writeString(mTargetFile, content);
     files().chmod(mTargetFile, 744);
   }
 
-  private ScriptType mType = ScriptType.BASH;
+  private JSMap template() {
+    if (mTemplate == null)
+      mTemplate = JSMap.fromResource(this.getClass(), "makescript.json");
+    return mTemplate;
+  }
+
+  private JSMap mTemplate;
+  private String mExt;
   private File mTargetFile;
 
 }
