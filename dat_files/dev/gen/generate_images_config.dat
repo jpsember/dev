@@ -1,0 +1,8 @@
+fields {
+  File target_dir = "source_images";
+  int image_total = 20;
+  IPoint image_size = [32,48];
+  int seed = 1965;
+  string categories = "AB";
+  bool write_uncompressed;
+}

@@ -29,6 +29,8 @@ import static js.base.Tools.*;
 import java.awt.Font;
 import java.awt.FontMetrics;
 import java.awt.Graphics2D;
+import java.awt.image.BufferedImage;
+import java.awt.image.DataBufferByte;
 import java.io.File;
 import java.util.List;
 import java.util.Random;
@@ -36,7 +38,9 @@ import java.util.Random;
 import dev.gen.GenerateImagesConfig;
 import js.app.AppOper;
 import js.file.DirWalk;
-import js.geometry.IRect;
+import js.file.Files;
+import js.geometry.Matrix;
+import js.geometry.MyMath;
 import js.graphics.ImgUtil;
 import js.graphics.Paint;
 import js.graphics.Plotter;
@@ -63,7 +67,7 @@ public class GenerateImageSetOper extends AppOper {
     return mColors;
   }
 
-  private Paint PAINT_BGND = Paint.newBuilder().color(192, 192, 192).build();
+  private Paint PAINT_BGND = Paint.newBuilder().color(220, 220, 220).build();
 
   private <T> T randomElement(List<T> elements) {
     return elements.get(random().nextInt(elements.size()));
@@ -72,7 +76,7 @@ public class GenerateImageSetOper extends AppOper {
   @Override
   public void perform() {
     files().mkdirs(config().targetDir());
-    for (File f : new DirWalk(config().targetDir()).withExtensions("jpg").files()) {
+    for (File f : new DirWalk(config().targetDir()).withExtensions("jpg", "bin").files()) {
       files().deleteFile(f);
     }
     for (int i = 0; i < config().imageTotal(); i++) {
@@ -84,17 +88,48 @@ public class GenerateImageSetOper extends AppOper {
       p.with(PAINT_BGND).fillRect();
       p.with(randomElement(paints()).toBuilder().font(fi.mFont, 1f));
 
-      IRect b = p.bounds();
+      String cat = config().categories();
+      int cc = random().nextInt(cat.length());
+      String text = cat.substring(cc, cc + 1);
 
-      char c = 'H';
       FontMetrics m = fi.metrics(p.graphics());
-      int x = b.midX() - m.charWidth(c) / 2;
-      int y = b.midY() + m.getAscent() / 2;
-      p.graphics().drawString(Character.toString(c), x, y);
 
-      String path = String.format("image_%03d.jpg", i);
+      int mx = config().imageSize().x / 2;
+      int my = config().imageSize().y / 2;
+
+      float rangex = mx * .5f;
+      float rangey = my * .5f;
+
+      Matrix tfmFontOrigin = Matrix.getTranslate(-m.charWidth(cat.charAt(0)) / 2, m.getAscent() / 2);
+      Matrix tfmImageCenter = Matrix.getTranslate(randGuassian(mx - rangex, mx + rangex),
+          randGuassian(my - rangey, my + rangey));
+      Matrix tfmRotate = Matrix.getRotate(randGuassian(-30 * MyMath.M_DEG, 30 * MyMath.M_DEG));
+      Matrix tfmScale = Matrix.getScale(randGuassian(0.7f, 1.3f));
+      Matrix tfm = Matrix.postMultiply(tfmImageCenter, tfmScale, tfmRotate, tfmFontOrigin);
+
+      p.graphics().setTransform(tfm.toAffineTransform());
+      p.graphics().drawString(text, 0, 0);
+
+      String path = String.format("image_%05d.jpg", i);
       File f = new File(config().targetDir(), path);
-      ImgUtil.writeImage(files(), p.image(), f);
+
+      if (config().writeUncompressed()) {
+        f = Files.setExtension(f, "bin");
+        BufferedImage bgrImage = ImgUtil.imageAsType(p.image(), BufferedImage.TYPE_3BYTE_BGR);
+        byte[] pix = ((DataBufferByte) bgrImage.getRaster().getDataBuffer()).getData();
+        files().write(pix, f);
+      } else
+        ImgUtil.writeImage(files(), p.image(), f);
+    }
+  }
+
+  private float randGuassian(float min, float max) {
+    float scl = (max - min) * 0.35f;
+    float center = (max + min) * 0.5f;
+    while (true) {
+      float g = (float) (random().nextGaussian() * scl + center);
+      if (g >= min && g <= max)
+        return g;
     }
   }
 
@@ -129,6 +164,10 @@ public class GenerateImageSetOper extends AppOper {
     FontInfo fi = new FontInfo();
     fi.mFont = new Font(family, Font.PLAIN, 12);
     fonts().add(fi);
+
+    fi = new FontInfo();
+    fi.mFont = new Font(family, Font.BOLD, 12);
+    fonts().add(fi);
   }
 
   private List<FontInfo> fonts() {
@@ -149,7 +188,8 @@ public class GenerateImageSetOper extends AppOper {
     return mRandom;
   }
 
-  private int[] sColors = { 74, 168, 50, //
+  private int[] sColors = { //
+      74, 168, 50, //
       50, 107, 168, //
       168, 101, 50, //
   };
