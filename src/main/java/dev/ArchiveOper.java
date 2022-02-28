@@ -824,7 +824,7 @@ public final class ArchiveOper extends AppOper {
         String relPath = relFile.toString();
         ZipEntry zipEntry = new ZipEntry(relPath);
         zipStream.putNextEntry(zipEntry);
-        zipStream.write(Files.toByteArray(new File(directory, relPath)));
+        zipStream.write(Files.toByteArray(new File(directory, relPath), "ArchiveOper.createZipFile"));
         zipStream.closeEntry();
       }
 

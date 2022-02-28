@@ -62,6 +62,7 @@ public class Main extends App {
     registerOper(new RemoveExtraneousScriptElementsOper());
     registerOper(new ConvertJsonOper());
     registerOper(new FetchCloudFilesOper());
+    registerOper(new MakeScriptOper());
   }
 
 }

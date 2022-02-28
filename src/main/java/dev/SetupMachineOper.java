@@ -294,7 +294,7 @@ public class SetupMachineOper extends AppOper {
 
     if (targetFile.exists()) {
       checkArgument(targetFile.isFile(), "not a file:", targetFile);
-      byte[] originalContents = Files.toByteArray(targetFile);
+      byte[] originalContents = Files.toByteArray(targetFile, "SetupMachineOper.writeWithBackup");
       if (Arrays.equals(originalContents, newContents))
         return;
       log("...backing up old version");
@@ -316,7 +316,7 @@ public class SetupMachineOper extends AppOper {
   }
 
   private void writeWithBackup(File targetFile, File sourceFile) {
-    writeWithBackup(targetFile, Files.toByteArray(sourceFile));
+    writeWithBackup(targetFile, Files.toByteArray(sourceFile, "SetupMachineOper.writeWithBackup"));
   }
 
   /**

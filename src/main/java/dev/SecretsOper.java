@@ -164,7 +164,7 @@ public class SecretsOper extends AppOper {
         String relPath = relFile.toString();
         ZipEntry zipEntry = new ZipEntry(relPath);
         zipStream.putNextEntry(zipEntry);
-        zipStream.write(Files.toByteArray(new File(dirWalk.directory(), relPath)));
+        zipStream.write(Files.toByteArray(new File(dirWalk.directory(), relPath), "SecretsOper.2"));
         zipStream.closeEntry();
       }
       zipStream.close();
@@ -214,7 +214,8 @@ public class SecretsOper extends AppOper {
       RemoteEntityInfo entityInfo = EntityManager.sharedInstance().optionalEntryFor(mEntityId);
       checkArgument(entityInfo != null, "no information found for entity id:", mEntityId);
 
-      byte[] encrypted = Files.toByteArray(files().fileWithinProjectConfigDirectory("encrypted_secrets.bin"));
+      byte[] encrypted = Files.toByteArray(files().fileWithinProjectConfigDirectory("encrypted_secrets.bin"),
+          "SecretsOper.1");
       byte[] decrypted = decryptData(mPassPhrase, encrypted);
       File secretsDir = files().optFileWithinProject("secrets");
       unzipDirectory(decrypted, secretsDir);
