@@ -115,9 +115,14 @@ public class GenerateImageSetOper extends AppOper {
 
       if (config().writeUncompressed()) {
         f = Files.setExtension(f, "bin");
-        BufferedImage bgrImage = ImgUtil.imageAsType(p.image(), BufferedImage.TYPE_3BYTE_BGR);
-        byte[] pix = ((DataBufferByte) bgrImage.getRaster().getDataBuffer()).getData();
-        files().write(pix, f);
+        if (config().writeFloats()) {
+          float[] pixels = ImgUtil.floatPixels(p.image(), 3, null);
+          files().writeFloatsLittleEndian(pixels, f);
+        } else {
+          BufferedImage bgrImage = ImgUtil.imageAsType(p.image(), BufferedImage.TYPE_3BYTE_BGR);
+          byte[] pix = ((DataBufferByte) bgrImage.getRaster().getDataBuffer()).getData();
+          files().write(pix, f);
+        }
       } else
         ImgUtil.writeImage(files(), p.image(), f);
     }

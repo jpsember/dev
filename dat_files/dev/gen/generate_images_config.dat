@@ -5,4 +5,5 @@ fields {
   int seed = 1965;
   string categories = "AB";
   bool write_uncompressed;
+  bool write_floats;
 }
