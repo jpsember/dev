@@ -12,10 +12,6 @@ fields {
   //
   bool merge_images;
 
-  // Don't use a variety of colors?
-  //
-  bool single_color;
-
   float translate_factor = 0.5;
   float scale_factor_min = 0.7;
   float scale_factor_max = 1.3;

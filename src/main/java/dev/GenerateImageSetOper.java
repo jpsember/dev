@@ -63,8 +63,8 @@ public class GenerateImageSetOper extends AppOper {
   private List<Paint> paints() {
     if (mColors == null) {
       int[] sc = sColors;
-      if (config().singleColor())
-        sc = sColorsSingle;
+      if (config().monochrome())
+        sc = sColorsMono;
       mColors = arrayList();
       for (int i = 0; i < sc.length; i += 3) {
         mColors.add(Paint.newBuilder().color(sc[i], sc[i + 1], sc[i + 2]).build());
@@ -96,7 +96,6 @@ public class GenerateImageSetOper extends AppOper {
       imageStream = files().outputStream(new File(config().targetDir(), "images.bin"));
     }
 
-    int kount = 0;
     for (int i = 0; i < config().imageTotal(); i++) {
 
       Plotter p = Plotter.build();
@@ -122,8 +121,9 @@ public class GenerateImageSetOper extends AppOper {
           m.getAscent() / 2);
       Matrix tfmImageCenter = Matrix.getTranslate(randGuassian(mx - rangex, mx + rangex),
           randGuassian(my - rangey, my + rangey));
-      Matrix tfmRotate = Matrix.getRotate(randGuassian(-config().rotFactor() * MyMath.M_DEG, config().rotFactor() * MyMath.M_DEG));
-      Matrix tfmScale = Matrix.getScale(randGuassian(config().scaleFactorMin(),config().scaleFactorMax()));
+      Matrix tfmRotate = Matrix
+          .getRotate(randGuassian(-config().rotFactor() * MyMath.M_DEG, config().rotFactor() * MyMath.M_DEG));
+      Matrix tfmScale = Matrix.getScale(randGuassian(config().scaleFactorMin(), config().scaleFactorMax()));
 
       Matrix tfm = Matrix.postMultiply(tfmImageCenter, tfmScale, tfmRotate, tfmFontOrigin);
 
@@ -229,8 +229,11 @@ public class GenerateImageSetOper extends AppOper {
       50, 107, 168, //
       168, 101, 50, //
   };
-  private int[] sColorsSingle = { //
+  private int[] sColorsMono = { //
+      100, 100, 100, //
+      80, 80, 80, //
       40, 40, 40, //
+      20, 20, 20, //
   };
 
   private Random mRandom;
