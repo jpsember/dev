@@ -32,6 +32,7 @@ import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
 import java.awt.image.DataBufferByte;
 import java.io.File;
+import java.io.OutputStream;
 import java.util.List;
 import java.util.Random;
 
@@ -61,9 +62,12 @@ public class GenerateImageSetOper extends AppOper {
 
   private List<Paint> paints() {
     if (mColors == null) {
+      int[] sc = sColors;
+      if (config().singleColor())
+        sc = sColorsSingle;
       mColors = arrayList();
-      for (int i = 0; i < sColors.length; i += 3) {
-        mColors.add(Paint.newBuilder().color(sColors[i], sColors[i + 1], sColors[i + 2]).build());
+      for (int i = 0; i < sc.length; i += 3) {
+        mColors.add(Paint.newBuilder().color(sc[i], sc[i + 1], sc[i + 2]).build());
       }
     }
     return mColors;
@@ -86,6 +90,13 @@ public class GenerateImageSetOper extends AppOper {
 
     IntArray.Builder categories = IntArray.newBuilder();
 
+    OutputStream imageStream = null;
+    if (config().mergeImages()) {
+      checkArgument(config().writeFloats() && config().writeUncompressed());
+      imageStream = files().outputStream(new File(config().targetDir(), "images.bin"));
+    }
+
+    int kount = 0;
     for (int i = 0; i < config().imageTotal(); i++) {
 
       Plotter p = Plotter.build();
@@ -104,38 +115,45 @@ public class GenerateImageSetOper extends AppOper {
       int mx = config().imageSize().x / 2;
       int my = config().imageSize().y / 2;
 
-      float rangex = mx * .5f;
-      float rangey = my * .5f;
+      float rangex = mx * config().translateFactor();
+      float rangey = my * config().translateFactor();
 
       Matrix tfmFontOrigin = Matrix.getTranslate(-m.charWidth(categoriesString.charAt(0)) / 2,
           m.getAscent() / 2);
       Matrix tfmImageCenter = Matrix.getTranslate(randGuassian(mx - rangex, mx + rangex),
           randGuassian(my - rangey, my + rangey));
-      Matrix tfmRotate = Matrix.getRotate(randGuassian(-30 * MyMath.M_DEG, 30 * MyMath.M_DEG));
-      Matrix tfmScale = Matrix.getScale(randGuassian(0.7f, 1.3f));
+      Matrix tfmRotate = Matrix.getRotate(randGuassian(-config().rotFactor() * MyMath.M_DEG, config().rotFactor() * MyMath.M_DEG));
+      Matrix tfmScale = Matrix.getScale(randGuassian(config().scaleFactorMin(),config().scaleFactorMax()));
+
       Matrix tfm = Matrix.postMultiply(tfmImageCenter, tfmScale, tfmRotate, tfmFontOrigin);
 
       p.graphics().setTransform(tfm.toAffineTransform());
       p.graphics().drawString(text, 0, 0);
 
-      String path = String.format("image_%05d.jpg", i);
-      File f = new File(config().targetDir(), path);
+      if (imageStream != null) {
+        float[] pixels = ImgUtil.floatPixels(p.image(), config().monochrome() ? 1 : 3, null);
+        files().writeFloatsLittleEndian(pixels, imageStream);
+      } else {
+        String path = String.format("image_%05d.jpg", i);
+        File f = new File(config().targetDir(), path);
 
-      if (config().writeUncompressed()) {
-        f = Files.setExtension(f, "bin");
-        if (config().writeFloats()) {
-          float[] pixels = ImgUtil.floatPixels(p.image(), config().monochrome() ? 1 : 3, null);
-          files().writeFloatsLittleEndian(pixels, f);
-        } else {
-          if (config().monochrome())
-            setError("monochrome not supported for integer pixels (yet)");
-          BufferedImage bgrImage = ImgUtil.imageAsType(p.image(), BufferedImage.TYPE_3BYTE_BGR);
-          byte[] pix = ((DataBufferByte) bgrImage.getRaster().getDataBuffer()).getData();
-          files().write(pix, f);
-        }
-      } else
-        ImgUtil.writeImage(files(), p.image(), f);
+        if (config().writeUncompressed()) {
+          f = Files.setExtension(f, "bin");
+          if (config().writeFloats()) {
+            float[] pixels = ImgUtil.floatPixels(p.image(), config().monochrome() ? 1 : 3, null);
+            files().writeFloatsLittleEndian(pixels, f);
+          } else {
+            if (config().monochrome())
+              setError("monochrome not supported for integer pixels (yet)");
+            BufferedImage bgrImage = ImgUtil.imageAsType(p.image(), BufferedImage.TYPE_3BYTE_BGR);
+            byte[] pix = ((DataBufferByte) bgrImage.getRaster().getDataBuffer()).getData();
+            files().write(pix, f);
+          }
+        } else
+          ImgUtil.writeImage(files(), p.image(), f);
+      }
     }
+    Files.close(imageStream);
 
     byte[] categoryBytes = DataUtil.intsToBytesLittleEndian(categories.array());
     files().write(categoryBytes, new File(config().targetDir(), "labels.bin"));
@@ -210,6 +228,9 @@ public class GenerateImageSetOper extends AppOper {
       74, 168, 50, //
       50, 107, 168, //
       168, 101, 50, //
+  };
+  private int[] sColorsSingle = { //
+      40, 40, 40, //
   };
 
   private Random mRandom;
