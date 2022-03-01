@@ -116,9 +116,11 @@ public class GenerateImageSetOper extends AppOper {
       if (config().writeUncompressed()) {
         f = Files.setExtension(f, "bin");
         if (config().writeFloats()) {
-          float[] pixels = ImgUtil.floatPixels(p.image(), 3, null);
+          float[] pixels = ImgUtil.floatPixels(p.image(), config().monochrome() ? 1 : 3, null);
           files().writeFloatsLittleEndian(pixels, f);
         } else {
+          if (config().monochrome())
+            setError("monochrome not supported for integer pixels (yet)");
           BufferedImage bgrImage = ImgUtil.imageAsType(p.image(), BufferedImage.TYPE_3BYTE_BGR);
           byte[] pix = ((DataBufferByte) bgrImage.getRaster().getDataBuffer()).getData();
           files().write(pix, f);

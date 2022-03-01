@@ -6,4 +6,5 @@ fields {
   string categories = "AB";
   bool write_uncompressed;
   bool write_floats;
+  bool monochrome;
 }
