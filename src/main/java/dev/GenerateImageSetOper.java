@@ -37,6 +37,8 @@ import java.util.Random;
 
 import dev.gen.GenerateImagesConfig;
 import js.app.AppOper;
+import js.data.DataUtil;
+import js.data.IntArray;
 import js.file.DirWalk;
 import js.file.Files;
 import js.geometry.Matrix;
@@ -79,6 +81,11 @@ public class GenerateImageSetOper extends AppOper {
     for (File f : new DirWalk(config().targetDir()).withExtensions("jpg", "bin").files()) {
       files().deleteFile(f);
     }
+
+    String categoriesString = config().categories();
+
+    IntArray.Builder categories = IntArray.newBuilder();
+
     for (int i = 0; i < config().imageTotal(); i++) {
 
       Plotter p = Plotter.build();
@@ -88,9 +95,9 @@ public class GenerateImageSetOper extends AppOper {
       p.with(PAINT_BGND).fillRect();
       p.with(randomElement(paints()).toBuilder().font(fi.mFont, 1f));
 
-      String cat = config().categories();
-      int cc = random().nextInt(cat.length());
-      String text = cat.substring(cc, cc + 1);
+      int category = random().nextInt(categoriesString.length());
+      String text = categoriesString.substring(category, category + 1);
+      categories.add(category);
 
       FontMetrics m = fi.metrics(p.graphics());
 
@@ -100,7 +107,8 @@ public class GenerateImageSetOper extends AppOper {
       float rangex = mx * .5f;
       float rangey = my * .5f;
 
-      Matrix tfmFontOrigin = Matrix.getTranslate(-m.charWidth(cat.charAt(0)) / 2, m.getAscent() / 2);
+      Matrix tfmFontOrigin = Matrix.getTranslate(-m.charWidth(categoriesString.charAt(0)) / 2,
+          m.getAscent() / 2);
       Matrix tfmImageCenter = Matrix.getTranslate(randGuassian(mx - rangex, mx + rangex),
           randGuassian(my - rangey, my + rangey));
       Matrix tfmRotate = Matrix.getRotate(randGuassian(-30 * MyMath.M_DEG, 30 * MyMath.M_DEG));
@@ -128,6 +136,9 @@ public class GenerateImageSetOper extends AppOper {
       } else
         ImgUtil.writeImage(files(), p.image(), f);
     }
+
+    byte[] categoryBytes = DataUtil.intsToBytesLittleEndian(categories.array());
+    files().write(categoryBytes, new File(config().targetDir(), "labels.bin"));
   }
 
   private float randGuassian(float min, float max) {
