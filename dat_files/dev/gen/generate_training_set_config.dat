@@ -1,0 +1,8 @@
+fields {
+  File source_images_dir;
+  File source_image_info;
+
+  File target_dir = "training_data";
+
+  IPoint image_size = [32,48];
+}
