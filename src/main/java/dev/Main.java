@@ -63,7 +63,6 @@ public class Main extends App {
     registerOper(new ConvertJsonOper());
     registerOper(new FetchCloudFilesOper());
     registerOper(new MakeScriptOper());
-    registerOper(new GenerateImageSetOper());
   }
 
 }

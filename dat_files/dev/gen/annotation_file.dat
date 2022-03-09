@@ -1,4 +1,0 @@
-fields {
-  * string filenames;
-  * ScriptElementList annotations;
-}
