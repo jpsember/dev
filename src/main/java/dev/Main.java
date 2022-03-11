@@ -47,7 +47,8 @@ public class Main extends App {
   @Override
   protected void registerOperations() {
     registerOper(new CreateAppOper());
-    registerOper(new ResetTestOper());
+    registerOper(new CreateMakeOper());
+      registerOper(new ResetTestOper());
     registerOper(new CopyrightOper());
     registerOper(new ExperimentOper());
     registerOper(new EntityOper());
