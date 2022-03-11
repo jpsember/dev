@@ -31,7 +31,6 @@ import java.util.regex.Pattern;
 
 import dev.gen.AppInfo;
 import js.app.AppOper;
-import js.app.CmdLineArgs;
 import js.file.Files;
 import js.json.JSMap;
 import js.parsing.MacroParser;
@@ -59,6 +58,11 @@ public final class CreateMakeOper extends AppOper {
     if (mAppInfo == null) {
       mAppInfo = AppInfo.newBuilder();
 
+      {
+        File pomFile = Files.getFileWithinParents(null, "pom.xml", "determining project directory");
+        mAppInfo.dir(Files.parent(pomFile));
+      }
+
       todo("figure out project directory, pom file, etc");
       log("...derived app info:", INDENT, mAppInfo);
     }
@@ -79,11 +83,9 @@ public final class CreateMakeOper extends AppOper {
   }
 
   private boolean generateDriver() {
+    if (alert("always true"))
+      return true;
     return mDriver;
-  }
-
-  private String parseResource(String resourceName) {
-    return parseText(frag(resourceName));
   }
 
   private String parseText(String template) {
@@ -101,12 +103,13 @@ public final class CreateMakeOper extends AppOper {
   }
 
   private void writeTarget(String content) {
-    halt("attempt to write content to:", targetFile());
     writeFile(targetFile(), content);
   }
 
   private File writeFile(File path, String content) {
     files().mkdirs(Files.parent(path));
+    if (verbose())
+      log("writing to:", path, INDENT, debStr(content));
     files().writeString(path, content);
     if (mExecutable) {
       mExecutable = false;
@@ -161,6 +164,9 @@ public final class CreateMakeOper extends AppOper {
   private void createBuildScript() {
     setTarget("mk");
     String template = frag("mk_template.txt");
+
+    todo("figure out if a driver is needed");
+
     template = modifyTemplateWithExistingCustomizations(template);
     if (!generateDriver())
       template = template.replace("DRIVER=1", "DRIVER=0");
@@ -168,10 +174,6 @@ public final class CreateMakeOper extends AppOper {
       template = template.replace("DRIVER=0", "DRIVER=1");
     String result = parseText(template);
     writeTarget(result);
-  }
-
-  private String testClassName() {
-    return appName().substring(0, 1).toUpperCase() + appName().substring(1) + "Test";
   }
 
   private JSMap macroMap() {
