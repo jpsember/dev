@@ -27,6 +27,7 @@ package dev;
 import static js.base.Tools.*;
 
 import java.io.File;
+import java.util.List;
 import java.util.regex.Pattern;
 
 import dev.gen.AppInfo;
@@ -35,6 +36,7 @@ import js.file.Files;
 import js.json.JSMap;
 import js.parsing.MacroParser;
 import js.parsing.MacroParser.Mapper;
+import js.parsing.RegExp;
 
 public final class CreateMakeOper extends AppOper {
 
@@ -89,7 +91,113 @@ public final class CreateMakeOper extends AppOper {
 
     content = content.substring(prefPos + prefix.length(), commentEnd);
     JSMap m = new JSMap(content);
-    pr(m);
+    log("Parameters parsed from pom.xml:", INDENT, m);
+
+    String key = "cmdline";
+    String cmdline = m.opt(key, "");
+    if (!cmdline.isEmpty()) {
+      m.put(key, processCommandLineParameter(cmdline));
+    }
+    pr("result:", m);
+  }
+
+  private String processCommandLineParameter(String content) {
+    List<String> args = split(content, ' ');
+    List<String> filtered = arrayList();
+
+    int argNum = 0;
+    for (String expr : args) {
+      switch (argNum) {
+      case 0:
+        checkArgument(expr.endsWith("java"), "expected argument to invoke java:", expr);
+        filtered.add("java");
+        argNum++;
+        break;
+
+      default:
+        String prev = last(filtered);
+        if (prev.equals("-classpath")) {
+          expr = processClassPathArg(expr);
+        }
+        filtered.add(expr);
+        break;
+      }
+
+    }
+
+    return String.join(" ", filtered);
+  }
+
+  private String processClassPathArg(String content) {
+    List<String> args = split(content, ':');
+    List<String> filtered = arrayList();
+    for (String expr : args) {
+
+      // Determine if this classpath entry refers to a project within the maven repository
+      //log("parsing expr:", expr);
+
+      do {
+        // Does it explicitly refer to a maven repository?
+        //
+        String seek = ".m2/";
+        int c = expr.indexOf(seek);
+        if (c >= 0) {
+          expr = "$MVN/" + expr.substring(c + seek.length());
+          break;
+        }
+
+        // Does it seem to refer to a project for which we have maven project?
+        // Maybe we can assume *all* projects are within the maven repository...
+        seek = "/target/classes";
+        c = expr.indexOf(seek);
+        if (c >= 0) {
+
+          // Assume this refers to a project with a pom file
+          String dir = expr.substring(0, c);
+          //log("...inferring maven location from:", dir);
+          File pomFile = new File(dir + "/pom.xml");
+          if (!pomFile.exists()) {
+            badArg("can't locate pom.xml:", pomFile, INDENT, "for expression:", expr);
+          }
+          String pathRelToMaven = extractClassesPathFromPom(pomFile);
+          expr = "$MVN/" + pathRelToMaven;
+          break;
+        }
+
+        pr("*** Failed to figure out expression:", expr);
+      } while (false);
+      //  pr("======================> adding", expr);
+      filtered.add(expr);
+    }
+    return String.join(":", filtered);
+  }
+
+  private static String parsePomTag(String content, String tag) {
+    try {
+      String t2 = "<" + tag + ">";
+      int i = content.indexOf(t2);
+      int j = content.indexOf("</" + tag + ">", i);
+      String x = content.substring(i + t2.length(), j);
+      checkArgument(RegExp.patternMatchesString("[\\w.]+", x));
+      return x;
+    } catch (Throwable t) {
+      throw badArg("Failed to parse tag from pom file:", tag);
+    }
+  }
+
+  private String extractClassesPathFromPom(File pomFile) {
+    String content = Files.readString(pomFile);
+    String groupId = parsePomTag(content, "groupId");
+    String artifactId = parsePomTag(content, "artifactId");
+    String version = parsePomTag(content, "version");
+    //
+    //    pr("****** group:", groupId);
+    //    pr("****** argif:", artifactId);
+    //    pr("****** versn:", version);
+
+    String exp = groupId.replace('.', '/') + "/" + artifactId + "/" + version + "/" + artifactId + "-"
+        + version + ".jar";
+    return exp;
   }
 
   private String appName() {
