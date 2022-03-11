@@ -53,6 +53,7 @@ public final class CreateMakeOper extends AppOper {
   @Override
   public void perform() {
     postProcessArgs();
+    parsePomFile();
     createBuildScript();
   }
 
@@ -72,25 +73,28 @@ public final class CreateMakeOper extends AppOper {
 
   private void postProcessArgs() {
     appInfo();
-    parsePomFile();
   }
 
   private void parsePomFile() {
-
     // Look for a JSMap embedded within an xml comment with prefix "<!--DEV" 
     String prefix = "<!--DEV";
+    String suffix = "-->";
+
     String content = Files.readString(appInfo().pomFile());
-    int prefPos = content.indexOf(prefix);
-    if (prefPos < 0) {
-      pr("*** Cannot locate arguments from pom.xml; expected prefix:", prefix);
+
+    int commentStart = content.indexOf(prefix);
+    if (commentStart < 0) {
+      log("cannot locate arguments from pom.xml with prefix:", prefix, "; assuming no driver required");
       return;
     }
-    int commentEnd = content.indexOf("-->", prefPos);
+    mDriver = true;
+
+    int commentEnd = content.indexOf(suffix, commentStart);
     if (commentEnd < 0)
       badArg("Can't find end of comment tag in pom.xml");
 
-    content = content.substring(prefPos + prefix.length(), commentEnd);
-    JSMap m = new JSMap(content);
+    String jsonContent = content.substring(commentStart + prefix.length(), commentEnd);
+    JSMap m = new JSMap(jsonContent);
     log("Parameters parsed from pom.xml:", INDENT, m);
 
     String key = "cmdline";
@@ -98,7 +102,14 @@ public final class CreateMakeOper extends AppOper {
     if (!cmdline.isEmpty()) {
       m.put(key, processCommandLineParameter(cmdline));
     }
-    pr("result:", m);
+
+    log("result:", m);
+    // Replace the content with our modified version of the map
+
+    String newContent = content.substring(0, commentStart + prefix.length()) + m.prettyPrint()
+        + content.substring(commentEnd + suffix.length());
+
+    files().writeIfChanged(appInfo().pomFile(), newContent);
   }
 
   private String processCommandLineParameter(String content) {
@@ -125,6 +136,10 @@ public final class CreateMakeOper extends AppOper {
 
     }
 
+    String extraArgsArgument = quote("$@");
+    if (!filtered.contains(extraArgsArgument))
+      filtered.add(extraArgsArgument);
+
     return String.join(" ", filtered);
   }
 
@@ -134,7 +149,6 @@ public final class CreateMakeOper extends AppOper {
     for (String expr : args) {
 
       // Determine if this classpath entry refers to a project within the maven repository
-      //log("parsing expr:", expr);
 
       do {
         // Does it explicitly refer to a maven repository?
@@ -154,7 +168,7 @@ public final class CreateMakeOper extends AppOper {
 
           // Assume this refers to a project with a pom file
           String dir = expr.substring(0, c);
-          //log("...inferring maven location from:", dir);
+          log("...inferring maven location from:", dir);
           File pomFile = new File(dir + "/pom.xml");
           if (!pomFile.exists()) {
             badArg("can't locate pom.xml:", pomFile, INDENT, "for expression:", expr);
@@ -166,7 +180,6 @@ public final class CreateMakeOper extends AppOper {
 
         pr("*** Failed to figure out expression:", expr);
       } while (false);
-      //  pr("======================> adding", expr);
       filtered.add(expr);
     }
     return String.join(":", filtered);
@@ -190,11 +203,6 @@ public final class CreateMakeOper extends AppOper {
     String groupId = parsePomTag(content, "groupId");
     String artifactId = parsePomTag(content, "artifactId");
     String version = parsePomTag(content, "version");
-    //
-    //    pr("****** group:", groupId);
-    //    pr("****** argif:", artifactId);
-    //    pr("****** versn:", version);
-
     String exp = groupId.replace('.', '/') + "/" + artifactId + "/" + version + "/" + artifactId + "-"
         + version + ".jar";
     return exp;
@@ -206,12 +214,6 @@ public final class CreateMakeOper extends AppOper {
 
   private File appDir() {
     return Files.assertNonEmpty(appInfo().dir(), "appInfo.dir");
-  }
-
-  private boolean generateDriver() {
-    if (alert("always true"))
-      return true;
-    return mDriver;
   }
 
   private String parseText(String template) {
@@ -290,11 +292,8 @@ public final class CreateMakeOper extends AppOper {
   private void createBuildScript() {
     setTarget("mk");
     String template = frag("mk_template.txt");
-
-    todo("figure out if a driver is needed");
-
     template = modifyTemplateWithExistingCustomizations(template);
-    if (!generateDriver())
+    if (!mDriver)
       template = template.replace("DRIVER=1", "DRIVER=0");
     else
       template = template.replace("DRIVER=0", "DRIVER=1");
