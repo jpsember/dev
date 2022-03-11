@@ -57,12 +57,11 @@ public final class CreateMakeOper extends AppOper {
   private AppInfo.Builder appInfo() {
     if (mAppInfo == null) {
       mAppInfo = AppInfo.newBuilder();
-
       {
         File pomFile = Files.getFileWithinParents(null, "pom.xml", "determining project directory");
+        mAppInfo.pomFile(pomFile);
         mAppInfo.dir(Files.parent(pomFile));
       }
-
       todo("figure out project directory, pom file, etc");
       log("...derived app info:", INDENT, mAppInfo);
     }
@@ -71,7 +70,26 @@ public final class CreateMakeOper extends AppOper {
 
   private void postProcessArgs() {
     appInfo();
-    log("app info:", appInfo());
+    parsePomFile();
+  }
+
+  private void parsePomFile() {
+
+    // Look for a JSMap embedded within an xml comment with prefix "<!--DEV" 
+    String prefix = "<!--DEV";
+    String content = Files.readString(appInfo().pomFile());
+    int prefPos = content.indexOf(prefix);
+    if (prefPos < 0) {
+      pr("*** Cannot locate arguments from pom.xml; expected prefix:", prefix);
+      return;
+    }
+    int commentEnd = content.indexOf("-->", prefPos);
+    if (commentEnd < 0)
+      badArg("Can't find end of comment tag in pom.xml");
+
+    content = content.substring(prefPos + prefix.length(), commentEnd);
+    JSMap m = new JSMap(content);
+    pr(m);
   }
 
   private String appName() {
