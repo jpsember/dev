@@ -213,6 +213,7 @@ public final class CreateMakeOper extends AppOper {
   }
 
   private String appName() {
+    checkArgument(!appInfo().name().isEmpty(), "no app name");
     return appInfo().name();
   }
 
@@ -294,8 +295,19 @@ public final class CreateMakeOper extends AppOper {
   }
 
   private void createBuildScript() {
-    setTarget("make_new.sh");
-    String template = frag("mk_template.txt");
+    String appName = mPomParametersMap.opt("app_name", "");
+    if (nullOrEmpty(appName)) {
+      badArg("No 'app_name' defined in pom.xml parameters");
+    }
+    appInfo().name(appName);
+
+    setTarget("make.sh");
+    String template = frag("mk2_template.txt");
+    macroMap().put("driver", driverRequired() ? "1" : "0");
+
+    File datagenDir = new File(appInfo().dir(), "dat_files");
+    macroMap().put("datagen", datagenDir.exists() ? "1" : "0");
+
     template = modifyTemplateWithExistingCustomizations(template);
     if (!driverRequired())
       template = template.replace("DRIVER=1", "DRIVER=0");
