@@ -304,8 +304,7 @@ public final class CreateMakeOper extends AppOper {
       badArg("No 'app_name' defined in pom.xml parameters");
     }
     appInfo().name(appName);
-
-    setTarget("make.sh");
+    setTargetWithinProjectAuxDir("make.sh");
     String template = frag("mk2_template.txt");
     macroMap().put("driver", driverRequired() ? "1" : "0");
 
@@ -319,12 +318,31 @@ public final class CreateMakeOper extends AppOper {
       template = template.replace("DRIVER=0", "DRIVER=1");
     String result = parseText(template);
     writeTargetIfChanged(result, true);
+
+    File binDir = new File(Files.homeDirectory(), "bin");
+    if (!binDir.exists()) {
+      log("...creating bin directory");
+      files().mkdirs(binDir);
+    }
+    mTargetFile = new File(binDir, "mk");
+    String baseMakeText = frag("base_mk_template.txt");
+    writeTargetIfChanged(baseMakeText, true);
   }
+
+  private void setTargetWithinProjectAuxDir(String fname) {
+    if (mProjectAuxDir == null) {
+      mProjectAuxDir = new File(appDir(), ".jsproject");
+      files().mkdirs(mProjectAuxDir);
+    }
+    mTargetFile = new File(mProjectAuxDir, fname);
+  }
+
+  private File mProjectAuxDir;
 
   private void createDriver() {
     if (!driverRequired())
       return;
-    setTarget(".driver.sh");
+    setTargetWithinProjectAuxDir("driver.sh");
     String template = frag("driver2_template.txt");
     macroMap().put("run_app_command", mPomParametersMap.get("cmdline"));
     template = modifyTemplateWithExistingCustomizations(template);
