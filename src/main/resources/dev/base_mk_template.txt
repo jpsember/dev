@@ -4,7 +4,7 @@ set -eu
 FILE="mk"
 #echo "Checking if current directory has '${FILE}'"
 if [ -f ${FILE} ]; then
-	$FILE
+	$FILE "$@"
 	exit 0
 fi
 
@@ -16,4 +16,4 @@ if [ ! -f ${FILE} ]; then
 fi
 
 #echo "Running makefile"
-${FILE}
+${FILE} "$@"
