@@ -324,7 +324,7 @@ public final class CreateMakeOper extends AppOper {
   private void createDriver() {
     if (!driverRequired())
       return;
-    setTarget("driver.sh");
+    setTarget(".driver.sh");
     String template = frag("driver2_template.txt");
     macroMap().put("run_app_command", mPomParametersMap.get("cmdline"));
     template = modifyTemplateWithExistingCustomizations(template);

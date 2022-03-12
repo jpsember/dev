@@ -1,14 +1,11 @@
 
-
-
-
 ##################################################
-# Create a symbolic link to the driver script
+# Install the driver script to the bin directory
 ##################################################
 
 if [ "$DRIVER" -ne "0" ]; then
   if [ ! -f $LINK ]; then
     DIR=$(pwd)
-    ln -sf $DIR/driver.sh $LINK
+    cp $DIR/.driver.sh $LINK
   fi
 fi

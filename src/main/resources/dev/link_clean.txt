@@ -1,5 +1,5 @@
   if [ "$DRIVER" -ne "0" ]; then
     if [ -f $LINK ]; then
-      unlink $LINK
+      rm $LINK
     fi
   fi
