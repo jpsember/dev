@@ -159,6 +159,12 @@ public final class CreateMakeOper extends AppOper {
         //
         String seek = ".m2/repository/";
         int c = expr.indexOf(seek);
+
+        if (c < 0) {
+          seek = "$MVN/";
+          c = expr.indexOf(seek);
+        }
+
         if (c >= 0) {
           expr = "$MVN/" + expr.substring(c + seek.length());
           break;
