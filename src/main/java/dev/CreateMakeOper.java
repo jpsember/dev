@@ -157,7 +157,7 @@ public final class CreateMakeOper extends AppOper {
       do {
         // Does it explicitly refer to a maven repository?
         //
-        String seek = ".m2/";
+        String seek = ".m2/repository/";
         int c = expr.indexOf(seek);
         if (c >= 0) {
           expr = "$MVN/" + expr.substring(c + seek.length());
@@ -237,8 +237,6 @@ public final class CreateMakeOper extends AppOper {
 
   private void writeTargetIfChanged(String content, boolean executable) {
     File targ = mTargetFile;
-    if (alert("*** adding extra prefix"))
-      targ = new File(targ.getParentFile(), "_temp_" + targ.getName());
     files().mkdirs(Files.parent(targ));
     if (verbose())
       log("writing to:", targ, INDENT, debStr(content));
