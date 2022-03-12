@@ -55,6 +55,7 @@ public final class CreateMakeOper extends AppOper {
     postProcessArgs();
     parsePomFile();
     createBuildScript();
+    createDriver();
   }
 
   private AppInfo.Builder appInfo() {
@@ -65,7 +66,6 @@ public final class CreateMakeOper extends AppOper {
         mAppInfo.pomFile(pomFile);
         mAppInfo.dir(Files.parent(pomFile));
       }
-      todo("figure out project directory, pom file, etc");
       log("...derived app info:", INDENT, mAppInfo);
     }
     return mAppInfo;
@@ -87,6 +87,7 @@ public final class CreateMakeOper extends AppOper {
       log("cannot locate arguments from pom.xml with prefix:", prefix, "; assuming no driver required");
       return;
     }
+    checkState(mDriver == null);
     mDriver = true;
 
     int commentEnd = content.indexOf(suffix, commentStart);
@@ -102,14 +103,17 @@ public final class CreateMakeOper extends AppOper {
     if (!cmdline.isEmpty()) {
       m.put(key, processCommandLineParameter(cmdline));
     }
+    mPomParametersMap = m;
 
     log("result:", m);
+
     // Replace the content with our modified version of the map
 
-    String newContent = content.substring(0, commentStart + prefix.length()) + m.prettyPrint()
-        + content.substring(commentEnd + suffix.length());
+    String newContent = content.substring(0, commentStart + prefix.length()) + "\n\n" + m.prettyPrint() + "\n"
+        + content.substring(commentEnd);
 
-    files().writeIfChanged(appInfo().pomFile(), newContent);
+    setTarget("pom.xml");
+    writeTargetIfChanged(newContent, false);
   }
 
   private String processCommandLineParameter(String content) {
@@ -230,22 +234,16 @@ public final class CreateMakeOper extends AppOper {
     return new File(appDir(), pathRelativeToProject);
   }
 
-  private void writeTarget(String content) {
-    writeFile(targetFile(), content);
-  }
-
-  private File writeFile(File path, String content) {
-    files().mkdirs(Files.parent(path));
+  private void writeTargetIfChanged(String content, boolean executable) {
+    File targ = mTargetFile;
+    if (alert("*** adding extra prefix"))
+      targ = new File(targ.getParentFile(), "_temp_" + targ.getName());
+    files().mkdirs(Files.parent(targ));
     if (verbose())
-      log("writing to:", path, INDENT, debStr(content));
-    files().writeString(path, content);
-    if (mExecutable) {
-      mExecutable = false;
-      if (!files().dryRun()) {
-        path.setExecutable(true);
-      }
-    }
-    return path;
+      log("writing to:", targ, INDENT, debStr(content));
+    files().writeIfChanged(targ, content);
+    if (executable)
+      files().chmod(targ, 744);
   }
 
   private static String keyPrefix(String macroKey) {
@@ -289,16 +287,33 @@ public final class CreateMakeOper extends AppOper {
     return template;
   }
 
+  private boolean driverRequired() {
+    if (mDriver == null)
+      throw badState("no driver flag determined yet");
+    return mDriver;
+  }
+
   private void createBuildScript() {
-    setTarget("mk");
+    setTarget("make_new.sh");
     String template = frag("mk_template.txt");
     template = modifyTemplateWithExistingCustomizations(template);
-    if (!mDriver)
+    if (!driverRequired())
       template = template.replace("DRIVER=1", "DRIVER=0");
     else
       template = template.replace("DRIVER=0", "DRIVER=1");
     String result = parseText(template);
-    writeTarget(result);
+    writeTargetIfChanged(result, true);
+  }
+
+  private void createDriver() {
+    if (!driverRequired())
+      return;
+    setTarget("driver.sh");
+    String template = frag("driver2_template.txt");
+    macroMap().put("run_app_command", mPomParametersMap.get("cmdline"));
+    template = modifyTemplateWithExistingCustomizations(template);
+    String result = parseText(template);
+    writeTargetIfChanged(result, true);
   }
 
   private JSMap macroMap() {
@@ -322,8 +337,6 @@ public final class CreateMakeOper extends AppOper {
       m.put("datagen_gitignore_comment", "# ...add appropriate entries for generated Java files");
 
       m.put("pom_dependencies", frag("pom_dependencies.xml"));
-
-      m.lock();
       mMacroMap = m;
     }
     return mMacroMap;
@@ -343,9 +356,9 @@ public final class CreateMakeOper extends AppOper {
   private File mTargetFile;
   //------------------------------------------------------------------
 
-  private boolean mDriver;
+  private Boolean mDriver;
   private JSMap mMacroMap;
-  private boolean mExecutable;
   private AppInfo.Builder mAppInfo;
+  private JSMap mPomParametersMap;
 
 }
