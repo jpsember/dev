@@ -28,7 +28,6 @@ import static js.base.Tools.*;
 
 import java.io.File;
 import java.util.List;
-import java.util.regex.Pattern;
 
 import dev.gen.AppInfo;
 import dev.gen.DependencyEntry;
@@ -38,7 +37,6 @@ import js.file.DirWalk;
 import js.file.Files;
 import js.json.JSMap;
 import js.parsing.MacroParser;
-import js.parsing.MacroParser.Mapper;
 
 public final class CreateMakeOper extends AppOper {
 
@@ -206,47 +204,6 @@ public final class CreateMakeOper extends AppOper {
       files().chmod(targ, 744);
   }
 
-  private static String keyPrefix(String macroKey) {
-    int k = macroKey.indexOf(':');
-    checkArgument(k > 0);
-    return macroKey.substring(0, k);
-  }
-
-  private final Pattern CUSTOMIZATIONS_MACRO_EXPR = Pattern.compile("(\\{~[a-zA-Z0-9]+:[^~]*~\\})");
-
-  /**
-   * Given a template, if target file already exists, incorporate its
-   * customizations
-   */
-  private String modifyTemplateWithExistingCustomizations(String template) {
-    String oldContent = Files.readString(targetFile(), "");
-    MacroParser parser = new MacroParser().withPattern(CUSTOMIZATIONS_MACRO_EXPR);
-
-    // Read old customizations
-    JSMap oldCustomMap = map();
-    parser.withTemplate(oldContent).content(new Mapper() {
-      @Override
-      public String textForKey(String key) {
-        String prefix = keyPrefix(key);
-        if (oldCustomMap.containsKey(prefix))
-          die("duplicate macro key:", prefix);
-        oldCustomMap.put(prefix, key);
-        return key;
-      }
-    });
-
-    // Insert customizations into template
-    parser = new MacroParser().withPattern(CUSTOMIZATIONS_MACRO_EXPR);
-    template = parser.withTemplate(template).content(new Mapper() {
-      @Override
-      public String textForKey(String key) {
-        String prefix = keyPrefix(key);
-        return oldCustomMap.opt(prefix, key);
-      }
-    });
-    return template;
-  }
-
   private void createBuildScript() {
     setTargetWithinProjectAuxDir("make.sh");
 
@@ -301,14 +258,11 @@ public final class CreateMakeOper extends AppOper {
     mTargetFile = new File(mProjectAuxDir, fname);
   }
 
-  private File mProjectAuxDir;
-
   private void createDriver() {
     setTargetWithinProjectAuxDir("driver.sh");
     String template = frag("driver2_template.txt");
     determineMainClass();
     macroMap().put("run_app_command", constructCommandLine());
-    template = modifyTemplateWithExistingCustomizations(template);
     String result = parseText(template);
     writeTargetIfChanged(result, true);
   }
@@ -388,16 +342,6 @@ public final class CreateMakeOper extends AppOper {
     return String.join(" ", args);
   }
 
-  // ------------------------------------------------------------------
-  // A distinguished 'target file'
-
-  private File targetFile() {
-    return Files.assertNonEmpty(mTargetFile, "targetFile");
-  }
-
-  private File mTargetFile;
-  //------------------------------------------------------------------
-
   private JSMap mMacroMap;
   private AppInfo.Builder mAppInfo;
 
@@ -406,5 +350,7 @@ public final class CreateMakeOper extends AppOper {
   private Boolean mWithDatagen;
   private List<DependencyEntry> mClassPathDependencies;
   private String mMainClass;
+  private File mTargetFile;
+  private File mProjectAuxDir;
 
 }
