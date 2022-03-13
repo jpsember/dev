@@ -1,14 +1,13 @@
+{{
 #!/usr/bin/env bash
 set -e
 
+{{driver
 APP=[!app_name]
 
-###### Flags start ##### {~flags:
-DRIVER=[!driver]
-DATAGEN=[!datagen]
-###### Flags end   ##### ~}
-
 [!link_define]
+
+{{
 
 ##################################################
 # Parse arguments:
@@ -28,8 +27,6 @@ while [ "$DONEARGS" -eq 0 ]; do
   elif [ "$1" == "skiptest" ]; then
     NOTEST="-DskipTests"
     shift 1
-  ###### Custom options start ##### {~options:
-  ###### Custom options end   ##### ~}
   else
     echo "Unrecognized argument: $1"
     exit 1
@@ -43,10 +40,11 @@ done
 if [ "$CLEAN" != "" ]; then
   echo "...cleaning"
   mvn clean
+{{driver
 [!link_clean]
+{{datagen
 [!datagen_clean]
-###### Custom clean statements start ##### {~clean:
-###### Custom clean statements end   ##### ~}
+{{
 fi
 
 
@@ -60,12 +58,9 @@ if [ "$NOTEST" != "" ]; then
   echo "...skipping tests"
 fi
 
-###### Custom pre-compile start ##### {~precompile:
-###### Custom pre-compile end   ##### ~}
-
+{{datagen
 [!datagen_build]
 mvn install $NOTEST
+{{driver
 [!link_create]
-
-###### Custom post-compile start ##### {~postcompile:
-###### Custom post-compile end   ##### ~}
+{{

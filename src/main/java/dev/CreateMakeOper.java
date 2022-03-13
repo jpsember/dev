@@ -31,7 +31,9 @@ import java.util.List;
 import java.util.regex.Pattern;
 
 import dev.gen.AppInfo;
+import dev.gen.DependencyEntry;
 import js.app.AppOper;
+import js.base.SystemCall;
 import js.file.Files;
 import js.json.JSMap;
 import js.parsing.MacroParser;
@@ -96,6 +98,9 @@ public final class CreateMakeOper extends AppOper {
     mDriver = !cmdline.isEmpty();
     if (mDriver) {
       m.put(key, processCommandLineParameter(cmdline));
+
+      mvnExp();
+
       appInfo().name(m.opt("app_name", ""));
       checkArgument(!nullOrEmpty(appInfo().name()), "missing app_name");
     }
@@ -110,6 +115,73 @@ public final class CreateMakeOper extends AppOper {
 
     setTarget("pom.xml");
     writeTargetIfChanged(newContent, false);
+
+    File datagenDir = new File(appInfo().dir(), "dat_files");
+    mWithDatagen = datagenDir.exists();
+  }
+
+  private static int indexOf(String container, String expr, int start) {
+    int position = optIndexOf(container, expr, start);
+    if (position < 0)
+      throw badArg("Can't find", quote(expr), "within string", quote(container), "starting from", start);
+    return position;
+  }
+
+  private static int optIndexOf(String container, String expr, int start) {
+    return container.indexOf(expr, start);
+  }
+
+  private void mvnExp() {
+    SystemCall s = new SystemCall();
+    s.arg("mvn", "dependency:tree", "-DoutputType=dot");
+    s.directory(appDir());
+    String x = s.systemOut();
+
+    String targ = "digraph \"";
+    int c = indexOf(x, targ, 0);
+    int a0 = c + targ.length();
+    int c0 = indexOf(x, "\"", a0);
+    String appExpr = x.substring(a0, c0);
+    DependencyEntry appEnt = parseDepEnt(appExpr);
+
+    int c2 = indexOf(x, "}", c);
+    String s2 = x.substring(c, c2);
+
+    List<DependencyEntry> deps = arrayList();
+
+    c = 0;
+    while (true) {
+      targ = "-> \"";
+      c2 = optIndexOf(s2, targ, c);
+      if (c2 < 0)
+        break;
+      int c3 = c2 + targ.length();
+      int c4 = indexOf(s2, "\"", c3);
+      String depExpr = s2.substring(c3, c4);
+
+      deps.add(parseDepEnt(depExpr));
+      c = c4;
+    }
+
+    pr("app:", INDENT, appEnt);
+    pr("deps:", INDENT, deps);
+    halt();
+  }
+
+  private DependencyEntry parseDepEnt(String depExpr) {
+    DependencyEntry.Builder b = DependencyEntry.newBuilder();
+    List<String> parts = split(depExpr, ':');
+
+    b.group(parts.get(0));
+    b.artifact(parts.get(1));
+    b.type(parts.get(2));
+    b.version(parts.get(3));
+    if (parts.size() > 4)
+      b.phase(parts.get(4));
+    else
+      b.phase("compile");
+
+    return b.build();
   }
 
   private String processCommandLineParameter(String content) {
@@ -285,21 +357,38 @@ public final class CreateMakeOper extends AppOper {
 
   private void createBuildScript() {
     setTargetWithinProjectAuxDir("make.sh");
-    String template = frag("mk2_template.txt");
-    macroMap().put("driver", mDriver ? "1" : "0");
 
-    File datagenDir = new File(appInfo().dir(), "dat_files");
-    macroMap().put("datagen", datagenDir.exists() ? "1" : "0");
+    List<String> lines = split(frag("mk2.txt"), '\n');
 
-    template = modifyTemplateWithExistingCustomizations(template);
-    if (!mDriver)
-      template = template.replace("DRIVER=1", "DRIVER=0");
-    else
-      template = template.replace("DRIVER=0", "DRIVER=1");
-    
-    
-    pr("template:",INDENT,template);
-    String result = parseText(template);
+    List<String> filtered = arrayList();
+    boolean state = true;
+    int sourceIndex = INIT_INDEX;
+    for (String line : lines) {
+      sourceIndex++;
+      if (line.startsWith("{{")) {
+        String arg = line.substring(2);
+        switch (arg) {
+        default:
+          throw badArg("line:", quote(line), "at", 1 + sourceIndex);
+        case "":
+          state = true;
+          break;
+        case "driver":
+          state = mDriver;
+          break;
+        case "datagen":
+          state = mWithDatagen;
+          break;
+        }
+        continue;
+      }
+      if (!state)
+        continue;
+      filtered.add(line);
+    }
+
+    String template = String.join("\n", filtered);
+    String result = MacroParser.parse(template, macroMap());
     writeTargetIfChanged(result, true);
 
     File binDir = new File(Files.homeDirectory(), "bin");
@@ -337,12 +426,12 @@ public final class CreateMakeOper extends AppOper {
       m.put("group_id", "com.jsbase");
       if (mDriver) {
         m.put("app_name", appInfo().name());
-        m.put("link_define", frag("link_define.txt"));
-        m.put("link_clean", frag("link_clean.txt"));
-        m.put("link_create", frag("link_create.txt"));
+        m.put("link_define", frag("link_define_2.txt"));
+        m.put("link_clean", frag("link_clean_2.txt"));
+        m.put("link_create", frag("link_create_2.txt"));
       }
-      m.put("datagen_clean", frag("datagen_clean.txt"));
-      m.put("datagen_build", frag("datagen_build.txt"));
+      m.put("datagen_clean", frag("datagen_clean_2.txt"));
+      m.put("datagen_build", frag("datagen_build_2.txt"));
       m.put("datagen_gitignore_comment", "# ...add appropriate entries for generated Java files");
 
       mMacroMap = m;
@@ -367,6 +456,8 @@ public final class CreateMakeOper extends AppOper {
   private JSMap mMacroMap;
   private AppInfo.Builder mAppInfo;
   private JSMap mPomParametersMap;
+
   private Boolean mDriver;
+  private Boolean mWithDatagen;
 
 }

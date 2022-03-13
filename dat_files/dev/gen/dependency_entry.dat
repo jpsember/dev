@@ -1,0 +1,8 @@
+fields {
+  string group;
+  string artifact;
+  string type;
+  string version;
+  string phase;
+}
+
