@@ -39,11 +39,8 @@ import js.file.Files;
 import js.json.JSMap;
 import js.parsing.MacroParser;
 import js.parsing.MacroParser.Mapper;
-import js.parsing.RegExp;
 
 public final class CreateMakeOper extends AppOper {
-
-  private static final boolean OLD = false && alert("using old method");
 
   @Override
   public String userCommand() {
@@ -89,10 +86,6 @@ public final class CreateMakeOper extends AppOper {
   }
 
   private void parsePomFile() {
-    if (OLD) {
-      parsePomFileOLD();
-      return;
-    }
     mPomContent = Files.readString(appInfo().pomFile());
     String driverName = parsePomProperty("driver.name");
     determineMainClass();
@@ -116,51 +109,6 @@ public final class CreateMakeOper extends AppOper {
       appInfo().name(driverName);
       mClassPathDependencies = parsePomDependencyTree();
     }
-
-    File datagenDir = new File(appInfo().dir(), "dat_files");
-    mWithDatagen = datagenDir.exists();
-  }
-
-  private void parsePomFileOLD() {
-    String content = Files.readString(appInfo().pomFile());
-
-    // Look for a JSMap embedded within an xml comment with prefix "<!--DEV" 
-    String prefix = "<!--DEV";
-    String suffix = "-->";
-
-    int commentStart = content.indexOf(prefix);
-    if (commentStart < 0) {
-      setError("Cannot locate arguments within pom.xml; sought prefix:", quote(prefix));
-    }
-
-    int commentEnd = content.indexOf(suffix, commentStart);
-    if (commentEnd < 0)
-      badArg("Can't find end of comment tag in pom.xml");
-
-    String jsonContent = content.substring(commentStart + prefix.length(), commentEnd);
-    JSMap m = new JSMap(jsonContent);
-    log("Parameters parsed from pom.xml:", INDENT, m);
-
-    String key = "cmdline";
-    String cmdline = m.opt(key, "");
-
-    mDriver = !cmdline.isEmpty();
-    if (mDriver) {
-      m.put(key, processCommandLineParameter(cmdline));
-      appInfo().name(m.opt("app_name", ""));
-      checkArgument(!nullOrEmpty(appInfo().name()), "missing app_name");
-    }
-    mPomParametersMap = m;
-
-    log("result:", m);
-
-    // Replace the content with our modified version of the map
-
-    String newContent = content.substring(0, commentStart + prefix.length()) + "\n\n" + m.prettyPrint() + "\n"
-        + content.substring(commentEnd);
-
-    setTarget("pom.xml");
-    writeTargetIfChanged(newContent, false);
 
     File datagenDir = new File(appInfo().dir(), "dat_files");
     mWithDatagen = datagenDir.exists();
@@ -234,108 +182,6 @@ public final class CreateMakeOper extends AppOper {
     return b.build();
   }
 
-  private String processCommandLineParameter(String content) {
-    List<String> args = split(content, ' ');
-    List<String> filtered = arrayList();
-
-    int argNum = 0;
-    for (String expr : args) {
-      switch (argNum) {
-      case 0:
-        checkArgument(expr.endsWith("java"), "expected argument to invoke java:", expr);
-        filtered.add("java");
-        argNum++;
-        break;
-
-      default:
-        String prev = last(filtered);
-        if (prev.equals("-classpath")) {
-          expr = processClassPathArg(expr);
-        }
-        filtered.add(expr);
-        break;
-      }
-
-    }
-
-    String extraArgsArgument = quote("$@");
-    if (!filtered.contains(extraArgsArgument))
-      filtered.add(extraArgsArgument);
-
-    return String.join(" ", filtered);
-  }
-
-  private String processClassPathArg(String content) {
-    List<String> args = split(content, ':');
-    List<String> filtered = arrayList();
-    for (String expr : args) {
-
-      // Determine if this classpath entry refers to a project within the maven repository
-
-      do {
-        // Does it explicitly refer to a maven repository?
-        //
-        String seek = ".m2/repository/";
-        int c = expr.indexOf(seek);
-
-        if (c < 0) {
-          seek = "$MVN/";
-          c = expr.indexOf(seek);
-        }
-
-        if (c >= 0) {
-          expr = "$MVN/" + expr.substring(c + seek.length());
-          break;
-        }
-
-        // Does it seem to refer to a project for which we have maven project?
-        // Maybe we can assume *all* projects are within the maven repository...
-        seek = "/target/classes";
-        c = expr.indexOf(seek);
-        if (c >= 0) {
-
-          // Assume this refers to a project with a pom file
-          String dir = expr.substring(0, c);
-          log("...inferring maven location from:", dir);
-          File pomFile = new File(dir + "/pom.xml");
-          if (!pomFile.exists()) {
-            badArg("can't locate pom.xml:", pomFile, INDENT, "for expression:", expr);
-          }
-          String pathRelToMaven = extractClassesPathFromPom(pomFile);
-          expr = "$MVN/" + pathRelToMaven;
-          break;
-        }
-
-        pr("*** Failed to figure out expression:", expr);
-      } while (false);
-      filtered.add(expr);
-    }
-    return String.join(":", filtered);
-  }
-
-  private static String parsePomTag(String content, String tag) {
-    try {
-      String t2 = "<" + tag + ">";
-      int i = content.indexOf(t2);
-      int j = content.indexOf("</" + tag + ">", i);
-      String x = content.substring(i + t2.length(), j);
-      checkArgument(RegExp.patternMatchesString("[\\w.]+", x));
-      return x;
-    } catch (Throwable t) {
-      throw badArg("Failed to parse tag from pom file:", tag);
-    }
-  }
-
-  private String extractClassesPathFromPom(File pomFile) {
-    String content = Files.readString(pomFile);
-    String groupId = parsePomTag(content, "groupId");
-    String artifactId = parsePomTag(content, "artifactId");
-    String version = parsePomTag(content, "version");
-    String exp = groupId.replace('.', '/') + "/" + artifactId + "/" + version + "/" + artifactId + "-"
-        + version + ".jar";
-    return exp;
-  }
-
   private File appDir() {
     return Files.assertNonEmpty(appInfo().dir(), "appInfo.dir");
   }
@@ -348,10 +194,6 @@ public final class CreateMakeOper extends AppOper {
 
   private String frag(String resourceName) {
     return Files.readString(getClass(), resourceName);
-  }
-
-  private File appFile(String pathRelativeToProject) {
-    return new File(appDir(), pathRelativeToProject);
   }
 
   private void writeTargetIfChanged(String content, boolean executable) {
@@ -464,17 +306,8 @@ public final class CreateMakeOper extends AppOper {
   private void createDriver() {
     setTargetWithinProjectAuxDir("driver.sh");
     String template = frag("driver2_template.txt");
-
-    String cmdLine;
-
-    if (OLD) {
-      cmdLine = mPomParametersMap.get("cmdline");
-    } else {
-      determineMainClass();
-      cmdLine = constructCommandLine();
-    }
-
-    macroMap().put("run_app_command", cmdLine);
+    determineMainClass();
+    macroMap().put("run_app_command", constructCommandLine());
     template = modifyTemplateWithExistingCustomizations(template);
     String result = parseText(template);
     writeTargetIfChanged(result, true);
@@ -558,10 +391,6 @@ public final class CreateMakeOper extends AppOper {
   // ------------------------------------------------------------------
   // A distinguished 'target file'
 
-  private void setTarget(String pathRelativeToProject) {
-    mTargetFile = appFile(pathRelativeToProject);
-  }
-
   private File targetFile() {
     return Files.assertNonEmpty(mTargetFile, "targetFile");
   }
@@ -571,7 +400,6 @@ public final class CreateMakeOper extends AppOper {
 
   private JSMap mMacroMap;
   private AppInfo.Builder mAppInfo;
-  private JSMap mPomParametersMap;
 
   private String mPomContent;
   private Boolean mDriver;
