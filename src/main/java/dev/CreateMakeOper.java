@@ -42,6 +42,8 @@ import js.parsing.RegExp;
 
 public final class CreateMakeOper extends AppOper {
 
+  private static final boolean OLD = false && alert("using old method");
+
   @Override
   public String userCommand() {
     return "createmake";
@@ -71,13 +73,57 @@ public final class CreateMakeOper extends AppOper {
     return mAppInfo;
   }
 
+  private String parsePomProperty(String propertyName) {
+    String result = null;
+    String pomContent = mPomContent;
+    String expr = "<" + propertyName + ">";
+    int c = optIndexOf(pomContent, expr, 0);
+    if (c >= 0) {
+      int nameStart = c + expr.length();
+      int c2 = indexOf(pomContent, "<", nameStart);
+      result = pomContent.substring(nameStart, c2);
+    }
+    log("parsePomProperty", expr, "=>", result);
+    return result;
+  }
+
   private void parsePomFile() {
+    if (OLD) {
+      parsePomFileOLD();
+      return;
+    }
+    mPomContent = Files.readString(appInfo().pomFile());
+    String driverName = parsePomProperty("driver.name");
+    determineMainClass();
+
+    if (nonEmpty(mMainClass) && nullOrEmpty(driverName)) {
+      // derive driver name from main class package
+      List<String> packageElements = split(mMainClass, '.');
+      if (packageElements.size() >= 2) {
+        String element = getMod(packageElements, -2);
+        if (element.toLowerCase().equals(element)) {
+          driverName = element;
+        }
+      }
+    }
+    if (nonEmpty(mMainClass) && nullOrEmpty(driverName))
+      throw badArg("no driver name available");
+    mDriver = nonEmpty(driverName);
+    if (mDriver) {
+      appInfo().name(driverName);
+      mClassPathDependencies = parsePomDependencyTree();
+    }
+
+    File datagenDir = new File(appInfo().dir(), "dat_files");
+    mWithDatagen = datagenDir.exists();
+  }
+
+  private void parsePomFileOLD() {
+    String content = Files.readString(appInfo().pomFile());
 
     // Look for a JSMap embedded within an xml comment with prefix "<!--DEV" 
     String prefix = "<!--DEV";
     String suffix = "-->";
-
-    String content = Files.readString(appInfo().pomFile());
 
     int commentStart = content.indexOf(prefix);
     if (commentStart < 0) {
@@ -98,9 +144,6 @@ public final class CreateMakeOper extends AppOper {
     mDriver = !cmdline.isEmpty();
     if (mDriver) {
       m.put(key, processCommandLineParameter(cmdline));
-
-      mvnExp();
-
       appInfo().name(m.opt("app_name", ""));
       checkArgument(!nullOrEmpty(appInfo().name()), "missing app_name");
     }
@@ -131,7 +174,7 @@ public final class CreateMakeOper extends AppOper {
     return container.indexOf(expr, start);
   }
 
-  private void mvnExp() {
+  private List<DependencyEntry> parsePomDependencyTree() {
     SystemCall s = new SystemCall();
     s.arg("mvn", "dependency:tree", "-DoutputType=dot");
     s.directory(appDir());
@@ -163,9 +206,13 @@ public final class CreateMakeOper extends AppOper {
       c = c4;
     }
 
-    pr("app:", INDENT, appEnt);
-    pr("deps:", INDENT, deps);
-    halt();
+    List<DependencyEntry> filtered = arrayList();
+    filtered.add(appEnt);
+    for (DependencyEntry ent : deps) {
+      if (ent.phase().equals("compile"))
+        filtered.add(ent);
+    }
+    return filtered;
   }
 
   private DependencyEntry parseDepEnt(String depExpr) {
@@ -414,7 +461,17 @@ public final class CreateMakeOper extends AppOper {
   private void createDriver() {
     setTargetWithinProjectAuxDir("driver.sh");
     String template = frag("driver2_template.txt");
-    macroMap().put("run_app_command", mPomParametersMap.get("cmdline"));
+
+    String cmdLine;
+
+    if (OLD) {
+      cmdLine = mPomParametersMap.get("cmdline");
+    } else {
+      determineMainClass();
+      cmdLine = constructCommandLine();
+    }
+
+    macroMap().put("run_app_command", cmdLine);
     template = modifyTemplateWithExistingCustomizations(template);
     String result = parseText(template);
     writeTargetIfChanged(result, true);
@@ -439,6 +496,41 @@ public final class CreateMakeOper extends AppOper {
     return mMacroMap;
   }
 
+  private void determineMainClass() {
+    String mainClass = parsePomProperty("driver.class");
+    if (nullOrEmpty(mainClass)) {
+      mainClass = "ml.Main";
+      todo("search to figure out main class");
+    }
+    mMainClass = mainClass;
+  }
+
+  private String constructCommandLine() {
+    List<String> args = arrayList();
+
+    args.add("java");
+    args.add("-Dfile.encoding=UTF-8");
+    args.add("-classpath");
+    for (DependencyEntry ent : mClassPathDependencies) {
+      StringBuilder s = new StringBuilder();
+      s.append("$MVN/");
+      s.append(ent.group().replace('.', '/'));
+      s.append('/');
+      s.append(ent.artifact());
+      s.append('/');
+      s.append(ent.version());
+      s.append('/');
+      s.append(ent.artifact());
+      s.append('-');
+      s.append(ent.version());
+      s.append(".jar");
+      args.add(s.toString());
+    }
+    args.add(mMainClass);
+    args.add("\"$@\"");
+    return String.join(" ", args);
+  }
+
   // ------------------------------------------------------------------
   // A distinguished 'target file'
 
@@ -457,7 +549,10 @@ public final class CreateMakeOper extends AppOper {
   private AppInfo.Builder mAppInfo;
   private JSMap mPomParametersMap;
 
+  private String mPomContent;
   private Boolean mDriver;
   private Boolean mWithDatagen;
+  private List<DependencyEntry> mClassPathDependencies;
+  private String mMainClass;
 
 }
