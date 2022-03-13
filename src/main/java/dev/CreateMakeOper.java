@@ -34,6 +34,7 @@ import dev.gen.AppInfo;
 import dev.gen.DependencyEntry;
 import js.app.AppOper;
 import js.base.SystemCall;
+import js.file.DirWalk;
 import js.file.Files;
 import js.json.JSMap;
 import js.parsing.MacroParser;
@@ -96,8 +97,10 @@ public final class CreateMakeOper extends AppOper {
     String driverName = parsePomProperty("driver.name");
     determineMainClass();
 
+    // If no explicit driver name was given, and a main class was found,
+    // derive a suitable driver name from the main class's package
+    //
     if (nonEmpty(mMainClass) && nullOrEmpty(driverName)) {
-      // derive driver name from main class package
       List<String> packageElements = split(mMainClass, '.');
       if (packageElements.size() >= 2) {
         String element = getMod(packageElements, -2);
@@ -496,13 +499,34 @@ public final class CreateMakeOper extends AppOper {
     return mMacroMap;
   }
 
+  /**
+   * Attempt to determine the fully-qualified class name of the driver class
+   * (the 'main' method)
+   * 
+   * If pom file has a driver.class property, use it; otherwise, search the java
+   * source files for a main method.
+   */
   private void determineMainClass() {
     String mainClass = parsePomProperty("driver.class");
     if (nullOrEmpty(mainClass)) {
-      mainClass = "ml.Main";
-      todo("search to figure out main class");
+      List<String> candidates = arrayList();
+      DirWalk w = new DirWalk(new File(appDir(), "src/main/java")).withExtensions("java");
+      for (File srcFile : w.files()) {
+        String content = Files.readString(srcFile);
+        if (content.contains("public static void main(String[] ")) {
+          File c = w.rel(srcFile);
+          mainClass = chomp(c.toString(), ".java").replace('/', '.');
+          candidates.add(mainClass);
+        }
+      }
+      if (candidates.size() > 1) {
+        pr("*** Multiple candidates for 'main' class found:", INDENT, candidates);
+      } else if (candidates.size() == 1) {
+        mainClass = candidates.get(0);
+      }
     }
     mMainClass = mainClass;
+    log("determined main class:", mMainClass);
   }
 
   private String constructCommandLine() {
