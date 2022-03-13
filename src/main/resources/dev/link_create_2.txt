@@ -1,8 +1,1 @@
-
-##################################################
-# Install the driver script to the bin directory
-##################################################
-
-if [ ! -f $LINK ]; then
-  cp .jsproject/driver.sh $LINK
-fi
+cp .jsproject/driver.sh $LINK

@@ -322,8 +322,10 @@ public final class CreateMakeOper extends AppOper {
     args.add("java");
     args.add("-Dfile.encoding=UTF-8");
     args.add("-classpath");
+    StringBuilder s = new StringBuilder();
     for (DependencyEntry ent : mClassPathDependencies) {
-      StringBuilder s = new StringBuilder();
+      if (s.length() > 0)
+        s.append(':');
       s.append("$MVN/");
       s.append(ent.group().replace('.', '/'));
       s.append('/');
@@ -335,8 +337,8 @@ public final class CreateMakeOper extends AppOper {
       s.append('-');
       s.append(ent.version());
       s.append(".jar");
-      args.add(s.toString());
     }
+    args.add(s.toString());
     args.add(mMainClass);
     args.add("\"$@\"");
     return String.join(" ", args);
