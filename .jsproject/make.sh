@@ -3,20 +3,15 @@ set -e
 
 APP=dev
 
-###### Flags start ##### {~flags:
-DRIVER=1
 DATAGEN=1
-###### Flags end   ##### ~}
 
-if [ "$DRIVER" -ne "0" ]; then
-  BINDIR="$HOME/bin"
-  if [ ! -d $BINDIR ] 
-  then
-    echo "Directory doesn't exist; please create it: $BINDIR"
-    exit 1
-  fi
-  LINK=$BINDIR/$APP
+BINDIR="$HOME/bin"
+if [ ! -d $BINDIR ]
+then
+  echo "Directory doesn't exist; please create it: $BINDIR"
+  exit 1
 fi
+LINK=$BINDIR/$APP
 
 
 ##################################################
@@ -37,8 +32,6 @@ while [ "$DONEARGS" -eq 0 ]; do
   elif [ "$1" == "skiptest" ]; then
     NOTEST="-DskipTests"
     shift 1
-  ###### Custom options start ##### {~options:
-  ###### Custom options end   ##### ~}
   else
     echo "Unrecognized argument: $1"
     exit 1
@@ -52,21 +45,12 @@ done
 if [ "$CLEAN" != "" ]; then
   echo "...cleaning $APP"
   mvn clean
-  if [ "$DRIVER" -ne "0" ]; then
-    if [ -f $LINK ]; then
-      rm $LINK
-    fi
+  if [ -f $LINK ]; then
+    rm $LINK
   fi
 
-  if [ "$DATAGEN" -ne "0" ]; then
-    datagen clean delete_old
-  fi
-
-###### Custom clean statements start ##### {~clean:
-###### Custom clean statements end   ##### ~}
+  datagen clean delete_old
 fi
-
-
 
 
 
@@ -77,13 +61,8 @@ if [ "$NOTEST" != "" ]; then
   echo "...skipping tests"
 fi
 
-###### Custom pre-compile start ##### {~precompile:
-###### Custom pre-compile end   ##### ~}
-
-if [ "$DATAGEN" -ne "0" ]; then
-  echo "...generating data classes"
-  datagen
-fi
+echo "...generating data classes"
+datagen
 
 mvn install $NOTEST
 
@@ -91,13 +70,7 @@ mvn install $NOTEST
 # Install the driver script to the bin directory
 ##################################################
 
-if [ "$DRIVER" -ne "0" ]; then
-  if [ ! -f $LINK ]; then
-    DIR=$(pwd)
-    cp $DIR/.jsproject/driver.sh $LINK
-  fi
+if [ ! -f $LINK ]; then
+  DIR=$(pwd)
+  cp $DIR/.jsproject/driver.sh $LINK
 fi
-
-
-###### Custom post-compile start ##### {~postcompile:
-###### Custom post-compile end   ##### ~}

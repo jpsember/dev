@@ -5,7 +5,6 @@
 
 if [ "$DRIVER" -ne "0" ]; then
   if [ ! -f $LINK ]; then
-    DIR=$(pwd)
-    cp $DIR/.jsproject/driver.sh $LINK
+    cp .jsproject/driver.sh $LINK
   fi
 fi

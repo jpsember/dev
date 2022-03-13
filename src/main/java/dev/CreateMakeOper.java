@@ -52,30 +52,25 @@ public final class CreateMakeOper extends AppOper {
 
   @Override
   public void perform() {
-    postProcessArgs();
     parsePomFile();
     createBuildScript();
-    createDriver();
+    if (mDriver)
+      createDriver();
   }
 
   private AppInfo.Builder appInfo() {
     if (mAppInfo == null) {
       mAppInfo = AppInfo.newBuilder();
-      {
-        File pomFile = Files.getFileWithinParents(null, "pom.xml", "determining project directory");
-        mAppInfo.pomFile(pomFile);
-        mAppInfo.dir(Files.parent(pomFile));
-      }
+      File pomFile = Files.getFileWithinParents(null, "pom.xml", "determining project directory");
+      mAppInfo.pomFile(pomFile);
+      mAppInfo.dir(Files.parent(pomFile));
       log("...derived app info:", INDENT, mAppInfo);
     }
     return mAppInfo;
   }
 
-  private void postProcessArgs() {
-    appInfo();
-  }
-
   private void parsePomFile() {
+
     // Look for a JSMap embedded within an xml comment with prefix "<!--DEV" 
     String prefix = "<!--DEV";
     String suffix = "-->";
@@ -84,11 +79,8 @@ public final class CreateMakeOper extends AppOper {
 
     int commentStart = content.indexOf(prefix);
     if (commentStart < 0) {
-      log("cannot locate arguments from pom.xml with prefix:", prefix, "; assuming no driver required");
-      return;
+      setError("Cannot locate arguments within pom.xml; sought prefix:", quote(prefix));
     }
-    checkState(mDriver == null);
-    mDriver = true;
 
     int commentEnd = content.indexOf(suffix, commentStart);
     if (commentEnd < 0)
@@ -100,8 +92,12 @@ public final class CreateMakeOper extends AppOper {
 
     String key = "cmdline";
     String cmdline = m.opt(key, "");
-    if (!cmdline.isEmpty()) {
+
+    mDriver = !cmdline.isEmpty();
+    if (mDriver) {
       m.put(key, processCommandLineParameter(cmdline));
+      appInfo().name(m.opt("app_name", ""));
+      checkArgument(!nullOrEmpty(appInfo().name()), "missing app_name");
     }
     mPomParametersMap = m;
 
@@ -218,11 +214,6 @@ public final class CreateMakeOper extends AppOper {
     return exp;
   }
 
-  private String appName() {
-    checkArgument(!appInfo().name().isEmpty(), "no app name");
-    return appInfo().name();
-  }
-
   private File appDir() {
     return Files.assertNonEmpty(appInfo().dir(), "appInfo.dir");
   }
@@ -292,30 +283,22 @@ public final class CreateMakeOper extends AppOper {
     return template;
   }
 
-  private boolean driverRequired() {
-    if (mDriver == null)
-      throw badState("no driver flag determined yet");
-    return mDriver;
-  }
-
   private void createBuildScript() {
-    String appName = mPomParametersMap.opt("app_name", "");
-    if (nullOrEmpty(appName)) {
-      badArg("No 'app_name' defined in pom.xml parameters");
-    }
-    appInfo().name(appName);
     setTargetWithinProjectAuxDir("make.sh");
     String template = frag("mk2_template.txt");
-    macroMap().put("driver", driverRequired() ? "1" : "0");
+    macroMap().put("driver", mDriver ? "1" : "0");
 
     File datagenDir = new File(appInfo().dir(), "dat_files");
     macroMap().put("datagen", datagenDir.exists() ? "1" : "0");
 
     template = modifyTemplateWithExistingCustomizations(template);
-    if (!driverRequired())
+    if (!mDriver)
       template = template.replace("DRIVER=1", "DRIVER=0");
     else
       template = template.replace("DRIVER=0", "DRIVER=1");
+    
+    
+    pr("template:",INDENT,template);
     String result = parseText(template);
     writeTargetIfChanged(result, true);
 
@@ -340,8 +323,6 @@ public final class CreateMakeOper extends AppOper {
   private File mProjectAuxDir;
 
   private void createDriver() {
-    if (!driverRequired())
-      return;
     setTargetWithinProjectAuxDir("driver.sh");
     String template = frag("driver2_template.txt");
     macroMap().put("run_app_command", mPomParametersMap.get("cmdline"));
@@ -354,23 +335,16 @@ public final class CreateMakeOper extends AppOper {
     if (mMacroMap == null) {
       JSMap m = map();
       m.put("group_id", "com.jsbase");
-      m.put("app_name", appName());
-      m.put("package_name", appInfo().mainPackage());
-      m.put("package_name_slashes", appInfo().mainPackage().replace('.', '/'));
-      m.put("main_class_name", appInfo().mainClassName());
-      m.put("main_oper_name", appInfo().mainClassName() + "Oper");
-      m.put("driver_name", appInfo().mainClassName());
-      m.put("test_package_name", appInfo().mainPackage());
-
-      m.put("link_define", frag("link_define.txt"));
-      m.put("link_clean", frag("link_clean.txt"));
-      m.put("link_create", frag("link_create.txt"));
-
+      if (mDriver) {
+        m.put("app_name", appInfo().name());
+        m.put("link_define", frag("link_define.txt"));
+        m.put("link_clean", frag("link_clean.txt"));
+        m.put("link_create", frag("link_create.txt"));
+      }
       m.put("datagen_clean", frag("datagen_clean.txt"));
       m.put("datagen_build", frag("datagen_build.txt"));
       m.put("datagen_gitignore_comment", "# ...add appropriate entries for generated Java files");
 
-      m.put("pom_dependencies", frag("pom_dependencies.xml"));
       mMacroMap = m;
     }
     return mMacroMap;
@@ -390,9 +364,9 @@ public final class CreateMakeOper extends AppOper {
   private File mTargetFile;
   //------------------------------------------------------------------
 
-  private Boolean mDriver;
   private JSMap mMacroMap;
   private AppInfo.Builder mAppInfo;
   private JSMap mPomParametersMap;
+  private Boolean mDriver;
 
 }

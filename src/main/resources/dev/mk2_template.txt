@@ -41,7 +41,7 @@ done
 # Perform clean, if requested
 #
 if [ "$CLEAN" != "" ]; then
-  echo "...cleaning $APP"
+  echo "...cleaning"
   mvn clean
 [!link_clean]
 [!datagen_clean]
