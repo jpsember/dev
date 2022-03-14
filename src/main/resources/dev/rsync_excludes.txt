@@ -6,6 +6,7 @@
 #
 _OLD_*
 _SKIP_*
+.jsproject
 
 # Sublime text editor
 #

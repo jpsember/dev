@@ -1,3 +1,0 @@
-  if [ "$DATAGEN" -ne "0" ]; then
-    datagen clean delete_old
-  fi

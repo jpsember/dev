@@ -43,7 +43,6 @@ public class CreateAppOperTest extends MyTestCase {
     addArg("createapp");
     addArg("package", "js.zebra");
     addArg("startdir", appDir());
-    addArg("driver");
     compile();
   }
 
@@ -53,7 +52,6 @@ public class CreateAppOperTest extends MyTestCase {
     addArg("package", "js.zebra");
     addArg("startdir", appDir());
     addArg("main", "Zebra");
-    addArg("driver");
     compile();
   }
 
@@ -61,51 +59,6 @@ public class CreateAppOperTest extends MyTestCase {
   public void noPackageDefined() {
     addArg("createapp");
     addArg("startdir", appDir());
-    addArg("driver");
-    compile();
-  }
-
-  @Test
-  public void omitDriver() {
-    addArg("createapp");
-    addArg("package", "js.zebra");
-    addArg("startdir", appDir());
-    compile();
-  }
-
-  @Test
-  public void addDriverLater() {
-    // First, create an app without a driver
-    addArg("createapp");
-    addArg("package", "js.zebra");
-    addArg("startdir", appDir());
-    runApp();
-    // Now, rerun the create operation, requesting a driver
-    addArg("createapp");
-    addArg("package", "js.zebra");
-    addArg("startdir", appDir());
-    addArg("driver");
-    compile();
-  }
-
-  @Test
-  public void addDriverForMainAddedLater() {
-    // First, create an app without a driver
-    addArg("createapp");
-    addArg("package", "js.zebra");
-    addArg("startdir", appDir());
-    runApp();
-
-    Files files = Files.S;
-    // Create a (bogus) Main.java
-    File mainFile = new File(appDir(), "src/main/java/js/zebra/Main.java");
-    files.mkdirs(mainFile.getParentFile());
-    files.writeString(mainFile, "<placeholder>");
-    // Rerun the create operation, requesting a driver
-    addArg("createapp");
-    addArg("package", "js.zebra");
-    addArg("startdir", appDir());
-    addArg("driver");
     compile();
   }
 
@@ -120,8 +73,6 @@ public class CreateAppOperTest extends MyTestCase {
       mAppDir = Files.S.mkdirs(generatedFile(appName()));
     return mAppDir;
   }
-
-  private File mAppDir;
 
   private void runApp() {
     if (verbose())
@@ -143,6 +94,7 @@ public class CreateAppOperTest extends MyTestCase {
     return mArgs;
   }
 
+  private File mAppDir;
   private List<String> mArgs = arrayList();
 
 }

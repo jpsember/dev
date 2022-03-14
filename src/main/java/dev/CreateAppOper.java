@@ -28,7 +28,6 @@ import static js.base.Tools.*;
 
 import java.io.File;
 import java.util.List;
-import java.util.regex.Pattern;
 
 import dev.gen.AppInfo;
 import js.app.AppOper;
@@ -37,7 +36,6 @@ import js.file.DirWalk;
 import js.file.Files;
 import js.json.JSMap;
 import js.parsing.MacroParser;
-import js.parsing.MacroParser.Mapper;
 
 public final class CreateAppOper extends AppOper {
 
@@ -56,8 +54,6 @@ public final class CreateAppOper extends AppOper {
     postProcessArgs();
     createAppDir();
     createPom();
-    createDriver();
-    createBuildScript();
     createSource();
     createDatFiles();
     createGitIgnore();
@@ -65,7 +61,7 @@ public final class CreateAppOper extends AppOper {
 
   @Override
   protected List<Object> getAdditionalArgs() {
-    return arrayList("[ package <xxx.yyy.etc> | startdir <dir> | driver | main <e.g. Main> ]*");
+    return arrayList("[ package <xxx.yyy.etc> | startdir <dir> | main <e.g. Main> ]*");
   }
 
   @Override
@@ -74,7 +70,6 @@ public final class CreateAppOper extends AppOper {
     mStartDirString = args.nextArgIf("startdir", mStartDirString);
     mMainPackageArg = args.nextArgIf("package", mMainPackageArg);
     mMainClassName = args.nextArgIf("main", mMainClassName);
-    mDriver = args.nextArgIf("driver", mDriver);
   }
 
   private AppInfo.Builder appInfo() {
@@ -94,7 +89,6 @@ public final class CreateAppOper extends AppOper {
   }
 
   private void postProcessArgs() {
-    appInfo();
     {
       String mainClassName = mMainClassName;
       if (mainClassName.endsWith(".java"))
@@ -111,7 +105,7 @@ public final class CreateAppOper extends AppOper {
       if (mainPackage.endsWith(suffix))
         badArg("Extraneous suffix for <package> arg:", suffix);
       if (!("." + mainPackage).endsWith("." + appInfo().name()))
-        throw badArg("*** Package", quote(mainPackage), "doesn't end with app name", quote(appInfo().name()));
+        badArg("*** Package", quote(mainPackage), "doesn't end with app name", quote(appInfo().name()));
 
       if (nonEmpty(appInfo().mainPackage()))
         checkArgumentsEqual(mainPackage, appInfo().mainPackage(), "Inferred package vs command line arg");
@@ -125,10 +119,6 @@ public final class CreateAppOper extends AppOper {
 
   private File appDir() {
     return appInfo().dir();
-  }
-
-  private boolean generateDriver() {
-    return mDriver;
   }
 
   private File mainJavaFile() {
@@ -163,97 +153,18 @@ public final class CreateAppOper extends AppOper {
 
   private void createPom() {
     setTarget("pom.xml");
-    String template = modifyTemplateWithExistingCustomizations(frag("pom_template.xml"));
-    writeTarget(parseText(template));
-  }
-
-  private CreateAppOper executable() {
-    mExecutable = true;
-    return this;
-  }
-
-  private void writeTarget(String content) {
-    writeFile(targetFile(), content);
+    writeTargetIfMissing(parseResource("pom_template.xml") );
   }
 
   private void writeTargetIfMissing(String content) {
     if (!targetFile().exists())
-      writeTarget(content);
+      writeFile(targetFile(), content);
   }
 
   private File writeFile(File path, String content) {
     files().mkdirs(Files.parent(path));
     files().writeString(path, content);
-    if (mExecutable) {
-      mExecutable = false;
-      if (!files().dryRun()) {
-        path.setExecutable(true);
-      }
-    }
     return path;
-  }
-
-  private void createDriver() {
-    if (!generateDriver())
-      return;
-    setTarget("driver.sh");
-    String template = modifyTemplateWithExistingCustomizations(frag("driver_template.txt"));
-    String content = parseText(template);
-    checkState(!content.contains("[!"), "template still contains macro text");
-    executable().writeTarget(content);
-  }
-
-  private static String keyPrefix(String macroKey) {
-    int k = macroKey.indexOf(':');
-    checkArgument(k > 0);
-    return macroKey.substring(0, k);
-  }
-
-  private final Pattern CUSTOMIZATIONS_MACRO_EXPR = Pattern.compile("(\\{~[a-zA-Z0-9]+:[^~]*~\\})");
-
-  /**
-   * Given a template, if target file already exists, incorporate its
-   * customizations
-   */
-  private String modifyTemplateWithExistingCustomizations(String template) {
-    String oldContent = Files.readString(targetFile(), "");
-    MacroParser parser = new MacroParser().withPattern(CUSTOMIZATIONS_MACRO_EXPR);
-
-    // Read old customizations
-    JSMap oldCustomMap = map();
-    parser.withTemplate(oldContent).content(new Mapper() {
-      @Override
-      public String textForKey(String key) {
-        String prefix = keyPrefix(key);
-        if (oldCustomMap.containsKey(prefix))
-          die("duplicate macro key:", prefix);
-        oldCustomMap.put(prefix, key);
-        return key;
-      }
-    });
-
-    // Insert customizations into template
-    parser = new MacroParser().withPattern(CUSTOMIZATIONS_MACRO_EXPR);
-    template = parser.withTemplate(template).content(new Mapper() {
-      @Override
-      public String textForKey(String key) {
-        String prefix = keyPrefix(key);
-        return oldCustomMap.opt(prefix, key);
-      }
-    });
-    return template;
-  }
-
-  private void createBuildScript() {
-    setTarget("mk");
-    String template = frag("mk_template.txt");
-    template = modifyTemplateWithExistingCustomizations(template);
-    if (!generateDriver())
-      template = template.replace("DRIVER=1", "DRIVER=0");
-    else
-      template = template.replace("DRIVER=0", "DRIVER=1");
-    String result = parseText(template);
-    executable().writeTarget(result);
   }
 
   private String testClassName() {
@@ -269,20 +180,10 @@ public final class CreateAppOper extends AppOper {
       m.put("package_name_slashes", appInfo().mainPackage().replace('.', '/'));
       m.put("main_class_name", appInfo().mainClassName());
       m.put("main_oper_name", appInfo().mainClassName() + "Oper");
-      m.put("driver_name", appInfo().mainClassName());
       m.put("test_package_name", appInfo().mainPackage());
       m.put("test_class_name", testClassName());
-
-      m.put("link_define", frag("link_define.txt"));
-      m.put("link_clean", frag("link_clean.txt"));
-      m.put("link_create", frag("link_create.txt"));
-
-      m.put("datagen_clean", frag("datagen_clean.txt"));
-      m.put("datagen_build", frag("datagen_build.txt"));
-      m.put("datagen_gitignore_comment", "# ...add appropriate entries for generated Java files");
-
       m.put("pom_dependencies", frag("pom_dependencies.xml"));
-
+      m.put("datagen_gitignore_comment", "# ...add appropriate entries for generated Java files");
       m.lock();
       mMacroMap = m;
     }
@@ -290,12 +191,11 @@ public final class CreateAppOper extends AppOper {
   }
 
   private void createSource() {
-    if (generateDriver()) {
-      mTargetFile = mainJavaFile();
-      writeTargetIfMissing(parseResource("main_java.txt"));
-      mTargetFile = new File(chomp(mainJavaFile().toString(), ".java") + "Oper.java");
-      writeTargetIfMissing(parseResource("main_oper.txt"));
-    }
+
+    mTargetFile = mainJavaFile();
+    writeTargetIfMissing(parseResource("main_java.txt"));
+    mTargetFile = new File(chomp(mainJavaFile().toString(), ".java") + "Oper.java");
+    writeTargetIfMissing(parseResource("main_oper.txt"));
 
     String testSubdir = "src/test/java";
     File testDir = appFile(testSubdir);
@@ -331,13 +231,11 @@ public final class CreateAppOper extends AppOper {
   private File mTargetFile;
   //------------------------------------------------------------------
 
-  private boolean mDriver;
   private String mStartDirString = "";
   private String mMainPackageArg = "";
   private String mMainClassName = "Main";
   private File mMainJavaFile;
   private JSMap mMacroMap;
-  private boolean mExecutable;
   private AppInfo.Builder mAppInfo;
 
 }

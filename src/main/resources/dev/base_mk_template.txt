@@ -2,18 +2,15 @@
 set -eu
 
 FILE="mk"
-#echo "Checking if current directory has '${FILE}'"
 if [ -f ${FILE} ]; then
 	$FILE "$@"
 	exit 0
 fi
 
 FILE=.jsproject/make.sh
-#echo "Checking if current directory has '${FILE}'"
 if [ ! -f ${FILE} ]; then
 	echo "Calling dev to create a make file"
 	dev createmake
 fi
 
-#echo "Running makefile"
 ${FILE} "$@"

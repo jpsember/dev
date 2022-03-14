@@ -1,7 +1,0 @@
-  if [ "$DRIVER" -ne "0" ]; then
-    echo "Does file exist? ${LINK}"
-    if [ -f $LINK ]; then
-      echo "....removing old link: ${LINK}"
-      rm $LINK
-    fi
-  fi
