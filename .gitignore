@@ -7,6 +7,11 @@
 _OLD_*
 _SKIP_*
 
+# We can't use the dev program itself to generate the driver and makefile, so
+# we need to track the .jsproject directory (in case it was omitted higher up):
+#
+!.jsproject
+
 # Sublime text editor
 #
 *.sublime-project
