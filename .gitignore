@@ -31,9 +31,4 @@ src/main/java/dev/gen
 
 # For testing
 #
-sample_project.zip
-sample_project
-sample_project2.zip
-sample_project2
-convert_output
-exp.sh
+sample_project*

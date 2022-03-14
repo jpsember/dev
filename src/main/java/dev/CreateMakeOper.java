@@ -207,7 +207,7 @@ public final class CreateMakeOper extends AppOper {
   private void createBuildScript() {
     setTargetWithinProjectAuxDir("make.sh");
 
-    List<String> lines = split(frag("mk2.txt"), '\n');
+    List<String> lines = split(frag("make_template.txt"), '\n');
 
     List<String> filtered = arrayList();
     boolean state = true;
@@ -246,7 +246,7 @@ public final class CreateMakeOper extends AppOper {
       files().mkdirs(binDir);
     }
     mTargetFile = new File(binDir, "mk");
-    String baseMakeText = frag("base_mk_template.txt");
+    String baseMakeText = frag("bin_mk_template.txt");
     writeTargetIfChanged(baseMakeText, true);
   }
 
@@ -260,10 +260,10 @@ public final class CreateMakeOper extends AppOper {
 
   private void createDriver() {
     setTargetWithinProjectAuxDir("driver.sh");
-    String template = frag("driver2_template.txt");
-    determineMainClass();
+     determineMainClass();
     macroMap().put("run_app_command", constructCommandLine());
-    String result = parseText(template);
+    String template = frag("driver_template.txt");
+   String result = parseText(template);
     writeTargetIfChanged(result, true);
   }
 

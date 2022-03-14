@@ -1,7 +1,0 @@
-BINDIR="$HOME/bin"
-if [ ! -d $BINDIR ]
-then
-  echo "Directory doesn't exist; please create it: $BINDIR"
-  exit 1
-fi
-LINK=$BINDIR/$APP

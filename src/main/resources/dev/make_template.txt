@@ -5,7 +5,13 @@ set -e
 {{driver
 APP=[!app_name]
 
-[!link_define]
+BINDIR="$HOME/bin"
+if [ ! -d $BINDIR ]
+then
+  echo "Directory doesn't exist; please create it: $BINDIR"
+  exit 1
+fi
+LINK=$BINDIR/$APP
 
 {{
 
@@ -41,9 +47,12 @@ if [ "$CLEAN" != "" ]; then
   echo "...cleaning"
   mvn clean
 {{driver
-[!link_clean]
+  if [ -f $LINK ]; then
+    echo "....removing old link: ${LINK}"
+    rm $LINK
+  fi
 {{datagen
-[!datagen_clean]
+  datagen clean delete_old
 {{
 fi
 
@@ -59,8 +68,9 @@ if [ "$NOTEST" != "" ]; then
 fi
 
 {{datagen
-[!datagen_build]
+echo "...generating data classes"
+datagen
 mvn install $NOTEST
 {{driver
-[!link_create]
+cp .jsproject/driver.sh $LINK
 {{

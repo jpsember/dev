@@ -1,4 +1,0 @@
-if [ -f $LINK ]; then
-  echo "....removing old link: ${LINK}"
-  rm $LINK
-fi

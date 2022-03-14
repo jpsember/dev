@@ -1,2 +1,0 @@
-echo "...generating data classes"
-datagen
