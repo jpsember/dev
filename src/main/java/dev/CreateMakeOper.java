@@ -32,6 +32,7 @@ import java.util.List;
 import dev.gen.AppInfo;
 import dev.gen.DependencyEntry;
 import js.app.AppOper;
+import js.app.CmdLineArgs;
 import js.base.SystemCall;
 import js.file.DirWalk;
 import js.file.Files;
@@ -52,10 +53,24 @@ public final class CreateMakeOper extends AppOper {
 
   @Override
   public void perform() {
+    createBinMk();
+    if (mBinOnlyFlag)
+      return;
     parsePomFile();
     createBuildScript();
     if (mDriver)
       createDriver();
+  }
+
+  @Override
+  protected List<Object> getAdditionalArgs() {
+    return arrayList("[bin]");
+  }
+
+  @Override
+  protected void processAdditionalArgs() {
+    CmdLineArgs args = app().cmdLineArgs();
+    mBinOnlyFlag = args.nextArgIf("bin");
   }
 
   private AppInfo.Builder appInfo() {
@@ -239,7 +254,9 @@ public final class CreateMakeOper extends AppOper {
     String template = String.join("\n", filtered);
     String result = MacroParser.parse(template, macroMap());
     writeTargetIfChanged(result, true);
+  }
 
+  private void createBinMk() {
     File binDir = new File(Files.homeDirectory(), "bin");
     if (!binDir.exists()) {
       log("...creating bin directory");
@@ -349,5 +366,6 @@ public final class CreateMakeOper extends AppOper {
   private String mMainClass;
   private File mTargetFile;
   private File mProjectAuxDir;
+  private boolean mBinOnlyFlag;
 
 }
