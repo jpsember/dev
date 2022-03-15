@@ -260,10 +260,10 @@ public final class CreateMakeOper extends AppOper {
 
   private void createDriver() {
     setTargetWithinProjectAuxDir("driver.sh");
-     determineMainClass();
+    determineMainClass();
     macroMap().put("run_app_command", constructCommandLine());
     String template = frag("driver_template.txt");
-   String result = parseText(template);
+    String result = parseText(template);
     writeTargetIfChanged(result, true);
   }
 
@@ -273,12 +273,7 @@ public final class CreateMakeOper extends AppOper {
       m.put("group_id", "com.jsbase");
       if (mDriver) {
         m.put("app_name", appInfo().name());
-        m.put("link_define", frag("link_define_2.txt"));
-        m.put("link_clean", frag("link_clean_2.txt"));
-        m.put("link_create", frag("link_create_2.txt"));
       }
-      m.put("datagen_clean", frag("datagen_clean_2.txt"));
-      m.put("datagen_build", frag("datagen_build_2.txt"));
       m.put("datagen_gitignore_comment", "# ...add appropriate entries for generated Java files");
 
       mMacroMap = m;
