@@ -73,9 +73,5 @@ datagen
 {{
 mvn install $NOTEST
 {{driver
-if [ -f $LINK ]; then
-  echo "....removing old driver: ${LINK}"
-  rm $LINK
-fi
 cp .jsproject/driver.sh $LINK
 {{
