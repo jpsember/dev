@@ -48,7 +48,7 @@ if [ "$CLEAN" != "" ]; then
   mvn clean
 {{driver
   if [ -f $LINK ]; then
-    echo "....removing old link: ${LINK}"
+    echo "....removing old driver: ${LINK}"
     rm $LINK
   fi
 {{datagen
@@ -73,5 +73,9 @@ datagen
 {{
 mvn install $NOTEST
 {{driver
+if [ -f $LINK ]; then
+  echo "....removing old driver: ${LINK}"
+  rm $LINK
+fi
 cp .jsproject/driver.sh $LINK
 {{
