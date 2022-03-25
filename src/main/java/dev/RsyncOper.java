@@ -219,11 +219,11 @@ public abstract class RsyncOper extends AppOper {
         File truncatedSource = Files.parent(sourceRelativeToProject);
         mResolvedTarget = Files.join(remoteProjectDir(), truncatedSource);
       } else {
-        die("haven't yet dealt with the copy directory contents vs copy directory (i.e. by adding '/')");
         if (targetDir.isAbsolute())
           mResolvedTarget = targetDir;
         else
           mResolvedTarget = Files.join(remoteProjectDir(), targetDir);
+        todo("Issue #32: haven't yet dealt with the copy directory contents vs copy directory (i.e. by adding '/')");
       }
     }
   }
@@ -257,11 +257,11 @@ public abstract class RsyncOper extends AppOper {
           mResolvedTarget = Files.join(localBaseDir, truncatedSource);
         }
       } else {
-        die("haven't yet dealt with the copy directory contents vs copy directory (i.e. by adding '/')");
         if (targetDir.isAbsolute())
           mResolvedTarget = targetDir;
         else
           mResolvedTarget = Files.join(localProjectDir(), targetDir);
+        todo("Issue #32: haven't yet dealt with the copy directory contents vs copy directory (i.e. by adding '/')");
       }
     }
   }
