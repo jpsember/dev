@@ -90,7 +90,8 @@ public class Ngrok extends BaseObject {
           continue;
       }
       if (metadata.isEmpty()) {
-        pr("*** ngrok tunnel has no metadata, public_url:", tunMap.get("public_url"));
+        pr("*** ngrok tunnel has no metadata, public_url:", tunMap.get("public_url"), "tunnel map:", INDENT,
+            tunMap);
         continue;
       }
 
