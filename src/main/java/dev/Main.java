@@ -58,6 +58,7 @@ public class Main extends App {
     registerOper(new SecretsOper());
     registerOper(new ArchiveOper());
     registerOper(new PrettyPrintOper());
+    registerOper(new ResizeOper());
     registerOper(new ExtractUsefulScriptsOper());
     registerOper(new SplitProjectOper());
     registerOper(new RemoveExtraneousScriptElementsOper());

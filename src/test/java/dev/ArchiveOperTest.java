@@ -31,7 +31,6 @@ import java.util.List;
 
 import org.junit.Test;
 
-import dev.Main;
 import dev.gen.archive.ArchiveEntry;
 import dev.gen.archive.ArchiveRegistry;
 import dev.gen.archive.LocalEntry;
