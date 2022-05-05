@@ -2,6 +2,9 @@ package dev.wordle;
 
 import static js.base.Tools.*;
 
+import java.io.File;
+import java.util.List;
+
 import js.data.ByteArray;
 import js.file.Files;
 
@@ -106,7 +109,23 @@ public final class WordleUtils {
 
   public static byte[] wordList() {
     if (sWordList == null) {
-      String s = Files.readString(WordleUtils.class, "wordle_list.txt").toUpperCase().trim() + "\n";
+
+      if (false) {
+        String s = Files.readString(WordleUtils.class, "mit_list.txt").toUpperCase().trim() + "\n";
+        List<String> words = split(s, '\n');
+        List<String> filt = arrayList();
+        for (String st : words)
+          if (st.length() == WORD_LENGTH)
+            filt.add(st);
+        File target = Files.getDesktopFile("mit_words.txt");
+        Files.S.writeString(target, String.join("\n", filt));
+        halt("wrote:", target);
+      }
+
+      String listName = "wordle_list.txt";
+      if (true)
+      listName = "mit_5.txt";
+      String s = Files.readString(WordleUtils.class, listName).toUpperCase().trim() + "\n";
 
       int origSize = s.length() / (WORD_LENGTH + 1);
 
