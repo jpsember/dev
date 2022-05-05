@@ -27,7 +27,6 @@ package dev;
 import static js.base.Tools.*;
 
 import java.util.List;
-import java.util.Random;
 import java.util.Scanner;
 
 import dev.wordle.Dict;
@@ -195,13 +194,5 @@ public class WordleOper extends AppOper {
     
     pr("...turn number",g.turnNumber);
   }
-
-  /* private */ Random rand() {
-    if (mRandom == null)
-      mRandom = new Random(1965);
-    return mRandom;
-  }
-
-  private Random mRandom;
 
 }

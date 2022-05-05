@@ -4,9 +4,8 @@ import static js.base.Tools.*;
 
 import java.util.Map;
 
-import js.data.ByteArray;
+import dev.gen.wordle.Dictionary;
 import js.data.IntArray;
-import js.file.Files;
 
 public final class WordleUtils {
 
@@ -84,19 +83,9 @@ public final class WordleUtils {
     return sb.toString();
   }
 
-  static {
-    loadTools();
-  }
-
   private static final void clearWork(byte[] a) {
     for (int i = 0; i < WORD_LENGTH; i++)
       a[i] = 0;
-  }
-
-  public static int dictionarySize() {
-    if (sDictSize == 0)
-      wordList();
-    return sDictSize;
   }
 
   public static Word getDictionaryWord(int index) {
@@ -107,30 +96,30 @@ public final class WordleUtils {
     mainWord.set(wordList(), wordIndex);
   }
 
-  public static byte[] wordList() {
-    if (sWordList == null) {
-      String listName = "wordle_list.txt";
-      if (false)
-        listName = "mit_5.txt";
-      String s = Files.readString(WordleUtils.class, listName).toUpperCase().trim() + "\n";
-
-      byte[] sourceBytes;
+  public static Dictionary dictionary() {
+    if (sDictionary == null) {
       try {
-        sourceBytes = s.getBytes("UTF-8");
+        todo("calling this from Dict and then calling Dict again");
+        Dictionary dict = Dict.readDictionary("mit");
+        Dictionary.Builder db = dict.toBuilder();
+        byte[] b = new byte[dict.words().size() * WORD_LENGTH];
+        int c = 0;
+        for (String s : dict.words()) {
+          byte[] sourceBytes = s.getBytes("UTF-8");
+          System.arraycopy(sourceBytes, 0, b, c, WORD_LENGTH);
+          c += WORD_LENGTH;
+        }
+        db.wordBytes(b);
+        sDictionary = db.build();
       } catch (Throwable e) {
         throw asRuntimeException(e);
       }
-      ByteArray.Builder target = ByteArray.newBuilder();
-      int cursor = 0;
-      while (cursor < sourceBytes.length) {
-        for (int i = 0; i < WORD_LENGTH; i++)
-          target.add(sourceBytes[cursor + i]);
-        cursor += WORD_LENGTH + 1;
-      }
-      sWordList = target.array();
-      sDictSize = sWordList.length / WORD_LENGTH;
     }
-    return sWordList;
+    return sDictionary;
+  }
+
+  public static byte[] wordList() {
+    return dictionary().wordBytes();
   }
 
   private static class PartitionEntry {
@@ -215,6 +204,6 @@ public final class WordleUtils {
 
   private static final byte[] sWork = new byte[WORD_LENGTH];
   private static final byte[] sWork2 = new byte[WORD_LENGTH];
-  private static byte[] sWordList;
-  private static int sDictSize;
+
+  private static Dictionary sDictionary;
 }
