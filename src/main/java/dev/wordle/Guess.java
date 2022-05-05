@@ -17,10 +17,7 @@ public class Guess {
         char c = s.charAt(i++);
         if (!(c >= 'A' && c <= 'Z'))
           badArg();
-
         int pos = w.length();
-        if (pos == WORD_LENGTH)
-          badArg();
         w.append(c);
 
         int match = MATCH_NONE;
@@ -35,12 +32,14 @@ public class Guess {
         }
         cres |= (match << (2 * pos));
       }
+
+      if (w.length() != WORD_LENGTH)
+        badArg();
       Guess g = new Guess();
       g.mWord = w.toString();
       g.mCompareResult = cres;
       return g;
     } catch (IllegalArgumentException e) {
-      pr(e);
       return null;
     }
   }

@@ -2,8 +2,6 @@ package dev.wordle;
 
 import static js.base.Tools.*;
 
-import java.io.File;
-import java.util.List;
 import java.util.Map;
 
 import js.data.ByteArray;
@@ -111,35 +109,11 @@ public final class WordleUtils {
 
   public static byte[] wordList() {
     if (sWordList == null) {
-
-      if (false) {
-        String s = Files.readString(WordleUtils.class, "mit_list.txt").toUpperCase().trim() + "\n";
-        List<String> words = split(s, '\n');
-        List<String> filt = arrayList();
-        for (String st : words)
-          if (st.length() == WORD_LENGTH)
-            filt.add(st);
-        File target = Files.getDesktopFile("mit_words.txt");
-        Files.S.writeString(target, String.join("\n", filt));
-        halt("wrote:", target);
-      }
-
       String listName = "wordle_list.txt";
-      if (true)
+      if (false)
         listName = "mit_5.txt";
       String s = Files.readString(WordleUtils.class, listName).toUpperCase().trim() + "\n";
 
-      int origSize = s.length() / (WORD_LENGTH + 1);
-
-      int subsetSize = 10000;
-
-      {
-        int subList = (WORD_LENGTH + 1) * subsetSize;
-        if (subList < s.length()) {
-          if (alert("using smaller dictionary,", subsetSize, "<", origSize))
-            s = s.substring(0, subList);
-        }
-      }
       byte[] sourceBytes;
       try {
         sourceBytes = s.getBytes("UTF-8");

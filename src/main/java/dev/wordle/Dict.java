@@ -43,15 +43,10 @@ public final class Dict extends BaseObject {
     return new Word(wordList(), wordId(index));
   }
 
-//  private Word getWordFromNumber(int number) {
-//    return new Word(wordList(), number);
-//  }
-
   public List<Word> getWords() {
     List<Word> words = arrayList();
     for (int id : mWordIds)
       words.add(new Word(wordList(), id));
-//      words.add(getWordFromNumber(wi));
     return words;
   }
 

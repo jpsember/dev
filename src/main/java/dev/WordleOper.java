@@ -66,14 +66,21 @@ public class WordleOper extends AppOper {
     args.assertArgsDone();
   }
 
+  private void help() {
+    Object t = TAB(20);
+    pr("Commands:", INDENT, //
+        "a*ppl'e", t, "make a guess", CR, //
+        "a", t, "advice", CR, //
+        "h", t, "help", CR, //
+        "n", t, "new game", CR, //
+        "q", t, "quit");
+  }
+
   @Override
   public void perform() {
-    if (false) {
-      perf2();
-      return;
-    }
-
     newGame();
+
+    pr("Type 'h' for help");
     Scanner input = new Scanner(System.in);
 
     boolean quit = false;
@@ -90,6 +97,10 @@ public class WordleOper extends AppOper {
       case "a":
         advice();
         break;
+      case "h":
+      case "help":
+        help();
+        break;
       default:
         parseCommand(s);
         break;
@@ -102,19 +113,25 @@ public class WordleOper extends AppOper {
   }
 
   private void advice() {
-
-    todo("Why are there only 1379 possibilities?");
-
     List<Word> words = dict().getWords(bestGuesses());
-
     if (dict().size() > 100) {
-      pr("# possibilities:", dict().size());
+      pr("(" + dict().size() + " solutions)");
     } else {
       List<Word> poss = dict().getWords();
-      pr("Possibilities:", poss);
+      pr("Solutions:", INDENT, formatWords(poss));
     }
-    pr("Guesses:", words);
+    pr("Guesses:", INDENT, formatWords(words));
+  }
 
+  private static String formatWords(List<Word> words) {
+    StringBuilder sb = new StringBuilder();
+    int i = INIT_INDEX;
+    for (Word w : words) {
+      i++;
+      sb.append(w);
+      sb.append((i % 8) == 7 ? '\n' : ' ');
+    }
+    return sb.toString().toLowerCase();
   }
 
   private Dict dict() {
@@ -124,34 +141,39 @@ public class WordleOper extends AppOper {
     return g.dict;
   }
 
+  private static int[] MIT_START_GUESSES = { 5015 };
+
   private int[] bestGuesses() {
     if (g.bestGuesses == null) {
-      g.bestGuesses = bestGuess(dict());
+      if (dict().size() == 12947) {
+        g.bestGuesses = MIT_START_GUESSES;
+      } else
+        g.bestGuesses = bestGuess(dict());
+      if (false)
+        pr("best guess:", JSList.with(g.bestGuesses));
     }
     return g.bestGuesses;
   }
 
   private class GameVars {
-
     Dict dict;
     int[] bestGuesses;
+    int turnNumber;
   }
 
   private GameVars g = new GameVars();
 
   private void parseCommand(String cmd) {
-
     Guess g = Guess.parse(cmd);
     if (g != null) {
       makeGuess(g);
+      advice();
     } else {
       pr("*** Don't understand:", cmd);
     }
   }
 
   private void makeGuess(Guess guess) {
-    pr("making guess:", guess.word(), "res:", guess.compareResult());
-
     Dict dict = dict();
     int dictSize = dict.size();
 
@@ -159,49 +181,22 @@ public class WordleOper extends AppOper {
     Word queryWord = new Word(guess.word());
     Word targetWord = Word.buildEmpty();
 
-    pr("query word:",queryWord);
-   
     for (int targetIndex = 0; targetIndex < dictSize; targetIndex++) {
       dict.getWord(targetWord, targetIndex);
       int result = compare(targetWord, queryWord);
-      if (targetIndex < 100)
-        pr("compared with target:", targetWord, "result:", result,"=?",guess.compareResult());
       if (result != guess.compareResult())
         continue;
       ib.add(dict.wordId(targetIndex));
     }
     dict = Dict.withWordIds(ib.array());
-    pr("new dict:", ib);
     g.dict = dict;
     g.bestGuesses = null;
+    g.turnNumber++;
+    
+    pr("...turn number",g.turnNumber);
   }
 
-  private void perf2() {
-
-    Dict d = Dict.standard();
-
-    int guessNumber = 0;
-    while (d.size() > 1) {
-      guessNumber++;
-      checkState(guessNumber < 20);
-
-      int[] bestGuessesList = bestGuess(d);
-      checkState(bestGuessesList.length > 0);
-
-      if (false && alert("stopping"))
-        break;
-      int guessIndex = rand().nextInt(bestGuessesList.length);
-      int guess = bestGuessesList[guessIndex];
-
-      Word w = d.getWord(guess);
-      pr("Guess #" + guessNumber + ":", w);
-
-      pr("resulting possibilities:", INDENT, JSList.with(d.wordStrings(bestGuessesList)));
-      d = Dict.withWordIds(bestGuessesList);
-    }
-  }
-
-  private Random rand() {
+  /* private */ Random rand() {
     if (mRandom == null)
       mRandom = new Random(1965);
     return mRandom;
