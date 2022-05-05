@@ -131,11 +131,12 @@ public final class WordleUtils {
 
       int origSize = s.length() / (WORD_LENGTH + 1);
 
-      int subsetSize = 300;
+      int subsetSize = 10000;
+
       {
         int subList = (WORD_LENGTH + 1) * subsetSize;
         if (subList < s.length()) {
-          if (false && alert("using smaller dictionary,", subsetSize, "<", origSize))
+          if (alert("using smaller dictionary,", subsetSize, "<", origSize))
             s = s.substring(0, subList);
         }
       }
@@ -183,12 +184,8 @@ public final class WordleUtils {
     Map<Integer, PartitionEntry> partitionMap = hashMap();
     Word queryWord = Word.buildEmpty();
     Word targetWord = Word.buildEmpty();
-
     int dictSize = dict.size();
 
-    PartitionEntry bestGlobal = null;
-
-    
     // 
     // Let q be a word in the dictionary.
     //
@@ -198,22 +195,24 @@ public final class WordleUtils {
     //
     // Choose the q* that the largest subset {t0, t1, ...} is as small as possible.
     //
-    for (int wordIndex = 0; wordIndex < dictSize; wordIndex++) {
-     
-      dict.getWord(queryWord, wordIndex);
+
+    PartitionEntry bestGlobal = null;
+
+    for (int queryIndex = 0; queryIndex < dictSize; queryIndex++) {
+      dict.getWord(queryWord, queryIndex);
 
       partitionMap.clear();
 
-      for (int auxIndex = 0; auxIndex < dictSize; auxIndex++) {
-        dict.getWord(targetWord, auxIndex);
+      for (int targetIndex = 0; targetIndex < dictSize; targetIndex++) {
+        dict.getWord(targetWord, targetIndex);
 
-        int result = compare(queryWord, targetWord);
+        int result = compare(targetWord, queryWord);
         PartitionEntry ent = partitionMap.get(result);
         if (ent == null) {
           ent = new PartitionEntry(result);
           partitionMap.put(result, ent);
         }
-        ent.add(auxIndex);
+        ent.add(targetIndex);
       }
 
       // Choose the worst case, the largest subset
@@ -223,28 +222,33 @@ public final class WordleUtils {
         if (largestSubset == null || entry.pop() > largestSubset.pop())
           largestSubset = entry;
       }
-      pr("examined word",wordIndex,", largest subset size:",largestSubset.pop(),largestSubset.compareResult);
+      if (false)
+        pr("examined word", queryIndex, ":", queryWord, ", largest subset size:", largestSubset.pop(),
+            largestSubset.compareResult);
 
       if (bestGlobal == null || bestGlobal.pop() > largestSubset.pop()) {
         bestGlobal = largestSubset;
 
-        dict.getWord(targetWord, bestGlobal.set.get(0));
+        if (true) {
+          Word workWord = Word.buildEmpty();
+          dict.getWord(workWord, bestGlobal.set.get(0));
+          String render = renderMatch(queryWord, compare(workWord, queryWord));
+          pr("new largest subset:", bestGlobal.pop(), "sample:", render, "compare result:",
+              bestGlobal.compareResult);
 
-        String render = renderMatch(targetWord, compare(queryWord, targetWord));
-        pr("new largest subset:", bestGlobal.pop(), "sample:", render,"compare result:",bestGlobal.compareResult);
-
-        {
-          int[] wds = bestGlobal.set.array();
-          Word wk = Word.buildEmpty();
-          for (int wi : wds) {
-            dict.getWord(wk, wi);
-            int compareResult = compare(queryWord, wk);
-            String res = renderMatch(queryWord, compareResult);
-            pr("...", res, "==(target)==>", wk);
+          {
+            int[] wds = bestGlobal.set.array();
+            Word wk = Word.buildEmpty();
+            for (int wi : wds) {
+              dict.getWord(wk, wi);
+              int compareResult = compare(wk, queryWord);
+              String res = renderMatch(queryWord, compareResult);
+              pr("...", res, "==(target)==>", wk);
+              if (compareResult != bestGlobal.compareResult)
+                die("result doesn't agree with set result:", compareResult, bestGlobal.compareResult);
+            }
           }
         }
-
-        //pr("partitioned into:",partitionMap.size());
       }
     }
 

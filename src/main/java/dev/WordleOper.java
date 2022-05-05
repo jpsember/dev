@@ -27,7 +27,6 @@ package dev;
 import static js.base.Tools.*;
 
 import java.util.List;
-import java.util.Map;
 import java.util.Random;
 
 import dev.wordle.Dict;
@@ -64,16 +63,8 @@ public class WordleOper extends AppOper {
     args.assertArgsDone();
   }
 
-  private static class PartEnt {
-    int population;
-    int sampleWordIndex;
-  }
-
   @Override
   public void perform() {
-
-    if (false)
-      perf2();
 
     Dict d = Dict.standard();
 
@@ -85,13 +76,13 @@ public class WordleOper extends AppOper {
       int[] bestGuessesList = bestGuess(d);
       checkState(bestGuessesList.length > 0);
 
-      
-      if (alert("stopping")) break;
+      if (alert("stopping"))
+        break;
       int guessIndex = rand().nextInt(bestGuessesList.length);
       int guess = bestGuessesList[guessIndex];
 
       Word w = d.getWord(guess);
-      pr("Guess #" + guessNumber+":",w);
+      pr("Guess #" + guessNumber + ":", w);
 
       pr("resulting possibilities:", INDENT, JSList.with(d.wordStrings(bestGuessesList)));
       d = Dict.withWords(bestGuessesList);
@@ -105,51 +96,5 @@ public class WordleOper extends AppOper {
   }
 
   private Random mRandom;
-
-  private void perf2() {
-    Map<Integer, PartEnt> partitionMap = hashMap();
-    Word queryWord = getDictionaryWord(0);
-    Word targetWord = getDictionaryWord(0);
-
-    int ds = dictionarySize();
-
-    PartEnt bestGlobal = null;
-
-    for (int wordIndex = 0; wordIndex < ds; wordIndex++) {
-      getDictionaryWord(queryWord, wordIndex);
-
-      partitionMap.clear();
-
-      for (int auxIndex = 0; auxIndex < ds; auxIndex++) {
-        getDictionaryWord(targetWord, auxIndex);
-
-        int result = compare(queryWord, targetWord);
-        PartEnt ent = partitionMap.get(result);
-        if (ent == null) {
-          ent = new PartEnt();
-          ent.sampleWordIndex = auxIndex;
-          partitionMap.put(result, ent);
-        }
-        ent.population++;
-      }
-
-      // What is the largest population?
-      PartEnt best = null;
-      for (PartEnt pe : partitionMap.values()) {
-        if (best == null || pe.population > best.population)
-          best = pe;
-      }
-
-      if (bestGlobal == null || bestGlobal.population > best.population) {
-        bestGlobal = best;
-
-        getDictionaryWord(targetWord, bestGlobal.sampleWordIndex);
-
-        String render = renderMatch(targetWord, compare(queryWord, targetWord));
-
-        pr("new best word:", queryWord, "largest subset:", bestGlobal.population, "sample:", render);
-      }
-    }
-  }
 
 }
