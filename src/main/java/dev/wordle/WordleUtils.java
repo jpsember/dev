@@ -2,6 +2,7 @@ package dev.wordle;
 
 import static js.base.Tools.*;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -169,23 +170,18 @@ public final class WordleUtils {
     List<String> common = arrayList();
     List<String> rare = arrayList();
     Dictionary comDict = WordSet.dict("mit");
-    pr("comDict size:"
-        ,comDict.words().size());
     for (String w : words) {
       if (dictContainsWord(comDict, w))
         common.add(w);
       else
         rare.add(w);
     }
-    pr("common:",common);
-    pr("rare:",rare);
     common.addAll(rare);
     return common;
   }
 
   public static boolean dictContainsWord(Dictionary d, String w) {
-    todo("optimize using binary search");
-    return (d.words().contains(w));
+    return Collections.binarySearch(d.words(), w) >= 0;
   }
 
   private static final byte[] sWork = new byte[WORD_LENGTH];
