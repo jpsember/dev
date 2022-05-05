@@ -27,6 +27,7 @@ package dev;
 import static js.base.Tools.*;
 
 import java.util.List;
+import java.util.Map;
 
 import dev.wordle.Word;
 import js.app.AppOper;
@@ -59,13 +60,70 @@ public class WordleOper extends AppOper {
     args.assertArgsDone();
   }
 
+  private static class PartEnt {
+    int population;
+    int sampleWordIndex;
+  }
+
   @Override
   public void perform() {
 
+    if (false)
+      perf1();
+
+    Map<Integer, PartEnt> partitionMap = hashMap();
+    Word queryWord = getDictionaryWord(0);
+    Word targetWord = getDictionaryWord(0);
+
+    int ds = dictionarySize();
+
+    PartEnt bestGlobal = null;
+
+    for (int wordIndex = 0; wordIndex < ds; wordIndex++) {
+      getDictionaryWord(queryWord, wordIndex);
+
+      partitionMap.clear();
+
+      for (int auxIndex = 0; auxIndex < ds; auxIndex++) {
+        getDictionaryWord(targetWord, auxIndex);
+
+        int result = compare(queryWord, targetWord);
+        PartEnt ent = partitionMap.get(result);
+        if (ent == null) {
+          ent = new PartEnt();
+          ent.sampleWordIndex = auxIndex;
+        // ent.queryResult = result;
+          partitionMap.put(result, ent);
+        }
+        ent.population++;
+      }
+
+      // What is the largest population?
+      PartEnt best = null;
+      for (PartEnt pe : partitionMap.values()) {
+        if (best == null || pe.population > best.population)
+          best = pe;
+      }
+
+      if (bestGlobal == null || bestGlobal.population > best.population) {
+        bestGlobal = best;
+        
+        getDictionaryWord(targetWord, bestGlobal.sampleWordIndex);
+        
+        String render = 
+        renderMatch(targetWord, compare(queryWord,targetWord));
+
+        pr("new best word:", queryWord, "largest subset:", bestGlobal.population, "sample:",
+            render);
+      }
+    }
+
+  }
+
+  private void perf1() {
+
     Word target = word("elect");
     Word query = word("teeth");
-
-    wordList();
 
     pr("target:", target);
     pr("query :", query);

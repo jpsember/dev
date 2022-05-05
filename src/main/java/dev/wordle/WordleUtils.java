@@ -91,16 +91,33 @@ public final class WordleUtils {
   }
 
   public static int dictionarySize() {
-    return wordList().length / WORD_LENGTH;
+    if (sDictSize == 0)
+      wordList();
+    return sDictSize;
   }
 
   public static Word getDictionaryWord(int index) {
     return new Word(wordList(), index);
   }
 
+  public static void getDictionaryWord(Word mainWord, int wordIndex) {
+    mainWord.set(wordList(), wordIndex);
+  }
+
   public static byte[] wordList() {
     if (sWordList == null) {
       String s = Files.readString(WordleUtils.class, "wordle_list.txt").toUpperCase().trim() + "\n";
+
+      int origSize = s.length() / (WORD_LENGTH + 1);
+
+      int subsetSize = 12947;
+      {
+        int subList = (WORD_LENGTH + 1) * subsetSize;
+        if (subList < s.length()) {
+          if (alert("using smaller dictionary,", subsetSize, "<", origSize))
+            s = s.substring(0, subList);
+        }
+      }
       byte[] sourceBytes;
       try {
         sourceBytes = s.getBytes("UTF-8");
@@ -115,6 +132,7 @@ public final class WordleUtils {
         cursor += WORD_LENGTH + 1;
       }
       sWordList = target.array();
+      sDictSize = sWordList.length / WORD_LENGTH;
     }
     return sWordList;
   }
@@ -122,4 +140,5 @@ public final class WordleUtils {
   private static final byte[] sWork = new byte[WORD_LENGTH];
   private static final byte[] sWork2 = new byte[WORD_LENGTH];
   private static byte[] sWordList;
+  private static int sDictSize;
 }
