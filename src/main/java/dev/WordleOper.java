@@ -29,6 +29,7 @@ import static js.base.Tools.*;
 import java.util.List;
 import java.util.Map;
 
+import dev.wordle.Dict;
 import dev.wordle.Word;
 import js.app.AppOper;
 import js.app.CmdLineArgs;
@@ -68,9 +69,19 @@ public class WordleOper extends AppOper {
   @Override
   public void perform() {
 
-    if (false)
-      perf1();
-
+    if (false) 
+      perf2();
+    
+    
+    
+    Dict d = Dict.standard();
+    
+    int[] bestGuess = bestGuess(d);
+    pr(d.wordStrings(bestGuess));
+  }
+  
+  
+  private void perf2() {
     Map<Integer, PartEnt> partitionMap = hashMap();
     Word queryWord = getDictionaryWord(0);
     Word targetWord = getDictionaryWord(0);
@@ -92,7 +103,6 @@ public class WordleOper extends AppOper {
         if (ent == null) {
           ent = new PartEnt();
           ent.sampleWordIndex = auxIndex;
-        // ent.queryResult = result;
           partitionMap.put(result, ent);
         }
         ent.population++;
@@ -107,37 +117,15 @@ public class WordleOper extends AppOper {
 
       if (bestGlobal == null || bestGlobal.population > best.population) {
         bestGlobal = best;
-        
+
         getDictionaryWord(targetWord, bestGlobal.sampleWordIndex);
-        
-        String render = 
-        renderMatch(targetWord, compare(queryWord,targetWord));
 
-        pr("new best word:", queryWord, "largest subset:", bestGlobal.population, "sample:",
-            render);
+        String render = renderMatch(targetWord, compare(queryWord, targetWord));
+
+        pr("new best word:", queryWord, "largest subset:", bestGlobal.population, "sample:", render);
       }
     }
-
   }
 
-  private void perf1() {
-
-    Word target = word("elect");
-    Word query = word("teeth");
-
-    pr("target:", target);
-    pr("query :", query);
-    pr("match :", renderMatch(query, compare(target, query)));
-
-    for (int i = 0; i < 5; i++) {
-      Word wi = getDictionaryWord(i);
-      pr("Target:", wi);
-      for (int j = 0; j < 5; j++) {
-        Word wj = getDictionaryWord(j);
-        pr("   ", renderMatch(wj, compare(wi, wj)));
-      }
-    }
-
-  }
 
 }

@@ -5,6 +5,13 @@ import static js.base.Tools.*;
 
 public final class Word {
 
+  public static Word buildEmpty() {
+    return new Word();
+  }
+
+  private Word() {
+  }
+
   public Word(String word) {
     set(word);
   }

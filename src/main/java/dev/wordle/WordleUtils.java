@@ -4,8 +4,10 @@ import static js.base.Tools.*;
 
 import java.io.File;
 import java.util.List;
+import java.util.Map;
 
 import js.data.ByteArray;
+import js.data.IntArray;
 import js.file.Files;
 
 public final class WordleUtils {
@@ -124,7 +126,7 @@ public final class WordleUtils {
 
       String listName = "wordle_list.txt";
       if (true)
-      listName = "mit_5.txt";
+        listName = "mit_5.txt";
       String s = Files.readString(WordleUtils.class, listName).toUpperCase().trim() + "\n";
 
       int origSize = s.length() / (WORD_LENGTH + 1);
@@ -154,6 +156,71 @@ public final class WordleUtils {
       sDictSize = sWordList.length / WORD_LENGTH;
     }
     return sWordList;
+  }
+
+  private static class PartEnt {
+    //    int population;
+    //    int sampleWordIndex;
+    final IntArray.Builder set = IntArray.newBuilder();
+
+    int pop() {
+      return set.size();
+    }
+
+    void add(int wordIndex) {
+      set.add(wordIndex);
+    }
+  }
+
+  /**
+   * Given a set of possible answers, determine the best guesses
+   */
+  public static int[] bestGuess(Dict dict) {
+
+    Map<Integer, PartEnt> partitionMap = hashMap();
+    Word queryWord = Word.buildEmpty();
+    Word targetWord = Word.buildEmpty();
+
+    int ds = dict.size();
+
+    PartEnt bestGlobal = null;
+
+    for (int wordIndex = 0; wordIndex < ds; wordIndex++) {
+      dict.getWord(queryWord, wordIndex);
+
+      partitionMap.clear();
+
+      for (int auxIndex = 0; auxIndex < ds; auxIndex++) {
+        dict.getWord(targetWord, auxIndex);
+
+        int result = compare(queryWord, targetWord);
+        PartEnt ent = partitionMap.get(result);
+        if (ent == null) {
+          ent = new PartEnt();
+          partitionMap.put(result, ent);
+        }
+        ent.add(auxIndex);
+      }
+
+      // What is the largest population?
+      PartEnt best = null;
+      for (PartEnt pe : partitionMap.values()) {
+        if (best == null || pe.pop() > best.pop())
+          best = pe;
+      }
+
+      if (bestGlobal == null || bestGlobal.pop() > best.pop()) {
+        bestGlobal = best;
+
+        dict.getWord(targetWord, bestGlobal.set.get(0));
+
+        String render = renderMatch(targetWord, compare(queryWord, targetWord));
+
+        pr("new best word:", queryWord, "largest subset:", bestGlobal.pop(), "sample:", render);
+      }
+    }
+
+    return bestGlobal.set.array();
   }
 
   private static final byte[] sWork = new byte[WORD_LENGTH];
