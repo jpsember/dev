@@ -12,39 +12,47 @@ public final class Dict extends BaseObject {
   public static Dict standard() {
     if (sDefaultDict == null) {
       int k = dictionarySize();
-      int[] w = new int[k];
+      int[] wordIds = new int[k];
       for (int i = 0; i < k; i++)
-        w[i] = i;
-      sDefaultDict = withWords(w);
+        wordIds[i] = i;
+      sDefaultDict = withWordIds(wordIds);
     }
     return sDefaultDict;
   }
 
-  public static Dict withWords(int[] wordInds) {
+  public static Dict withWordIds(int[] wordIds) {
     Dict d = new Dict();
-    d.mWordInds = wordInds;
+    d.mWordIds = wordIds;
     return d;
   }
 
   public int size() {
-    return mWordInds.length;
+    return mWordIds.length;
+  }
+
+  public int wordId(int index) {
+    return mWordIds[index];
   }
 
   public void getWord(Word target, int index) {
     byte[] wl = wordList();
-    target.set(wl, mWordInds[index]);
+    target.set(wl, wordId(index));
   }
 
   public Word getWord(int index) {
-    return new Word(wordList(), mWordInds[index]);
+    return new Word(wordList(), wordId(index));
   }
 
+//  private Word getWordFromNumber(int number) {
+//    return new Word(wordList(), number);
+//  }
+
   public List<Word> getWords() {
-    return getWords(mWordInds);
-//    List<Word> words = arrayList();
-//    for (int wi : mWordInds)
-//      words.add(getWord(wi));
-//    return words;
+    List<Word> words = arrayList();
+    for (int id : mWordIds)
+      words.add(new Word(wordList(), id));
+//      words.add(getWordFromNumber(wi));
+    return words;
   }
 
   public List<Word> getWords(int[] w) {
@@ -64,7 +72,10 @@ public final class Dict extends BaseObject {
     return result;
   }
 
-  private int[] mWordInds;
+  // Ids of words in this dictionary.  An id is its index within the master dictionary
+  //
+  private int[] mWordIds;
+  
   private static Dict sDefaultDict;
 
 }

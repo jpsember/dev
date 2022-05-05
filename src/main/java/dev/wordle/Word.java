@@ -20,12 +20,12 @@ public final class Word {
     return mLetters;
   }
 
-  public Word(byte[] bytes, int wordNumber) {
-    set(bytes, wordNumber);
+  public Word(byte[] bytes, int id) {
+    set(bytes, id);
   }
 
-  public void set(byte[] sourceArray, int wordNumber) {
-    int j = wordNumber * WORD_LENGTH;
+  public void set(byte[] sourceArray, int id) {
+    int j = id * WORD_LENGTH;
     for (int i = 0; i < WORD_LENGTH; i++)
       mLetters[i] = sourceArray[j + i];
   }

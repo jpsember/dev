@@ -35,6 +35,7 @@ import dev.wordle.Guess;
 import dev.wordle.Word;
 import js.app.AppOper;
 import js.app.CmdLineArgs;
+import js.data.IntArray;
 import js.json.JSList;
 
 import static dev.wordle.WordleUtils.*;
@@ -142,10 +143,37 @@ public class WordleOper extends AppOper {
 
     Guess g = Guess.parse(cmd);
     if (g != null) {
-      pr("making guess:", g.word(), "res:", g.compareResult());
+      makeGuess(g);
     } else {
       pr("*** Don't understand:", cmd);
     }
+  }
+
+  private void makeGuess(Guess guess) {
+    pr("making guess:", guess.word(), "res:", guess.compareResult());
+
+    Dict dict = dict();
+    int dictSize = dict.size();
+
+    IntArray.Builder ib = IntArray.newBuilder();
+    Word queryWord = new Word(guess.word());
+    Word targetWord = Word.buildEmpty();
+
+    pr("query word:",queryWord);
+   
+    for (int targetIndex = 0; targetIndex < dictSize; targetIndex++) {
+      dict.getWord(targetWord, targetIndex);
+      int result = compare(targetWord, queryWord);
+      if (targetIndex < 100)
+        pr("compared with target:", targetWord, "result:", result,"=?",guess.compareResult());
+      if (result != guess.compareResult())
+        continue;
+      ib.add(dict.wordId(targetIndex));
+    }
+    dict = Dict.withWordIds(ib.array());
+    pr("new dict:", ib);
+    g.dict = dict;
+    g.bestGuesses = null;
   }
 
   private void perf2() {
@@ -169,7 +197,7 @@ public class WordleOper extends AppOper {
       pr("Guess #" + guessNumber + ":", w);
 
       pr("resulting possibilities:", INDENT, JSList.with(d.wordStrings(bestGuessesList)));
-      d = Dict.withWords(bestGuessesList);
+      d = Dict.withWordIds(bestGuessesList);
     }
   }
 
