@@ -39,6 +39,21 @@ public final class Dict extends BaseObject {
     return new Word(wordList(), mWordInds[index]);
   }
 
+  public List<Word> getWords() {
+    return getWords(mWordInds);
+//    List<Word> words = arrayList();
+//    for (int wi : mWordInds)
+//      words.add(getWord(wi));
+//    return words;
+  }
+
+  public List<Word> getWords(int[] w) {
+    List<Word> words = arrayList();
+    for (int wi : w)
+      words.add(getWord(wi));
+    return words;
+  }
+
   public List<String> wordStrings(int[] wordIndices) {
     Word work = Word.buildEmpty();
     List<String> result = arrayList();

@@ -16,9 +16,9 @@ public final class WordleUtils {
 
   private static final int CODE_SKIP = '.';
 
-  private static final int MATCH_NONE = 0;
-  private static final int MATCH_PARTIAL = 1;
-  private static final int MATCH_FULL = 2;
+  public static final int MATCH_NONE = 0;
+  public static final int MATCH_PARTIAL = 1;
+  public static final int MATCH_FULL = 2;
 
   public static Word word(String text) {
     return new Word(text);
@@ -197,7 +197,8 @@ public final class WordleUtils {
     //
 
     PartitionEntry bestGlobal = null;
-    List<String> bestQuerys = arrayList();
+
+    IntArray.Builder bestQuerys = IntArray.newBuilder();
 
     for (int queryIndex = 0; queryIndex < dictSize; queryIndex++) {
       dict.getWord(queryWord, queryIndex);
@@ -230,35 +231,12 @@ public final class WordleUtils {
       if (bestGlobal == null || bestGlobal.pop() > largestSubset.pop()) {
         bestGlobal = largestSubset;
         bestQuerys.clear();
-
-        if (true) {
-          Word workWord = Word.buildEmpty();
-          dict.getWord(workWord, bestGlobal.set.get(0));
-          String render = renderMatch(queryWord, compare(workWord, queryWord));
-          pr("new largest subset:", bestGlobal.pop(), "sample:", render, "compare result:",
-              bestGlobal.compareResult);
-
-          {
-            int[] wds = bestGlobal.set.array();
-            Word wk = Word.buildEmpty();
-            for (int wi : wds) {
-              dict.getWord(wk, wi);
-              int compareResult = compare(wk, queryWord);
-              String res = renderMatch(queryWord, compareResult);
-              pr("...", res, "==(target)==>", wk);
-              if (compareResult != bestGlobal.compareResult)
-                die("result doesn't agree with set result:", compareResult, bestGlobal.compareResult);
-            }
-          }
-        }
       }
-      if (bestGlobal.pop() == largestSubset.pop()) {
-        bestQuerys.add(queryWord.toString());
-        pr("words producing largest subset now:", INDENT, bestQuerys);
-      }
+      if (bestGlobal.pop() == largestSubset.pop())
+        bestQuerys.add(queryIndex);
     }
 
-    return bestGlobal.set.array();
+    return bestQuerys.array();
   }
 
   private static final byte[] sWork = new byte[WORD_LENGTH];

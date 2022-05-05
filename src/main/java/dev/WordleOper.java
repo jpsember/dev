@@ -31,6 +31,7 @@ import java.util.Random;
 import java.util.Scanner;
 
 import dev.wordle.Dict;
+import dev.wordle.Guess;
 import dev.wordle.Word;
 import js.app.AppOper;
 import js.app.CmdLineArgs;
@@ -85,6 +86,9 @@ public class WordleOper extends AppOper {
       case "n":
         newGame();
         break;
+      case "a":
+        advice();
+        break;
       default:
         parseCommand(s);
         break;
@@ -93,10 +97,55 @@ public class WordleOper extends AppOper {
   }
 
   private void newGame() {
+    g = new GameVars();
   }
 
+  private void advice() {
+
+    todo("Why are there only 1379 possibilities?");
+
+    List<Word> words = dict().getWords(bestGuesses());
+
+    if (dict().size() > 100) {
+      pr("# possibilities:", dict().size());
+    } else {
+      List<Word> poss = dict().getWords();
+      pr("Possibilities:", poss);
+    }
+    pr("Guesses:", words);
+
+  }
+
+  private Dict dict() {
+    if (g.dict == null) {
+      g.dict = Dict.standard();
+    }
+    return g.dict;
+  }
+
+  private int[] bestGuesses() {
+    if (g.bestGuesses == null) {
+      g.bestGuesses = bestGuess(dict());
+    }
+    return g.bestGuesses;
+  }
+
+  private class GameVars {
+
+    Dict dict;
+    int[] bestGuesses;
+  }
+
+  private GameVars g = new GameVars();
+
   private void parseCommand(String cmd) {
-    pr("*** Don't understand:", cmd);
+
+    Guess g = Guess.parse(cmd);
+    if (g != null) {
+      pr("making guess:", g.word(), "res:", g.compareResult());
+    } else {
+      pr("*** Don't understand:", cmd);
+    }
   }
 
   private void perf2() {
