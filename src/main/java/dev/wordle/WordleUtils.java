@@ -180,8 +180,8 @@ public final class WordleUtils {
     return common;
   }
 
-  public static boolean dictContainsWord(Dictionary d, String w) {
-    return Collections.binarySearch(d.words(), w) >= 0;
+  public static boolean dictContainsWord(Dictionary dictionary, String word) {
+    return Collections.binarySearch(dictionary.words(), word.toUpperCase()) >= 0;
   }
 
   private static final byte[] sWork = new byte[WORD_LENGTH];
