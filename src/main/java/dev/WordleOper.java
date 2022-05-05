@@ -28,6 +28,7 @@ import static js.base.Tools.*;
 
 import java.util.List;
 import java.util.Random;
+import java.util.Scanner;
 
 import dev.wordle.Dict;
 import dev.wordle.Word;
@@ -65,6 +66,24 @@ public class WordleOper extends AppOper {
 
   @Override
   public void perform() {
+    if (false) {
+      perf2();
+      return;
+    }
+   
+    Scanner input = new Scanner(System.in);
+    
+    int a = 0;
+    while (true) {
+      if (++a >= 20)
+        break;
+      pr("Enter something");
+      String s = input.nextLine();
+      pr("s:", s);
+    }
+  }
+
+  private void perf2() {
 
     Dict d = Dict.standard();
 
@@ -76,7 +95,7 @@ public class WordleOper extends AppOper {
       int[] bestGuessesList = bestGuess(d);
       checkState(bestGuessesList.length > 0);
 
-      if (alert("stopping"))
+      if (false && alert("stopping"))
         break;
       int guessIndex = rand().nextInt(bestGuessesList.length);
       int guess = bestGuessesList[guessIndex];

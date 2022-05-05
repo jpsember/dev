@@ -197,6 +197,7 @@ public final class WordleUtils {
     //
 
     PartitionEntry bestGlobal = null;
+    List<String> bestQuerys = arrayList();
 
     for (int queryIndex = 0; queryIndex < dictSize; queryIndex++) {
       dict.getWord(queryWord, queryIndex);
@@ -228,6 +229,7 @@ public final class WordleUtils {
 
       if (bestGlobal == null || bestGlobal.pop() > largestSubset.pop()) {
         bestGlobal = largestSubset;
+        bestQuerys.clear();
 
         if (true) {
           Word workWord = Word.buildEmpty();
@@ -249,6 +251,10 @@ public final class WordleUtils {
             }
           }
         }
+      }
+      if (bestGlobal.pop() == largestSubset.pop()) {
+        bestQuerys.add(queryWord.toString());
+        pr("words producing largest subset now:", INDENT, bestQuerys);
       }
     }
 
