@@ -24,48 +24,50 @@
  **/
 package dev;
 
-import js.app.App;
-
 import static js.base.Tools.*;
 
-public class Main extends App {
+import java.util.List;
 
-  public static final String VERSION = "1.0";
+import dev.wordle.Word;
+import js.app.AppOper;
+import js.app.CmdLineArgs;
+import static dev.wordle.WordleUtils.*;
 
-  public static void main(String[] args) {
-    loadTools();
-    App app = new Main();
-    app.startApplication(args);
-    app.exitWithReturnCode();
+public class WordleOper extends AppOper {
+
+  @Override
+  public String userCommand() {
+    return "wordle";
   }
 
   @Override
-  public String getVersion() {
-    return VERSION;
+  public String getHelpDescription() {
+    return "investigating Wordle strategies";
   }
 
   @Override
-  protected void registerOperations() {
-    registerOper(new CreateAppOper());
-    registerOper(new CreateMakeOper());
-    registerOper(new ResetTestOper());
-    registerOper(new CopyrightOper());
-    registerOper(new ExperimentOper());
-    registerOper(new EntityOper());
-    registerOper(new PushOper());
-    registerOper(new PullOper());
-    registerOper(new SetupMachineOper());
-    registerOper(new SecretsOper());
-    registerOper(new ArchiveOper());
-    registerOper(new PrettyPrintOper());
-    registerOper(new ResizeOper());
-    registerOper(new ExtractUsefulScriptsOper());
-    registerOper(new SplitProjectOper());
-    registerOper(new RemoveExtraneousScriptElementsOper());
-    registerOper(new ConvertJsonOper());
-    registerOper(new FetchCloudFilesOper());
-    registerOper(new MakeScriptOper());
-    registerOper(new WordleOper());
+  protected List<Object> getAdditionalArgs() {
+    return arrayList("<to be det>");
+  }
+
+  @Override
+  protected void processAdditionalArgs() {
+    CmdLineArgs args = app().cmdLineArgs();
+    if (false && args.hasNextArg()) {
+      args.nextArg();
+    }
+    args.assertArgsDone();
+  }
+
+  @Override
+  public void perform() {
+    Word target = word("elect");
+    Word query = word("teeth");
+    
+    
+    pr("target:",target);
+    pr("query :",query);
+    pr("match :",renderMatch(query, compare(target, query)));
   }
 
 }
