@@ -27,6 +27,7 @@ package dev;
 import static js.base.Tools.*;
 
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.Scanner;
 
 import dev.wordle.WordSet;
@@ -85,7 +86,12 @@ public class WordleOper extends AppOper {
     boolean quit = false;
     while (!quit) {
       System.out.print("> ");
-      String s = input.nextLine().trim().toLowerCase();
+      String s;
+      try {
+        s = input.nextLine().trim().toLowerCase();
+      } catch (NoSuchElementException e) {
+        s = "q";
+      }
       switch (s) {
       case "q":
         quit = true;

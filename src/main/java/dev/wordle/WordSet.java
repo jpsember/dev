@@ -26,7 +26,7 @@ public final class WordSet extends BaseObject {
     defaultDictionary();
   }
 
-  private static String sName = "mit";
+  private static String sName = "big";
 
   public static Dictionary defaultDictionary() {
     defaultSet();
