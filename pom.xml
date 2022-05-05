@@ -38,13 +38,6 @@
       <scope>test</scope>
     </dependency>
 
-    <!-- Required for reading single characters from terminal -->
-    <dependency>
-	  <groupId>org.jline</groupId>
-	  <artifactId>jline</artifactId>
-	  <version>3.17.1</version>
-    </dependency>
-
   </dependencies>
   
 </project>

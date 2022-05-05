@@ -70,17 +70,33 @@ public class WordleOper extends AppOper {
       perf2();
       return;
     }
-   
+
+    newGame();
     Scanner input = new Scanner(System.in);
-    
-    int a = 0;
-    while (true) {
-      if (++a >= 20)
+
+    boolean quit = false;
+    while (!quit) {
+      System.out.print("> ");
+      String s = input.nextLine().trim().toLowerCase();
+      switch (s) {
+      case "q":
+        quit = true;
         break;
-      pr("Enter something");
-      String s = input.nextLine();
-      pr("s:", s);
+      case "n":
+        newGame();
+        break;
+      default:
+        parseCommand(s);
+        break;
+      }
     }
+  }
+
+  private void newGame() {
+  }
+
+  private void parseCommand(String cmd) {
+    pr("*** Don't understand:", cmd);
   }
 
   private void perf2() {
