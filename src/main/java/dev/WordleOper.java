@@ -135,7 +135,7 @@ public class WordleOper extends AppOper {
 
   private Dict dict() {
     if (g.dict == null) {
-      g.dict = Dict.standard();
+      g.dict = Dict.defaultDictionary();
     }
     return g.dict;
   }

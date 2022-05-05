@@ -15,10 +15,26 @@ import static js.base.Tools.*;
 
 public final class Dict extends BaseObject {
 
-  
-  public static Dict standard() {
+  public static Dict defaultDictionary() {
     if (sDefaultDict == null) {
-      int k = dictionary().words().size();
+      Dictionary dict;
+      try {
+        dict = Dict.readDictionary("mit");
+        Dictionary.Builder db = dict.toBuilder();
+        byte[] b = new byte[dict.words().size() * WORD_LENGTH];
+        int c = 0;
+        for (String s : dict.words()) {
+          byte[] sourceBytes = s.getBytes("UTF-8");
+          System.arraycopy(sourceBytes, 0, b, c, WORD_LENGTH);
+          c += WORD_LENGTH;
+        }
+        db.wordBytes(b);
+        dict = db.build();
+      } catch (Throwable e) {
+        throw asRuntimeException(e);
+      }
+      sWordBytes = dict.wordBytes();
+      int k = dict.words().size();
       int[] wordIds = new int[k];
       for (int i = 0; i < k; i++)
         wordIds[i] = i;
@@ -42,18 +58,17 @@ public final class Dict extends BaseObject {
   }
 
   public void getWord(Word target, int index) {
-    byte[] wl = wordList();
-    target.set(wl, wordId(index));
+    target.set(sWordBytes, wordId(index));
   }
 
   public Word getWord(int index) {
-    return new Word(wordList(), wordId(index));
+    return new Word(sWordBytes, wordId(index));
   }
 
   public List<Word> getWords() {
     List<Word> words = arrayList();
     for (int id : mWordIds)
-      words.add(new Word(wordList(), id));
+      words.add(new Word(sWordBytes, id));
     return words;
   }
 
@@ -77,8 +92,6 @@ public final class Dict extends BaseObject {
   // Ids of words in this dictionary.  An id is its index within the master dictionary
   //
   private int[] mWordIds;
-
-  private static Dict sDefaultDict;
 
   public static Dictionary readDictionary(String name) {
     String listName = Files.setExtension(name, Files.EXT_JSON);
@@ -111,33 +124,6 @@ public final class Dict extends BaseObject {
     pr("...wrote:", target);
   }
 
-  public static Dictionary dictionary() {
-    if (sDictionary == null) {
-      try {
-        todo("calling this from Dict and then calling Dict again");
-        Dictionary dict = Dict.readDictionary("mit");
-        Dictionary.Builder db = dict.toBuilder();
-        byte[] b = new byte[dict.words().size() * WORD_LENGTH];
-        int c = 0;
-        for (String s : dict.words()) {
-          byte[] sourceBytes = s.getBytes("UTF-8");
-          System.arraycopy(sourceBytes, 0, b, c, WORD_LENGTH);
-          c += WORD_LENGTH;
-        }
-        db.wordBytes(b);
-        sDictionary = db.build();
-        sWordBytes = sDictionary.wordBytes();
-      } catch (Throwable e) {
-        throw asRuntimeException(e);
-      }
-    }
-    return sDictionary;
-  }
-
-  private static byte[] wordList() {
-    return sWordBytes;
-  }
-
-  private static Dictionary sDictionary;
+  private static Dict sDefaultDict;
   private static byte[] sWordBytes;
 }
