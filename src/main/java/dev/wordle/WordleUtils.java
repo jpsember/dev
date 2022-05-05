@@ -131,11 +131,11 @@ public final class WordleUtils {
 
       int origSize = s.length() / (WORD_LENGTH + 1);
 
-      int subsetSize = 12947;
+      int subsetSize = 300;
       {
         int subList = (WORD_LENGTH + 1) * subsetSize;
         if (subList < s.length()) {
-          if (alert("using smaller dictionary,", subsetSize, "<", origSize))
+          if (false && alert("using smaller dictionary,", subsetSize, "<", origSize))
             s = s.substring(0, subList);
         }
       }
@@ -158,10 +158,9 @@ public final class WordleUtils {
     return sWordList;
   }
 
-  private static class PartEnt {
-    //    int population;
-    //    int sampleWordIndex;
+  private static class PartitionEntry {
     final IntArray.Builder set = IntArray.newBuilder();
+    final int compareResult;
 
     int pop() {
       return set.size();
@@ -170,6 +169,10 @@ public final class WordleUtils {
     void add(int wordIndex) {
       set.add(wordIndex);
     }
+
+    PartitionEntry(int compareResult) {
+      this.compareResult = compareResult;
+    }
   }
 
   /**
@@ -177,46 +180,71 @@ public final class WordleUtils {
    */
   public static int[] bestGuess(Dict dict) {
 
-    Map<Integer, PartEnt> partitionMap = hashMap();
+    Map<Integer, PartitionEntry> partitionMap = hashMap();
     Word queryWord = Word.buildEmpty();
     Word targetWord = Word.buildEmpty();
 
-    int ds = dict.size();
+    int dictSize = dict.size();
 
-    PartEnt bestGlobal = null;
+    PartitionEntry bestGlobal = null;
 
-    for (int wordIndex = 0; wordIndex < ds; wordIndex++) {
+    
+    // 
+    // Let q be a word in the dictionary.
+    //
+    // Comparing q to all the words in the dictionary partitions the dictionary into subsets,
+    // each of which has the property that each target t in the subset produces an identical result 
+    // when comparing q and t.
+    //
+    // Choose the q* that the largest subset {t0, t1, ...} is as small as possible.
+    //
+    for (int wordIndex = 0; wordIndex < dictSize; wordIndex++) {
+     
       dict.getWord(queryWord, wordIndex);
 
       partitionMap.clear();
 
-      for (int auxIndex = 0; auxIndex < ds; auxIndex++) {
+      for (int auxIndex = 0; auxIndex < dictSize; auxIndex++) {
         dict.getWord(targetWord, auxIndex);
 
         int result = compare(queryWord, targetWord);
-        PartEnt ent = partitionMap.get(result);
+        PartitionEntry ent = partitionMap.get(result);
         if (ent == null) {
-          ent = new PartEnt();
+          ent = new PartitionEntry(result);
           partitionMap.put(result, ent);
         }
         ent.add(auxIndex);
       }
 
-      // What is the largest population?
-      PartEnt best = null;
-      for (PartEnt pe : partitionMap.values()) {
-        if (best == null || pe.pop() > best.pop())
-          best = pe;
+      // Choose the worst case, the largest subset
+      //
+      PartitionEntry largestSubset = null;
+      for (PartitionEntry entry : partitionMap.values()) {
+        if (largestSubset == null || entry.pop() > largestSubset.pop())
+          largestSubset = entry;
       }
+      pr("examined word",wordIndex,", largest subset size:",largestSubset.pop(),largestSubset.compareResult);
 
-      if (bestGlobal == null || bestGlobal.pop() > best.pop()) {
-        bestGlobal = best;
+      if (bestGlobal == null || bestGlobal.pop() > largestSubset.pop()) {
+        bestGlobal = largestSubset;
 
         dict.getWord(targetWord, bestGlobal.set.get(0));
 
         String render = renderMatch(targetWord, compare(queryWord, targetWord));
+        pr("new largest subset:", bestGlobal.pop(), "sample:", render,"compare result:",bestGlobal.compareResult);
 
-        pr("new best word:", queryWord, "largest subset:", bestGlobal.pop(), "sample:", render);
+        {
+          int[] wds = bestGlobal.set.array();
+          Word wk = Word.buildEmpty();
+          for (int wi : wds) {
+            dict.getWord(wk, wi);
+            int compareResult = compare(queryWord, wk);
+            String res = renderMatch(queryWord, compareResult);
+            pr("...", res, "==(target)==>", wk);
+          }
+        }
+
+        //pr("partitioned into:",partitionMap.size());
       }
     }
 

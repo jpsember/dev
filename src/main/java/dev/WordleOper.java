@@ -28,11 +28,14 @@ import static js.base.Tools.*;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 
 import dev.wordle.Dict;
 import dev.wordle.Word;
 import js.app.AppOper;
 import js.app.CmdLineArgs;
+import js.json.JSList;
+
 import static dev.wordle.WordleUtils.*;
 
 public class WordleOper extends AppOper {
@@ -69,18 +72,40 @@ public class WordleOper extends AppOper {
   @Override
   public void perform() {
 
-    if (false) 
+    if (false)
       perf2();
-    
-    
-    
+
     Dict d = Dict.standard();
-    
-    int[] bestGuess = bestGuess(d);
-    pr(d.wordStrings(bestGuess));
+
+    int guessNumber = 0;
+    while (d.size() > 1) {
+      guessNumber++;
+      checkState(guessNumber < 20);
+
+      int[] bestGuessesList = bestGuess(d);
+      checkState(bestGuessesList.length > 0);
+
+      
+      if (alert("stopping")) break;
+      int guessIndex = rand().nextInt(bestGuessesList.length);
+      int guess = bestGuessesList[guessIndex];
+
+      Word w = d.getWord(guess);
+      pr("Guess #" + guessNumber+":",w);
+
+      pr("resulting possibilities:", INDENT, JSList.with(d.wordStrings(bestGuessesList)));
+      d = Dict.withWords(bestGuessesList);
+    }
   }
-  
-  
+
+  private Random rand() {
+    if (mRandom == null)
+      mRandom = new Random(1965);
+    return mRandom;
+  }
+
+  private Random mRandom;
+
   private void perf2() {
     Map<Integer, PartEnt> partitionMap = hashMap();
     Word queryWord = getDictionaryWord(0);
@@ -126,6 +151,5 @@ public class WordleOper extends AppOper {
       }
     }
   }
-
 
 }
