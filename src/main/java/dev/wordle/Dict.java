@@ -15,9 +15,10 @@ import static js.base.Tools.*;
 
 public final class Dict extends BaseObject {
 
+  
   public static Dict standard() {
     if (sDefaultDict == null) {
-     int k = dictionary().words().size();
+      int k = dictionary().words().size();
       int[] wordIds = new int[k];
       for (int i = 0; i < k; i++)
         wordIds[i] = i;
@@ -87,7 +88,6 @@ public final class Dict extends BaseObject {
 
   public static void generateResource(String listName, String s) {
     File dir = Files.getDesktopDirectory();//new File("src/main/resources/dev/wordle");
-//    Files.assertDirectoryExists(dir, "resources");
     File target = new File(dir, Files.setExtension(listName, Files.EXT_JSON));
     if (false && target.exists()) {
       pr("...already exists:", target);
@@ -99,7 +99,8 @@ public final class Dict extends BaseObject {
     int line = INIT_INDEX;
     for (String ln : split(s, '\n')) {
       line++;
-      if (ln.isEmpty()) continue;
+      if (ln.isEmpty())
+        continue;
       if (ln.length() != WORD_LENGTH)
         badArg("line number:", line, quote(ln));
       words.add(ln);
@@ -110,4 +111,33 @@ public final class Dict extends BaseObject {
     pr("...wrote:", target);
   }
 
+  public static Dictionary dictionary() {
+    if (sDictionary == null) {
+      try {
+        todo("calling this from Dict and then calling Dict again");
+        Dictionary dict = Dict.readDictionary("mit");
+        Dictionary.Builder db = dict.toBuilder();
+        byte[] b = new byte[dict.words().size() * WORD_LENGTH];
+        int c = 0;
+        for (String s : dict.words()) {
+          byte[] sourceBytes = s.getBytes("UTF-8");
+          System.arraycopy(sourceBytes, 0, b, c, WORD_LENGTH);
+          c += WORD_LENGTH;
+        }
+        db.wordBytes(b);
+        sDictionary = db.build();
+        sWordBytes = sDictionary.wordBytes();
+      } catch (Throwable e) {
+        throw asRuntimeException(e);
+      }
+    }
+    return sDictionary;
+  }
+
+  private static byte[] wordList() {
+    return sWordBytes;
+  }
+
+  private static Dictionary sDictionary;
+  private static byte[] sWordBytes;
 }

@@ -4,7 +4,6 @@ import static js.base.Tools.*;
 
 import java.util.Map;
 
-import dev.gen.wordle.Dictionary;
 import js.data.IntArray;
 
 public final class WordleUtils {
@@ -86,40 +85,6 @@ public final class WordleUtils {
   private static final void clearWork(byte[] a) {
     for (int i = 0; i < WORD_LENGTH; i++)
       a[i] = 0;
-  }
-
-  public static Word getDictionaryWord(int index) {
-    return new Word(wordList(), index);
-  }
-
-  public static void getDictionaryWord(Word mainWord, int wordIndex) {
-    mainWord.set(wordList(), wordIndex);
-  }
-
-  public static Dictionary dictionary() {
-    if (sDictionary == null) {
-      try {
-        todo("calling this from Dict and then calling Dict again");
-        Dictionary dict = Dict.readDictionary("mit");
-        Dictionary.Builder db = dict.toBuilder();
-        byte[] b = new byte[dict.words().size() * WORD_LENGTH];
-        int c = 0;
-        for (String s : dict.words()) {
-          byte[] sourceBytes = s.getBytes("UTF-8");
-          System.arraycopy(sourceBytes, 0, b, c, WORD_LENGTH);
-          c += WORD_LENGTH;
-        }
-        db.wordBytes(b);
-        sDictionary = db.build();
-      } catch (Throwable e) {
-        throw asRuntimeException(e);
-      }
-    }
-    return sDictionary;
-  }
-
-  public static byte[] wordList() {
-    return dictionary().wordBytes();
   }
 
   private static class PartitionEntry {
@@ -205,5 +170,4 @@ public final class WordleUtils {
   private static final byte[] sWork = new byte[WORD_LENGTH];
   private static final byte[] sWork2 = new byte[WORD_LENGTH];
 
-  private static Dictionary sDictionary;
 }
