@@ -6,8 +6,8 @@ import js.json.JSMap;
 
 import static dev.wordle.WordleUtils.*;
 
-import java.io.File;
 import java.util.List;
+import java.util.Map;
 
 import dev.gen.wordle.Dictionary;
 
@@ -33,31 +33,68 @@ public final class WordSet extends BaseObject {
     return sDictionary;
   }
 
+  private static WordSet sLargeSet;
+
+  public static WordSet largeSet() {
+    if (sLargeSet == null) {
+      if (sName.equals("big"))
+        sLargeSet = sDefaultWordSet;
+      else {
+        sLargeSet = readSet("big");
+      }
+    }
+    return sLargeSet;
+  }
+
+  public static Dictionary dict(String name) {
+    Dictionary d = sDicts.get(name);
+    if (d == null) {
+      d = readDictionary2(name);
+      sDicts.put(name, d);
+    }
+    return d;
+  }
+
+  private static Map<String, Dictionary> sDicts = hashMap();
+
+  private static Dictionary readDictionary2(String name) {
+    Dictionary dict = null;
+    try {
+      dict = WordSet.readDictionary(name);
+      Dictionary.Builder db = dict.toBuilder();
+      byte[] b = new byte[dict.words().size() * WORD_LENGTH];
+      int c = 0;
+      for (String s : dict.words()) {
+        byte[] sourceBytes = s.getBytes("UTF-8");
+        System.arraycopy(sourceBytes, 0, b, c, WORD_LENGTH);
+        c += WORD_LENGTH;
+      }
+      db.wordBytes(b);
+      dict = db.build();
+    } catch (Throwable e) {
+      throw asRuntimeException(e);
+    }
+    return dict;
+  }
+
+  private static WordSet readSet(String name) {
+    Dictionary dict = dict(name);
+    sLastDictRead = dict;
+    int k = dict.words().size();
+    int[] wordIds = new int[k];
+    for (int i = 0; i < k; i++)
+      wordIds[i] = i;
+    return withWordIds(wordIds);
+  }
+
+  private static Dictionary sLastDictRead;
+
   public static WordSet defaultSet() {
     if (sDefaultWordSet == null) {
-      Dictionary dict;
-      try {
-        dict = WordSet.readDictionary(sName);
-        Dictionary.Builder db = dict.toBuilder();
-        byte[] b = new byte[dict.words().size() * WORD_LENGTH];
-        int c = 0;
-        for (String s : dict.words()) {
-          byte[] sourceBytes = s.getBytes("UTF-8");
-          System.arraycopy(sourceBytes, 0, b, c, WORD_LENGTH);
-          c += WORD_LENGTH;
-        }
-        db.wordBytes(b);
-        dict = db.build();
-        sDictionary = dict;
-      } catch (Throwable e) {
-        throw asRuntimeException(e);
-      }
-      sWordBytes = dict.wordBytes();
-      int k = dict.words().size();
-      int[] wordIds = new int[k];
-      for (int i = 0; i < k; i++)
-        wordIds[i] = i;
-      sDefaultWordSet = withWordIds(wordIds);
+      WordSet ws = readSet(sName);
+      sWordBytes = sLastDictRead.wordBytes();
+      sDefaultWordSet = ws;
+      sDictionary = sLastDictRead;
     }
     return sDefaultWordSet;
   }
@@ -110,36 +147,24 @@ public final class WordSet extends BaseObject {
   //
   private int[] mWordIds;
 
-  public static Dictionary readDictionary(String name) {
+  private static Dictionary readDictionary(String name) {
     String listName = Files.setExtension(name, Files.EXT_JSON);
     JSMap m = JSMap.fromResource(WordSet.class, listName);
-    return Files.parseAbstractDataOpt(Dictionary.DEFAULT_INSTANCE, m);
-  }
 
-  @Deprecated
-  public static void generateResource(String listName, String s) {
-    File dir = Files.getDesktopDirectory();
-    File target = new File(dir, Files.setExtension(listName, Files.EXT_JSON));
-    if (false && target.exists()) {
-      pr("...already exists:", target);
-      return;
+    if (false && alert("sorting")) {
+      Dictionary d = Files.parseAbstractDataOpt(Dictionary.DEFAULT_INSTANCE, m);
+      List<String> s = arrayList();
+      s.addAll(d.words());
+      s.sort(null);
+      if (!s.equals(d.words())) {
+        Dictionary.Builder db = d.toBuilder();
+        db.words(s);
+        Files.S.writeString(Files.getDesktopFile(listName), db.toJson().toString());
+        halt("words sorted are different");
+      }
     }
-    Dictionary.Builder dict = Dictionary.newBuilder();
-    dict.name(listName);
-    List<String> words = arrayList();
-    int line = INIT_INDEX;
-    for (String ln : split(s, '\n')) {
-      line++;
-      if (ln.isEmpty())
-        continue;
-      if (ln.length() != WORD_LENGTH)
-        badArg("line number:", line, quote(ln));
-      words.add(ln);
-    }
-    dict.words(words);
-    String encoded = dict.toJson().toString();
-    Files.S.writeString(target, encoded);
-    pr("...wrote:", target);
+
+    return Files.parseAbstractDataOpt(Dictionary.DEFAULT_INSTANCE, m);
   }
 
   private static Dictionary sDictionary;

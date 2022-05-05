@@ -124,6 +124,7 @@ public class WordleOper extends AppOper {
       List<String> poss = arrayList();
       for (Word w : dict().getWords())
         poss.add(w.toString());
+      poss = sortWordsForDisplay(poss);
       pr("Solutions:", INDENT, formatWords(poss));
     }
     pr("Guesses:", INDENT, formatWords(bestGuesses()));
@@ -153,6 +154,7 @@ public class WordleOper extends AppOper {
         g.bestGuesses = WordSet.defaultDictionary().initialGuesses();
       else
         g.bestGuesses = dict().getWordStrings(bestGuess(dict()));
+      g.bestGuesses = sortWordsForDisplay(g.bestGuesses);
     }
     return g.bestGuesses;
   }
