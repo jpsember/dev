@@ -29,13 +29,12 @@ import static js.base.Tools.*;
 import java.util.List;
 import java.util.Scanner;
 
-import dev.wordle.Dict;
+import dev.wordle.WordSet;
 import dev.wordle.Guess;
 import dev.wordle.Word;
 import js.app.AppOper;
 import js.app.CmdLineArgs;
 import js.data.IntArray;
-import js.json.JSList;
 
 import static dev.wordle.WordleUtils.*;
 
@@ -70,6 +69,7 @@ public class WordleOper extends AppOper {
     pr("Commands:", INDENT, //
         "a*ppl'e", t, "make a guess", CR, //
         "a", t, "advice", CR, //
+        "d [ big | mit ]", CR, //
         "h", t, "help", CR, //
         "n", t, "new game", CR, //
         "q", t, "quit");
@@ -112,20 +112,21 @@ public class WordleOper extends AppOper {
   }
 
   private void advice() {
-    List<Word> words = dict().getWords(bestGuesses());
     if (dict().size() > 100) {
       pr("(" + dict().size() + " solutions)");
     } else {
-      List<Word> poss = dict().getWords();
+      List<String> poss = arrayList();
+      for (Word w : dict().getWords())
+        poss.add(w.toString());
       pr("Solutions:", INDENT, formatWords(poss));
     }
-    pr("Guesses:", INDENT, formatWords(words));
+    pr("Guesses:", INDENT, formatWords(bestGuesses()));
   }
 
-  private static String formatWords(List<Word> words) {
+  private static String formatWords(List<String> words) {
     StringBuilder sb = new StringBuilder();
     int i = INIT_INDEX;
-    for (Word w : words) {
+    for (String w : words) {
       i++;
       sb.append(w);
       sb.append((i % 8) == 7 ? '\n' : ' ');
@@ -133,36 +134,40 @@ public class WordleOper extends AppOper {
     return sb.toString().toLowerCase();
   }
 
-  private Dict dict() {
+  private WordSet dict() {
     if (g.dict == null) {
-      g.dict = Dict.defaultDictionary();
+      g.dict = WordSet.defaultSet();
     }
     return g.dict;
   }
 
-  private static int[] MIT_START_GUESSES = { 5015 };
-
-  private int[] bestGuesses() {
+  private List<String> bestGuesses() {
     if (g.bestGuesses == null) {
-      if (dict().size() == 12947) {
-        g.bestGuesses = MIT_START_GUESSES;
-      } else
-        g.bestGuesses = bestGuess(dict());
-      if (false)
-        pr("best guess:", JSList.with(g.bestGuesses));
+      if (g.turnNumber == 0)
+        g.bestGuesses = WordSet.defaultDictionary().initialGuesses();
+      else
+        g.bestGuesses = dict().getWordStrings(bestGuess(dict()));
     }
     return g.bestGuesses;
   }
 
   private class GameVars {
-    Dict dict;
-    int[] bestGuesses;
+    WordSet dict;
+    List<String> bestGuesses;
     int turnNumber;
   }
 
   private GameVars g = new GameVars();
 
   private void parseCommand(String cmd) {
+    if (cmd.startsWith("d ")) {
+      String name = cmd.substring(2);
+      pr("...selecting dictionary:", name);
+      WordSet.selectDictionary(name);
+      newGame();
+      return;
+    }
+
     Guess g = Guess.parse(cmd);
     if (g != null) {
       makeGuess(g);
@@ -173,7 +178,7 @@ public class WordleOper extends AppOper {
   }
 
   private void makeGuess(Guess guess) {
-    Dict dict = dict();
+    WordSet dict = dict();
     int dictSize = dict.size();
 
     IntArray.Builder ib = IntArray.newBuilder();
@@ -187,12 +192,12 @@ public class WordleOper extends AppOper {
         continue;
       ib.add(dict.wordId(targetIndex));
     }
-    dict = Dict.withWordIds(ib.array());
+    dict = WordSet.withWordIds(ib.array());
     g.dict = dict;
     g.bestGuesses = null;
     g.turnNumber++;
-    
-    pr("...turn number",g.turnNumber);
+
+    pr("...turn number", g.turnNumber);
   }
 
 }

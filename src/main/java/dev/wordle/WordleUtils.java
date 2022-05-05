@@ -16,10 +16,6 @@ public final class WordleUtils {
   public static final int MATCH_PARTIAL = 1;
   public static final int MATCH_FULL = 2;
 
-  public static Word word(String text) {
-    return new Word(text);
-  }
-
   public static int compare(Word target, Word query) {
     byte[] matchCodes = sWork;
     clearWork(matchCodes);
@@ -107,7 +103,7 @@ public final class WordleUtils {
   /**
    * Given a set of possible answers, determine the best guesses
    */
-  public static int[] bestGuess(Dict dict) {
+  public static int[] bestGuess(WordSet dict) {
 
     Map<Integer, PartitionEntry> partitionMap = hashMap();
     Word queryWord = Word.buildEmpty();

@@ -13,13 +13,31 @@ import dev.gen.wordle.Dictionary;
 
 import static js.base.Tools.*;
 
-public final class Dict extends BaseObject {
+/**
+ * A set of words taken from a Dictionary
+ */
+public final class WordSet extends BaseObject {
 
-  public static Dict defaultDictionary() {
-    if (sDefaultDict == null) {
+  public static void selectDictionary(String name) {
+    sName = name;
+    sDictionary = null;
+    sDefaultWordSet = null;
+    sWordBytes = null;
+    defaultDictionary();
+  }
+
+  private static String sName = "mit";
+
+  public static Dictionary defaultDictionary() {
+    defaultSet();
+    return sDictionary;
+  }
+
+  public static WordSet defaultSet() {
+    if (sDefaultWordSet == null) {
       Dictionary dict;
       try {
-        dict = Dict.readDictionary("mit");
+        dict = WordSet.readDictionary(sName);
         Dictionary.Builder db = dict.toBuilder();
         byte[] b = new byte[dict.words().size() * WORD_LENGTH];
         int c = 0;
@@ -30,6 +48,7 @@ public final class Dict extends BaseObject {
         }
         db.wordBytes(b);
         dict = db.build();
+        sDictionary = dict;
       } catch (Throwable e) {
         throw asRuntimeException(e);
       }
@@ -38,13 +57,13 @@ public final class Dict extends BaseObject {
       int[] wordIds = new int[k];
       for (int i = 0; i < k; i++)
         wordIds[i] = i;
-      sDefaultDict = withWordIds(wordIds);
+      sDefaultWordSet = withWordIds(wordIds);
     }
-    return sDefaultDict;
+    return sDefaultWordSet;
   }
 
-  public static Dict withWordIds(int[] wordIds) {
-    Dict d = new Dict();
+  public static WordSet withWordIds(int[] wordIds) {
+    WordSet d = new WordSet();
     d.mWordIds = wordIds;
     return d;
   }
@@ -72,21 +91,19 @@ public final class Dict extends BaseObject {
     return words;
   }
 
+  public List<String> getWordStrings(int[] ids) {
+    List<Word> words = getWords(ids);
+    List<String> strs = arrayList();
+    for (Word w : words)
+      strs.add(w.toString());
+    return strs;
+  }
+
   public List<Word> getWords(int[] w) {
     List<Word> words = arrayList();
     for (int wi : w)
       words.add(getWord(wi));
     return words;
-  }
-
-  public List<String> wordStrings(int[] wordIndices) {
-    Word work = Word.buildEmpty();
-    List<String> result = arrayList();
-    for (int x : wordIndices) {
-      getWord(work, x);
-      result.add(work.toString());
-    }
-    return result;
   }
 
   // Ids of words in this dictionary.  An id is its index within the master dictionary
@@ -95,12 +112,13 @@ public final class Dict extends BaseObject {
 
   public static Dictionary readDictionary(String name) {
     String listName = Files.setExtension(name, Files.EXT_JSON);
-    JSMap m = JSMap.fromResource(Dict.class, listName);
+    JSMap m = JSMap.fromResource(WordSet.class, listName);
     return Files.parseAbstractDataOpt(Dictionary.DEFAULT_INSTANCE, m);
   }
 
+  @Deprecated
   public static void generateResource(String listName, String s) {
-    File dir = Files.getDesktopDirectory();//new File("src/main/resources/dev/wordle");
+    File dir = Files.getDesktopDirectory();
     File target = new File(dir, Files.setExtension(listName, Files.EXT_JSON));
     if (false && target.exists()) {
       pr("...already exists:", target);
@@ -124,6 +142,8 @@ public final class Dict extends BaseObject {
     pr("...wrote:", target);
   }
 
-  private static Dict sDefaultDict;
+  private static Dictionary sDictionary;
+  private static WordSet sDefaultWordSet;
   private static byte[] sWordBytes;
+
 }
