@@ -2,6 +2,9 @@ package dev.wordle;
 
 import static js.base.Tools.*;
 
+import js.data.ByteArray;
+import js.file.Files;
+
 public final class WordleUtils {
 
   public static final int WORD_LENGTH = 5;
@@ -20,27 +23,27 @@ public final class WordleUtils {
     byte[] matchCodes = sWork;
     clearWork(matchCodes);
 
-    byte[] targCopy = sWork2;
-    target.readLetters(targCopy);
-    byte[] quer = query.letters();
+    byte[] targetCopy = sWork2;
+    target.readLetters(targetCopy);
+    byte[] queryBytes = query.letters();
 
     for (int i = 0; i < WORD_LENGTH; i++) {
-      if (quer[i] == targCopy[i]) {
+      if (queryBytes[i] == targetCopy[i]) {
         matchCodes[i] = MATCH_FULL;
-        targCopy[i] = CODE_SKIP;
+        targetCopy[i] = CODE_SKIP;
       }
     }
 
     for (int i = 0; i < WORD_LENGTH; i++) {
       if (matchCodes[i] != MATCH_NONE)
         continue;
-      int q = quer[i];
+      int q = queryBytes[i];
       for (int j = 0; j < WORD_LENGTH; j++) {
-        if (targCopy[j] == CODE_SKIP)
+        if (targetCopy[j] == CODE_SKIP)
           continue;
-        if (targCopy[j] == q) {
+        if (targetCopy[j] == q) {
           matchCodes[i] = MATCH_PARTIAL;
-          targCopy[j] = CODE_SKIP;
+          targetCopy[j] = CODE_SKIP;
           break;
         }
       }
@@ -87,7 +90,36 @@ public final class WordleUtils {
       a[i] = 0;
   }
 
+  public static int dictionarySize() {
+    return wordList().length / WORD_LENGTH;
+  }
+
+  public static Word getDictionaryWord(int index) {
+    return new Word(wordList(), index);
+  }
+
+  public static byte[] wordList() {
+    if (sWordList == null) {
+      String s = Files.readString(WordleUtils.class, "wordle_list.txt").toUpperCase().trim() + "\n";
+      byte[] sourceBytes;
+      try {
+        sourceBytes = s.getBytes("UTF-8");
+      } catch (Throwable e) {
+        throw asRuntimeException(e);
+      }
+      ByteArray.Builder target = ByteArray.newBuilder();
+      int cursor = 0;
+      while (cursor < sourceBytes.length) {
+        for (int i = 0; i < WORD_LENGTH; i++)
+          target.add(sourceBytes[cursor + i]);
+        cursor += WORD_LENGTH + 1;
+      }
+      sWordList = target.array();
+    }
+    return sWordList;
+  }
+
   private static final byte[] sWork = new byte[WORD_LENGTH];
   private static final byte[] sWork2 = new byte[WORD_LENGTH];
-
+  private static byte[] sWordList;
 }

@@ -61,13 +61,25 @@ public class WordleOper extends AppOper {
 
   @Override
   public void perform() {
+
     Word target = word("elect");
     Word query = word("teeth");
-    
-    
-    pr("target:",target);
-    pr("query :",query);
-    pr("match :",renderMatch(query, compare(target, query)));
+
+    wordList();
+
+    pr("target:", target);
+    pr("query :", query);
+    pr("match :", renderMatch(query, compare(target, query)));
+
+    for (int i = 0; i < 5; i++) {
+      Word wi = getDictionaryWord(i);
+      pr("Target:", wi);
+      for (int j = 0; j < 5; j++) {
+        Word wj = getDictionaryWord(j);
+        pr("   ", renderMatch(wj, compare(wi, wj)));
+      }
+    }
+
   }
 
 }
