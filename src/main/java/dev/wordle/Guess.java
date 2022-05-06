@@ -5,6 +5,13 @@ import static dev.wordle.WordleUtils.*;
 
 public class Guess {
 
+  public static Guess with(Word word, int compareResult) {
+    Guess g = new Guess();
+    g.mWord = word;
+    g.mCompareResult = compareResult;
+    return g;
+  }
+
   public static Guess parse(String s) {
 
     try {
@@ -35,16 +42,13 @@ public class Guess {
 
       if (w.length() != WORD_LENGTH)
         badArg();
-      Guess g = new Guess();
-      g.mWord = w.toString();
-      g.mCompareResult = cres;
-      return g;
+      return with(Word.with(w.toString()), cres);
     } catch (IllegalArgumentException e) {
       return null;
     }
   }
 
-  public String word() {
+  public Word word() {
     return mWord;
   }
 
@@ -52,6 +56,6 @@ public class Guess {
     return mCompareResult;
   }
 
-  private String mWord;
+  private Word mWord;
   private int mCompareResult;
 }

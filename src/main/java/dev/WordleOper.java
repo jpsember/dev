@@ -72,45 +72,79 @@ public class WordleOper extends AppOper {
         "a", t, "advice", CR, //
         "d [ big | mit ]", CR, //
         "h", t, "help", CR, //
-        "n", t, "new game", CR, //
+        "n [<answer>]", t, "new game", CR, //
         "q", t, "quit");
   }
 
   @Override
   public void perform() {
-    newGame();
-
     pr("Type 'h' for help");
+    newGame();
+    advice();
+
     Scanner input = new Scanner(System.in);
 
     boolean quit = false;
     while (!quit) {
       System.out.print("> ");
-      String s;
+      String s = "";
       try {
-        s = input.nextLine().trim().toLowerCase();
-      } catch (NoSuchElementException e) {
-        s = "q";
-      }
-      switch (s) {
-      case "q":
-        quit = true;
-        break;
-      case "n":
-        newGame();
-        break;
-      case "a":
-        advice();
-        break;
-      case "h":
-      case "help":
-        help();
-        break;
-      default:
-        parseCommand(s);
-        break;
+        try {
+          s = input.nextLine().trim().toLowerCase();
+        } catch (NoSuchElementException e) {
+          s = "q";
+        }
+
+        mArgs = split(s, ' ');
+        mCursor = 0;
+
+        String a = readArg();
+        switch (a) {
+        case "q":
+          quit = true;
+          break;
+        case "n":
+          newGame();
+          if (hasNextArg()) {
+            g.answer = new Word(readArg());
+          }
+          advice();
+          break;
+        case "a":
+          advice();
+          break;
+        case "d": {
+          String name = readArg();
+          pr("...selecting dictionary:", name);
+          WordSet.selectDictionary(name);
+          newGame();
+        }
+          break;
+        case "h":
+        case "help":
+          help();
+          break;
+        default:
+          parseCommand(a);
+          break;
+        }
+        checkArgument(!hasNextArg());
+      } catch (IllegalArgumentException e) {
+        pr("Can't understand:", quote(s));
       }
     }
+  }
+
+  private List<String> mArgs;
+  private int mCursor;
+
+  private String readArg() {
+    checkArgument(hasNextArg());
+    return mArgs.get(mCursor++);
+  }
+
+  private boolean hasNextArg() {
+    return mCursor < mArgs.size();
   }
 
   private void newGame() {
@@ -161,28 +195,28 @@ public class WordleOper extends AppOper {
 
   private class GameVars {
     WordSet dict;
+    Word answer;
     List<String> bestGuesses;
     int turnNumber;
   }
 
   private GameVars g = new GameVars();
 
-  private void parseCommand(String cmd) {
-    if (cmd.startsWith("d ")) {
-      String name = cmd.substring(2);
-      pr("...selecting dictionary:", name);
-      WordSet.selectDictionary(name);
-      newGame();
-      return;
-    }
+  private boolean answerIsKnown() {
+    return g.answer != null;
+  }
 
-    Guess g = Guess.parse(cmd);
-    if (g != null) {
-      makeGuess(g);
-      advice();
-    } else {
-      pr("*** Don't understand:", cmd);
+  private void parseCommand(String cmd) {
+    Guess gu = Guess.parse(cmd);
+    checkArgument(gu != null);
+    if (answerIsKnown()) {
+      checkArgument(gu.compareResult() == 0);
+      int result = compare(g.answer, gu.word());
+      gu = Guess.with(gu.word(), result);
+      pr("result:", renderMatch(gu.word(), result));
     }
+    makeGuess(gu);
+    advice();
   }
 
   private void makeGuess(Guess guess) {
@@ -190,7 +224,7 @@ public class WordleOper extends AppOper {
     int dictSize = dict.size();
 
     IntArray.Builder ib = IntArray.newBuilder();
-    Word queryWord = new Word(guess.word());
+    Word queryWord = guess.word();
     Word targetWord = Word.buildEmpty();
 
     for (int targetIndex = 0; targetIndex < dictSize; targetIndex++) {

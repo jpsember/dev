@@ -9,6 +9,10 @@ public final class Word {
     return new Word();
   }
 
+  public static Word with(String text) {
+    return new Word(text);
+  }
+
   private Word() {
   }
 
