@@ -2,6 +2,7 @@ package dev.wordle;
 
 import js.base.BaseObject;
 import js.file.Files;
+import js.json.JSList;
 import js.json.JSMap;
 
 import static dev.wordle.WordleUtils.*;
@@ -143,6 +144,13 @@ public final class WordSet extends BaseObject {
     return words;
   }
 
+  public static List<String> getWordStrings(List<Word> words) {
+    List<String> poss = arrayList();
+    for (Word w : words)
+      poss.add(w.toString());
+    return poss;
+  }
+
   // Ids of words in this dictionary.  An id is its index within the master dictionary
   //
   private int[] mWordIds;
@@ -151,6 +159,20 @@ public final class WordSet extends BaseObject {
     String listName = Files.setExtension(name, Files.EXT_JSON);
     JSMap m = JSMap.fromResource(WordSet.class, listName);
 
+    if (false && alert("trimming plurals")) {
+      JSList newWordList = list();
+      for (String word : m.getList("words").asStrings()) {
+        boolean skip = false;
+        if (word.charAt(4) == 'S') {
+          if ("AEIOU".indexOf(word.charAt(4)) < 0) {
+            skip = true;
+          }
+        }
+        if (!skip)
+          newWordList.add(word);
+      }
+      m.put("words", newWordList);
+    }
     if (false && alert("sorting")) {
       Dictionary d = Files.parseAbstractDataOpt(Dictionary.DEFAULT_INSTANCE, m);
       List<String> s = arrayList();

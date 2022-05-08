@@ -3,6 +3,7 @@ package dev.wordle;
 import static js.base.Tools.*;
 
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 
@@ -58,6 +59,17 @@ public final class WordleUtils {
     return mc;
   }
 
+  public static String resultColors(int resultCode) {
+    String colorChars = ".◯●";
+    StringBuilder sb = new StringBuilder("(");
+    for (int i = 0; i < WORD_LENGTH; i++) {
+      int c = (resultCode >> (i * 2)) & 3;
+      sb.append(colorChars.charAt(c));
+    }
+    sb.append(')');
+    return sb.toString();
+  }
+
   public static String renderMatch(Word query, int match) {
     String queryText = query.toString();
     StringBuilder sb = new StringBuilder();
@@ -78,6 +90,7 @@ public final class WordleUtils {
       match >>= 2;
       sb.append(' ');
     }
+
     return sb.toString();
   }
 
@@ -103,6 +116,16 @@ public final class WordleUtils {
     }
   }
 
+  private static Comparator<PartitionEntry> COMP = new Comparator<PartitionEntry>() {
+    @Override
+    public int compare(PartitionEntry o1, PartitionEntry o2) {
+      int res = o1.pop() - o2.pop();
+      if (res == 0)
+        res = o1.compareResult - o2.compareResult;
+      return res;
+    }
+  };
+
   /**
    * Given a set of possible answers, determine the best guesses
    */
@@ -124,6 +147,7 @@ public final class WordleUtils {
     //
 
     PartitionEntry bestGlobal = null;
+    Map<Integer, PartitionEntry> bestPartitionMap = null;
 
     IntArray.Builder bestQuerys = IntArray.newBuilder();
 
@@ -158,11 +182,23 @@ public final class WordleUtils {
       if (bestGlobal == null || bestGlobal.pop() > largestSubset.pop()) {
         bestGlobal = largestSubset;
         bestQuerys.clear();
+        bestPartitionMap = partitionMap;
+        partitionMap = hashMap();
       }
       if (bestGlobal.pop() == largestSubset.pop())
         bestQuerys.add(queryIndex);
     }
 
+    if (false) {
+      List<PartitionEntry> cc = arrayList();
+      cc.addAll(bestPartitionMap.values());
+      cc.sort(COMP);
+
+      for (PartitionEntry ent : cc) {
+        pr(resultColors(ent.compareResult), ent.pop());
+      }
+    }
+    pr("bestQuery:", resultColors(bestGlobal.compareResult));
     return bestQuerys.array();
   }
 
@@ -184,7 +220,31 @@ public final class WordleUtils {
     return Collections.binarySearch(dictionary.words(), word.toUpperCase()) >= 0;
   }
 
+  public static String formatWords(List<String> words) {
+    StringBuilder sb = new StringBuilder();
+    int i = INIT_INDEX;
+    for (String w : words) {
+      i++;
+      sb.append(w);
+      sb.append((i % 8) == 7 ? '\n' : ' ');
+    }
+    return sb.toString().toLowerCase();
+  }
+
   private static final byte[] sWork = new byte[WORD_LENGTH];
   private static final byte[] sWork2 = new byte[WORD_LENGTH];
+
+  public static void experiment() {
+    pr("running experiment");
+
+    WordSet wordSet = WordSet.defaultSet();
+    checkpoint("starting experiment");
+    int[] bestGuesses = bestGuess(wordSet);
+    checkpoint("done experiment");  // Takes about 9 seconds
+    
+    List<String> wordStrings = wordSet.getWordStrings(bestGuesses);
+    pr("guesses:", INDENT, formatWords(wordStrings));
+
+  }
 
 }

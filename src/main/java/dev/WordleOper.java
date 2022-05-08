@@ -78,6 +78,11 @@ public class WordleOper extends AppOper {
 
   @Override
   public void perform() {
+
+    if (true) {
+      experiment();
+      return;
+    }
     pr("Type 'h' for help");
     newGame();
     advice();
@@ -155,24 +160,12 @@ public class WordleOper extends AppOper {
     if (dict().size() > 100) {
       pr("(" + dict().size() + " solutions)");
     } else {
-      List<String> poss = arrayList();
-      for (Word w : dict().getWords())
-        poss.add(w.toString());
+      dict();
+      List<String> poss = WordSet.getWordStrings(dict().getWords());
       poss = sortWordsForDisplay(poss);
       pr("Solutions:", INDENT, formatWords(poss));
     }
     pr("Guesses:", INDENT, formatWords(bestGuesses()));
-  }
-
-  private static String formatWords(List<String> words) {
-    StringBuilder sb = new StringBuilder();
-    int i = INIT_INDEX;
-    for (String w : words) {
-      i++;
-      sb.append(w);
-      sb.append((i % 8) == 7 ? '\n' : ' ');
-    }
-    return sb.toString().toLowerCase();
   }
 
   private WordSet dict() {
