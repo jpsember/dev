@@ -59,11 +59,11 @@ public final class WordleUtils {
     return mc;
   }
 
-  public static String resultColors(int resultCode) {
+  public static String compareCodeString(int compareCode) {
     String colorChars = ".◯●";
     StringBuilder sb = new StringBuilder("(");
     for (int i = 0; i < WORD_LENGTH; i++) {
-      int c = (resultCode >> (i * 2)) & 3;
+      int c = (compareCode >> (i * 2)) & 3;
       sb.append(colorChars.charAt(c));
     }
     sb.append(')');
@@ -99,33 +99,12 @@ public final class WordleUtils {
       a[i] = 0;
   }
 
-  /**
-   * A subset of words, each keyed by a CompareCode, a collection of which form a partition of a WordSet
-   */
-  private static class Subset {
-
-    final IntArray.Builder set = IntArray.newBuilder();
-    final int compareCode;
-
-    int pop() {
-      return set.size();
-    }
-
-    void add(int wordIndex) {
-      set.add(wordIndex);
-    }
-
-    Subset(int compareCode) {
-      this.compareCode = compareCode;
-    }
-  }
-
-  private static Comparator<Subset> PARTITION_COMPARITOR = new Comparator<Subset>() {
+  private static Comparator<WordPartitionSubset> SUBSET_COMPARATOR = new Comparator<WordPartitionSubset>() {
     @Override
-    public int compare(Subset o1, Subset o2) {
+    public int compare(WordPartitionSubset o1, WordPartitionSubset o2) {
       int res = o1.pop() - o2.pop();
       if (res == 0)
-        res = o1.compareCode - o2.compareCode;
+        res = o1.compareCode() - o2.compareCode();
       return res;
     }
   };
@@ -135,7 +114,7 @@ public final class WordleUtils {
    */
   public static int[] bestGuess(WordSet dict) {
 
-    Map<Integer, Subset> partitionMap = hashMap();
+    Map<Integer, WordPartitionSubset> partitionMap = hashMap();
     Word guessWord = Word.buildEmpty();
     Word answerWord = Word.buildEmpty();
     int dictSize = dict.size();
@@ -150,8 +129,8 @@ public final class WordleUtils {
     // Choose the q* that the largest subset {t0, t1, ...} is as small as possible.
     //
 
-    Subset bestGlobal = null;
-    Map<Integer, Subset> bestPartitionMap = null;
+    WordPartitionSubset bestGlobal = null;
+    Map<Integer, WordPartitionSubset> bestPartitionMap = null;
 
     IntArray.Builder bestQuerys = IntArray.newBuilder();
 
@@ -164,9 +143,9 @@ public final class WordleUtils {
         dict.getWord(answerWord, answerIndex);
 
         int result = compare(answerWord, guessWord);
-        Subset ent = partitionMap.get(result);
+        WordPartitionSubset ent = partitionMap.get(result);
         if (ent == null) {
-          ent = new Subset(result);
+          ent = new WordPartitionSubset(result);
           partitionMap.put(result, ent);
         }
         ent.add(answerIndex);
@@ -174,14 +153,14 @@ public final class WordleUtils {
 
       // Choose the worst case, the largest subset
       //
-      Subset largestSubset = null;
-      for (Subset entry : partitionMap.values()) {
+      WordPartitionSubset largestSubset = null;
+      for (WordPartitionSubset entry : partitionMap.values()) {
         if (largestSubset == null || entry.pop() > largestSubset.pop())
           largestSubset = entry;
       }
       if (false)
         pr("examined word", queryIndex, ":", guessWord, ", largest subset size:", largestSubset.pop(),
-            largestSubset.compareCode);
+            compareCodeString(largestSubset.compareCode()));
 
       if (bestGlobal == null || bestGlobal.pop() > largestSubset.pop()) {
         bestGlobal = largestSubset;
@@ -194,15 +173,15 @@ public final class WordleUtils {
     }
 
     if (false) {
-      List<Subset> cc = arrayList();
+      List<WordPartitionSubset> cc = arrayList();
       cc.addAll(bestPartitionMap.values());
-      cc.sort(PARTITION_COMPARITOR);
+      cc.sort(SUBSET_COMPARATOR);
 
-      for (Subset ent : cc) {
-        pr(resultColors(ent.compareCode), ent.pop());
+      for (WordPartitionSubset ent : cc) {
+        pr(compareCodeString(ent.compareCode()), ent.pop());
       }
     }
-    pr("bestQuery:", resultColors(bestGlobal.compareCode));
+    pr("bestQuery:", compareCodeString(bestGlobal.compareCode()));
     return bestQuerys.array();
   }
 
