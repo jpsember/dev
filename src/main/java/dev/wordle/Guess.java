@@ -5,10 +5,10 @@ import static dev.wordle.WordleUtils.*;
 
 public class Guess {
 
-  public static Guess with(Word word, int compareResult) {
+  public static Guess with(Word word, int compareCode) {
     Guess g = new Guess();
     g.mWord = word;
-    g.mCompareResult = compareResult;
+    g.mCompareCode = compareCode;
     return g;
   }
 
@@ -52,10 +52,10 @@ public class Guess {
     return mWord;
   }
 
-  public int compareResult() {
-    return mCompareResult;
+  public int compareCode() {
+    return mCompareCode;
   }
 
   private Word mWord;
-  private int mCompareResult;
+  private int mCompareCode;
 }

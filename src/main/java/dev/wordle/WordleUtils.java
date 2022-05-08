@@ -20,31 +20,31 @@ public final class WordleUtils {
   public static final int MATCH_PARTIAL = 1;
   public static final int MATCH_FULL = 2;
 
-  public static int compare(Word target, Word query) {
+  public static int compare(Word answerWord, Word guessWord) {
     byte[] matchCodes = sWork;
     clearWork(matchCodes);
 
-    byte[] targetCopy = sWork2;
-    target.readLetters(targetCopy);
-    byte[] queryBytes = query.letters();
+    byte[] answerCopy = sWork2;
+    answerWord.readLetters(answerCopy);
+    byte[] guessBytes = guessWord.letters();
 
     for (int i = 0; i < WORD_LENGTH; i++) {
-      if (queryBytes[i] == targetCopy[i]) {
+      if (guessBytes[i] == answerCopy[i]) {
         matchCodes[i] = MATCH_FULL;
-        targetCopy[i] = CODE_SKIP;
+        answerCopy[i] = CODE_SKIP;
       }
     }
 
     for (int i = 0; i < WORD_LENGTH; i++) {
       if (matchCodes[i] != MATCH_NONE)
         continue;
-      int q = queryBytes[i];
+      int q = guessBytes[i];
       for (int j = 0; j < WORD_LENGTH; j++) {
-        if (targetCopy[j] == CODE_SKIP)
+        if (answerCopy[j] == CODE_SKIP)
           continue;
-        if (targetCopy[j] == q) {
+        if (answerCopy[j] == q) {
           matchCodes[i] = MATCH_PARTIAL;
-          targetCopy[j] = CODE_SKIP;
+          answerCopy[j] = CODE_SKIP;
           break;
         }
       }
@@ -99,9 +99,13 @@ public final class WordleUtils {
       a[i] = 0;
   }
 
-  private static class PartitionEntry {
+  /**
+   * A subset of words, each keyed by a CompareCode, a collection of which form a partition of a WordSet
+   */
+  private static class Subset {
+
     final IntArray.Builder set = IntArray.newBuilder();
-    final int compareResult;
+    final int compareCode;
 
     int pop() {
       return set.size();
@@ -111,17 +115,17 @@ public final class WordleUtils {
       set.add(wordIndex);
     }
 
-    PartitionEntry(int compareResult) {
-      this.compareResult = compareResult;
+    Subset(int compareCode) {
+      this.compareCode = compareCode;
     }
   }
 
-  private static Comparator<PartitionEntry> COMP = new Comparator<PartitionEntry>() {
+  private static Comparator<Subset> PARTITION_COMPARITOR = new Comparator<Subset>() {
     @Override
-    public int compare(PartitionEntry o1, PartitionEntry o2) {
+    public int compare(Subset o1, Subset o2) {
       int res = o1.pop() - o2.pop();
       if (res == 0)
-        res = o1.compareResult - o2.compareResult;
+        res = o1.compareCode - o2.compareCode;
       return res;
     }
   };
@@ -131,9 +135,9 @@ public final class WordleUtils {
    */
   public static int[] bestGuess(WordSet dict) {
 
-    Map<Integer, PartitionEntry> partitionMap = hashMap();
-    Word queryWord = Word.buildEmpty();
-    Word targetWord = Word.buildEmpty();
+    Map<Integer, Subset> partitionMap = hashMap();
+    Word guessWord = Word.buildEmpty();
+    Word answerWord = Word.buildEmpty();
     int dictSize = dict.size();
 
     // 
@@ -146,38 +150,38 @@ public final class WordleUtils {
     // Choose the q* that the largest subset {t0, t1, ...} is as small as possible.
     //
 
-    PartitionEntry bestGlobal = null;
-    Map<Integer, PartitionEntry> bestPartitionMap = null;
+    Subset bestGlobal = null;
+    Map<Integer, Subset> bestPartitionMap = null;
 
     IntArray.Builder bestQuerys = IntArray.newBuilder();
 
     for (int queryIndex = 0; queryIndex < dictSize; queryIndex++) {
-      dict.getWord(queryWord, queryIndex);
+      dict.getWord(guessWord, queryIndex);
 
       partitionMap.clear();
 
-      for (int targetIndex = 0; targetIndex < dictSize; targetIndex++) {
-        dict.getWord(targetWord, targetIndex);
+      for (int answerIndex = 0; answerIndex < dictSize; answerIndex++) {
+        dict.getWord(answerWord, answerIndex);
 
-        int result = compare(targetWord, queryWord);
-        PartitionEntry ent = partitionMap.get(result);
+        int result = compare(answerWord, guessWord);
+        Subset ent = partitionMap.get(result);
         if (ent == null) {
-          ent = new PartitionEntry(result);
+          ent = new Subset(result);
           partitionMap.put(result, ent);
         }
-        ent.add(targetIndex);
+        ent.add(answerIndex);
       }
 
       // Choose the worst case, the largest subset
       //
-      PartitionEntry largestSubset = null;
-      for (PartitionEntry entry : partitionMap.values()) {
+      Subset largestSubset = null;
+      for (Subset entry : partitionMap.values()) {
         if (largestSubset == null || entry.pop() > largestSubset.pop())
           largestSubset = entry;
       }
       if (false)
-        pr("examined word", queryIndex, ":", queryWord, ", largest subset size:", largestSubset.pop(),
-            largestSubset.compareResult);
+        pr("examined word", queryIndex, ":", guessWord, ", largest subset size:", largestSubset.pop(),
+            largestSubset.compareCode);
 
       if (bestGlobal == null || bestGlobal.pop() > largestSubset.pop()) {
         bestGlobal = largestSubset;
@@ -190,15 +194,15 @@ public final class WordleUtils {
     }
 
     if (false) {
-      List<PartitionEntry> cc = arrayList();
+      List<Subset> cc = arrayList();
       cc.addAll(bestPartitionMap.values());
-      cc.sort(COMP);
+      cc.sort(PARTITION_COMPARITOR);
 
-      for (PartitionEntry ent : cc) {
-        pr(resultColors(ent.compareResult), ent.pop());
+      for (Subset ent : cc) {
+        pr(resultColors(ent.compareCode), ent.pop());
       }
     }
-    pr("bestQuery:", resultColors(bestGlobal.compareResult));
+    pr("bestQuery:", resultColors(bestGlobal.compareCode));
     return bestQuerys.array();
   }
 
@@ -240,8 +244,8 @@ public final class WordleUtils {
     WordSet wordSet = WordSet.defaultSet();
     checkpoint("starting experiment");
     int[] bestGuesses = bestGuess(wordSet);
-    checkpoint("done experiment");  // Takes about 9 seconds
-    
+    checkpoint("done experiment"); // Takes about 9 seconds
+
     List<String> wordStrings = wordSet.getWordStrings(bestGuesses);
     pr("guesses:", INDENT, formatWords(wordStrings));
 

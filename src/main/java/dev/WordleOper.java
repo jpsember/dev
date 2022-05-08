@@ -203,7 +203,7 @@ public class WordleOper extends AppOper {
     Guess gu = Guess.parse(cmd);
     checkArgument(gu != null);
     if (answerIsKnown()) {
-      checkArgument(gu.compareResult() == 0);
+      checkArgument(gu.compareCode() == 0);
       int result = compare(g.answer, gu.word());
       gu = Guess.with(gu.word(), result);
       pr("result:", renderMatch(gu.word(), result));
@@ -217,15 +217,15 @@ public class WordleOper extends AppOper {
     int dictSize = dict.size();
 
     IntArray.Builder ib = IntArray.newBuilder();
-    Word queryWord = guess.word();
-    Word targetWord = Word.buildEmpty();
+    Word guessWord = guess.word();
+    Word answerWord = Word.buildEmpty();
 
-    for (int targetIndex = 0; targetIndex < dictSize; targetIndex++) {
-      dict.getWord(targetWord, targetIndex);
-      int result = compare(targetWord, queryWord);
-      if (result != guess.compareResult())
+    for (int answerIndex = 0; answerIndex < dictSize; answerIndex++) {
+      dict.getWord(answerWord, answerIndex);
+      int result = compare(answerWord, guessWord);
+      if (result != guess.compareCode())
         continue;
-      ib.add(dict.wordId(targetIndex));
+      ib.add(dict.wordId(answerIndex));
     }
     dict = WordSet.withWordIds(ib.array());
     g.dict = dict;
