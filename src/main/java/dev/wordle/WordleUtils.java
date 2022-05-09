@@ -19,9 +19,6 @@ public final class WordleUtils {
   public static final int MATCH_PARTIAL = 1;
   public static final int MATCH_FULL = 2;
 
-  //private static final int MATCH_TOTAL = 3;
-  //private static final int MATCH_BITS = 2; // There are only three codes used, but we need to use 2 bits to represent {0,1,2}
-
   public static final int COMPARE_CODE_MAX = ((MATCH_FULL << 0) //
       | (MATCH_FULL << 2) //
       | (MATCH_FULL << 4) //
@@ -30,6 +27,25 @@ public final class WordleUtils {
   ) + 1;
 
   private static final int CODE_SKIP = '.';
+
+  public static int compareOpt(byte[] answerBytes, int answerOffset, byte[] guessBytes, int guessOffset) {
+   
+    // Perform two passes
+    //
+    // First pass:
+    //   for each x
+    //     if guess[x] == answer[x]:
+    //        set guess[x] = GREEN, answer[x] = GRAY
+    //   
+    // Second pass:
+    //   for each x
+    //     for each y
+    //        if guess[x] == answer[y] and guess[x] != GREEN
+    //           set guess[x] = YELLOW, answer[y] = GRAY
+    //
+   
+    throw notFinished();
+  }
 
   public static int compare(Word answerWord, Word guessWord) {
     byte[] matchCodes = sWork;
@@ -240,10 +256,10 @@ public final class WordleUtils {
     checkpoint("starting experiment");
     int[] bestGuesses = bestGuess(wordSet);
     checkpoint("done experiment"); // Takes about 9 seconds
+    // Now takes about 6.3 seconds
 
     List<String> wordStrings = wordSet.getWordStrings(bestGuesses);
     pr("guesses:", INDENT, formatWords(wordStrings));
-
   }
 
 }
