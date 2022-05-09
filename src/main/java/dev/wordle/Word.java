@@ -5,58 +5,41 @@ import static js.base.Tools.*;
 
 public final class Word {
 
-  public static Word buildEmpty() {
-    return new Word();
-  }
-
-
-  private Word() {
-  }
-
   public Word(String word) {
-    set(word);
+    if (word.length() != WORD_LENGTH)
+      badArg("wrong length for word:", quote(word));
+    mLetters = new byte[WORD_LENGTH];
+    word = word.toUpperCase();
+    for (int i = 0; i < WORD_LENGTH; i++)
+      mLetters[i] = (byte) word.charAt(i);
   }
 
   public byte[] lettersArray() {
     return mLetters;
   }
-  
+
   public int lettersStart() {
     return mLettersStart;
   }
-  
+
   public Word(byte[] bytes, int id) {
     set(bytes, id);
   }
 
-  public void set(byte[] sourceArray, int id) {
-    int j = id * WORD_LENGTH;
-    for (int i = 0; i < WORD_LENGTH; i++)
-      mLetters[i] = sourceArray[j + i];
-  }
-
-  public void set(String word) {
-    if (word.length() != WORD_LENGTH)
-      badArg("wrong length for word:", quote(word));
-    word = word.toUpperCase();
-    for (int i = 0; i < WORD_LENGTH; i++)
-      mLetters[i] = (byte) word.charAt(i);
+  private void set(byte[] sourceArray, int id) {
+    mLetters = sourceArray;
+    mLettersStart = id;
   }
 
   @Override
   public String toString() {
     StringBuilder sb = new StringBuilder(WORD_LENGTH);
     for (int i = 0; i < WORD_LENGTH; i++)
-      sb.append((char) mLetters[i]);
+      sb.append((char) mLetters[i + mLettersStart]);
     return sb.toString();
   }
 
-  private byte[] mLetters = new byte[WORD_LENGTH];
-private int mLettersStart;
-
-  public void readLetters(byte[] target) {
-    for (int i = 0; i < WORD_LENGTH; i++)
-      target[i] = mLetters[i];
-  }
+  private byte[] mLetters;
+  private int mLettersStart;
 
 }

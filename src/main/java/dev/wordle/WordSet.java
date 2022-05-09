@@ -84,7 +84,7 @@ public final class WordSet extends BaseObject {
     int k = dict.words().size();
     int[] wordIds = new int[k];
     for (int i = 0; i < k; i++)
-      wordIds[i] = i;
+      wordIds[i] = i * WORD_LENGTH;
     return withWordIds(wordIds);
   }
 
@@ -102,7 +102,16 @@ public final class WordSet extends BaseObject {
 
   public static WordSet withWordIds(int[] wordIds) {
     WordSet d = new WordSet();
+
+    if (VERIFY) {
+      for (int id : wordIds) {
+        verify(id);
+      }
+    }
+
     d.mWordIds = wordIds;
+    
+    pr("constructed WordSet of size:",wordIds.length);
     return d;
   }
 
@@ -114,12 +123,10 @@ public final class WordSet extends BaseObject {
     return mWordIds[index];
   }
 
-  public void getWord(Word target, int index) {
-    target.set(sWordBytes, wordId(index));
-  }
-
-  public Word getWord(int index) {
-    return new Word(sWordBytes, wordId(index));
+  public Word getWordWithId(int id) {
+    verify(id);
+    pr("get word with id:",id);
+    return new Word(sWordBytes, id);
   }
 
   public List<Word> getWords() {
@@ -137,10 +144,10 @@ public final class WordSet extends BaseObject {
     return strs;
   }
 
-  public List<Word> getWords(int[] w) {
+  public List<Word> getWords(int[] ids) {
     List<Word> words = arrayList();
-    for (int wi : w)
-      words.add(getWord(wi));
+    for (int id : ids) 
+      words.add(getWordWithId(id));
     return words;
   }
 
@@ -192,5 +199,9 @@ public final class WordSet extends BaseObject {
   private static Dictionary sDictionary;
   private static WordSet sDefaultWordSet;
   private static byte[] sWordBytes;
+
+  public int getWordId(int wordNumber) {
+    return mWordIds[wordNumber];
+  }
 
 }

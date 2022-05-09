@@ -36,6 +36,8 @@ import dev.wordle.WordleUtils;
 import js.json.JSMap;
 import js.testutil.MyTestCase;
 
+import static dev.wordle.WordleUtils.*;
+
 public class WordleTest extends MyTestCase {
 
   @Test
@@ -44,7 +46,7 @@ public class WordleTest extends MyTestCase {
 
     List<Word> words = arrayList();
     for (int i = 0; i < 8; i++)
-      words.add(wordSet.getWord(random().nextInt(wordSet.size())));
+      words.add(wordSet.getWordWithId(WORD_LENGTH * random().nextInt(wordSet.size())));
 
     JSMap m = map();
     for (Word guessWord : words) {

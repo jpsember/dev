@@ -78,7 +78,7 @@ public class WordleOper extends AppOper {
 
   @Override
   public void perform() {
-    if (true) {
+    if (false) {
       experiment();
       return;
     }
@@ -215,16 +215,19 @@ public class WordleOper extends AppOper {
     WordSet dict = dict();
     int dictSize = dict.size();
 
+    
+    byte[] dictWords = WordSet.defaultDictionary().wordBytes();
     IntArray.Builder ib = IntArray.newBuilder();
     Word guessWord = guess.word();
-    Word answerWord = Word.buildEmpty();
 
     for (int answerIndex = 0; answerIndex < dictSize; answerIndex++) {
-      dict.getWord(answerWord, answerIndex);
-      int result = compare(answerWord, guessWord);
+      int answerWordOffset = 
+      dict.getWordId(answerIndex);
+      
+      int result = compareOpt(dictWords, answerWordOffset, guessWord.lettersArray(), guessWord.lettersStart());
       if (result != guess.compareCode())
         continue;
-      ib.add(dict.wordId(answerIndex));
+      ib.add(answerWordOffset);
     }
     dict = WordSet.withWordIds(ib.array());
     g.dict = dict;

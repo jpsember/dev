@@ -4,9 +4,7 @@ import static js.base.Tools.*;
 
 import java.util.Arrays;
 import java.util.Collections;
-//import java.util.Comparator;
 import java.util.List;
-//import java.util.Map;
 
 import dev.gen.wordle.Dictionary;
 import js.data.IntArray;
@@ -25,7 +23,6 @@ public final class WordleUtils {
       | (MATCH_FULL << 6) //
       | (MATCH_FULL << 8) //
   ) + 1;
-
 
   private static String vn(String prefix, int i) {
     return prefix + "_" + i;
@@ -321,17 +318,19 @@ public final class WordleUtils {
     Arrays.fill(compareCodeFreq, (short) 0);
   }
 
+  public static final boolean VERIFY = alert("verify is on");
+
+  public static final void verify(int wordId) {
+    if (VERIFY && wordId % WORD_LENGTH != 0)
+      badArg("not a word id:", wordId);
+  }
+
   /**
    * Given a set of possible answers, determine the best guesses
    */
   public static int[] bestGuess(WordSet dict) {
-
-    // WordPartitionSubset.clear(sPartitionSubsets);
-
-    // Map<Integer, WordPartitionSubset> partitionMap = hashMap();
-    Word guessWord = Word.buildEmpty();
-    Word answerWord = Word.buildEmpty();
     int dictSize = dict.size();
+    byte[] dictWords = WordSet.defaultDictionary().wordBytes();
 
     short[] compareCodeFreq = buildCompareCodeFrequencyTable();
 
@@ -351,14 +350,23 @@ public final class WordleUtils {
     int minMaxCompareCodeFreq = Integer.MAX_VALUE;
 
     for (int queryIndex = 0; queryIndex < dictSize; queryIndex++) {
-      dict.getWord(guessWord, queryIndex);
+      int guessWordId = dict.wordId(queryIndex);
+      verify(guessWordId);
 
       clearCompareCodeFreqTable(compareCodeFreq);
 
       for (int answerIndex = 0; answerIndex < dictSize; answerIndex++) {
-        dict.getWord(answerWord, answerIndex);
-        int result = compare(answerWord, guessWord);
+        int answerWordId = dict.wordId(answerIndex);
+        verify(answerWordId);
+
+        int result = compareOpt(dictWords, answerWordId, dictWords, guessWordId);
         compareCodeFreq[result]++;
+
+        if (false && queryIndex < 5 && answerIndex < 5) {
+          pr("queryInd:", queryIndex, "answerInd:", answerIndex, "guessWordId:", guessWordId, "answerWordId:",
+              answerWordId);
+
+        }
       }
 
       // Choose the worst case, the largest subset
@@ -372,20 +380,11 @@ public final class WordleUtils {
         bestQuerys.clear();
       }
       if (frequency == minMaxCompareCodeFreq)
-        bestQuerys.add(queryIndex);
+        bestQuerys.add(guessWordId);
     }
 
-    //    
-    //    if (false) {
-    //      List<WordPartitionSubset> cc = arrayList();
-    //      cc.addAll(bestPartitionMap.values());
-    //      cc.sort(SUBSET_COMPARATOR);
-    //
-    //      for (WordPartitionSubset ent : cc) {
-    //        pr(compareCodeString(ent.compareCode()), ent.pop());
-    //      }
-    //    }
     pr("bestQuery:", compareCodeString(minMaxCompareCode));
+    pr("best querys:",bestQuerys);
     return bestQuerys.array();
   }
 
