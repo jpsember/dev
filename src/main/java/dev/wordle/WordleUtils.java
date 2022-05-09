@@ -17,13 +17,16 @@ public final class WordleUtils {
   public static final int MATCH_PARTIAL = 1;
   public static final int MATCH_FULL = 2;
 
-  public static final int COMPARE_CODE_MAX = ((MATCH_FULL << 0) //
+  public static final int COMPARE_CODE_FINISHED = ((MATCH_FULL << 0) //
       | (MATCH_FULL << 2) //
       | (MATCH_FULL << 4) //
       | (MATCH_FULL << 6) //
       | (MATCH_FULL << 8) //
-  ) + 1;
+  );
+  public static final int COMPARE_CODE_MAX = COMPARE_CODE_FINISHED + 1;
 
+  public static final boolean WITH_FIRST_GUESS_OPTIMIZATION = false;
+  
   private static String vn(String prefix, int i) {
     return prefix + "_" + i;
   }
@@ -286,13 +289,13 @@ public final class WordleUtils {
     return sb.toString();
   }
 
-  public static String renderMatch(Word query, int match) {
+  public static String renderMatch(Word query, int compareCode) {
     String queryText = query.toString();
     StringBuilder sb = new StringBuilder();
     for (int i = 0; i < WORD_LENGTH; i++) {
       char c = queryText.charAt(i);
       sb.append(c);
-      switch (match & 3) {
+      switch (compareCode & 3) {
       default: // MATCH_NONE
         sb.append(' ');
         break;
@@ -303,7 +306,7 @@ public final class WordleUtils {
         sb.append('*');
         break;
       }
-      match >>= 2;
+      compareCode >>= 2;
       sb.append(' ');
     }
 
@@ -358,15 +361,8 @@ public final class WordleUtils {
       for (int answerIndex = 0; answerIndex < dictSize; answerIndex++) {
         int answerWordId = dict.wordId(answerIndex);
         verify(answerWordId);
-
         int result = compareOpt(dictWords, answerWordId, dictWords, guessWordId);
         compareCodeFreq[result]++;
-
-        if (false && queryIndex < 5 && answerIndex < 5) {
-          pr("queryInd:", queryIndex, "answerInd:", answerIndex, "guessWordId:", guessWordId, "answerWordId:",
-              answerWordId);
-
-        }
       }
 
       // Choose the worst case, the largest subset
@@ -383,7 +379,6 @@ public final class WordleUtils {
         bestQuerys.add(guessWordId);
     }
 
-    pr("bestQuery:", compareCodeString(minMaxCompareCode));
     return bestQuerys.array();
   }
 
@@ -445,7 +440,7 @@ public final class WordleUtils {
     // Now takes about 4.1 seconds
 
     List<String> wordStrings = wordSet.getWordStrings(bestGuesses);
-    pr("guesses:", INDENT, formatWords(wordStrings));
+    pr("Advice:", INDENT, formatWords(wordStrings));
   }
 
 }

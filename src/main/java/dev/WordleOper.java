@@ -129,6 +129,10 @@ public class WordleOper extends AppOper {
           help();
           break;
         default:
+          if (g.gameOver) {
+            pr("Game is over!");
+            break;
+          }
           parseCommand(a);
           break;
         }
@@ -153,18 +157,24 @@ public class WordleOper extends AppOper {
 
   private void newGame() {
     g = new GameVars();
+    pr(VERT_SP);
   }
 
   private void advice() {
-    if (dict().size() > 100) {
-      pr("(" + dict().size() + " solutions)");
+    if (g.gameOver) {
+      pr("...type n to play again");
+      return;
+    }
+
+    if (dict().size() > 200) {
+      pr("Answers:", dict().size());
     } else {
       dict();
       List<String> poss = WordSet.getWordStrings(dict().getWords());
       poss = sortWordsForDisplay(poss);
-      pr("Solutions:", INDENT, formatWords(poss));
+      pr("Answers:", INDENT, formatWords(poss));
     }
-    pr("Guesses:", INDENT, formatWords(bestGuesses()));
+    pr("Suggestions:", INDENT, formatWords(bestGuesses()));
   }
 
   private WordSet dict() {
@@ -176,8 +186,8 @@ public class WordleOper extends AppOper {
 
   private List<String> bestGuesses() {
     if (g.bestGuesses == null) {
-      if (g.turnNumber == 0 //&& !alert("disabling optimization for initial guess")
-          )
+      if (turnNumber() == 0  && WITH_FIRST_GUESS_OPTIMIZATION
+      )
         g.bestGuesses = WordSet.defaultDictionary().initialGuesses();
       else
         g.bestGuesses = dict().getWordStrings(bestGuess(dict()));
@@ -190,7 +200,8 @@ public class WordleOper extends AppOper {
     WordSet dict;
     Word answer;
     List<String> bestGuesses;
-    int turnNumber;
+    List<Guess> guesses = arrayList();
+    boolean gameOver;
   }
 
   private GameVars g = new GameVars();
@@ -206,7 +217,6 @@ public class WordleOper extends AppOper {
       checkArgument(gu.compareCode() == 0);
       int result = compare(g.answer, gu.word());
       gu = Guess.with(gu.word(), result);
-      pr("result:", renderMatch(gu.word(), result));
     }
     makeGuess(gu);
     advice();
@@ -216,16 +226,15 @@ public class WordleOper extends AppOper {
     WordSet dict = dict();
     int dictSize = dict.size();
 
-    
     byte[] dictWords = WordSet.defaultDictionary().wordBytes();
     IntArray.Builder ib = IntArray.newBuilder();
     Word guessWord = guess.word();
 
     for (int answerIndex = 0; answerIndex < dictSize; answerIndex++) {
-      int answerWordOffset = 
-      dict.getWordId(answerIndex);
-      
-      int result = compareOpt(dictWords, answerWordOffset, guessWord.lettersArray(), guessWord.lettersStart());
+      int answerWordOffset = dict.getWordId(answerIndex);
+
+      int result = compareOpt(dictWords, answerWordOffset, guessWord.lettersArray(),
+          guessWord.lettersStart());
       if (result != guess.compareCode())
         continue;
       ib.add(answerWordOffset);
@@ -233,9 +242,21 @@ public class WordleOper extends AppOper {
     dict = WordSet.withWordIds(ib.array());
     g.dict = dict;
     g.bestGuesses = null;
-    g.turnNumber++;
+    g.guesses.add(guess);
+    if (guess.compareCode() == COMPARE_CODE_FINISHED)
+      g.gameOver = true;
 
-    pr("...turn number", g.turnNumber);
+    pr(VERT_SP);
+    int guessNum = INIT_INDEX;
+    for (Guess g : g.guesses) {
+      guessNum++;
+      pr(guessNum + 1, ":", renderMatch(g.word(), g.compareCode()));
+    }
+    pr(VERT_SP);
+  }
+
+  private int turnNumber() {
+    return g.guesses.size();
   }
 
 }
