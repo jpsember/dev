@@ -2,10 +2,11 @@ package dev.wordle;
 
 import static js.base.Tools.*;
 
+import java.util.Arrays;
 import java.util.Collections;
-import java.util.Comparator;
+//import java.util.Comparator;
 import java.util.List;
-import java.util.Map;
+//import java.util.Map;
 
 import dev.gen.wordle.Dictionary;
 import js.data.IntArray;
@@ -14,11 +15,21 @@ public final class WordleUtils {
 
   public static final int WORD_LENGTH = 5;
 
-  private static final int CODE_SKIP = '.';
-
   public static final int MATCH_NONE = 0;
   public static final int MATCH_PARTIAL = 1;
   public static final int MATCH_FULL = 2;
+
+  //private static final int MATCH_TOTAL = 3;
+  //private static final int MATCH_BITS = 2; // There are only three codes used, but we need to use 2 bits to represent {0,1,2}
+
+  public static final int COMPARE_CODE_MAX = ((MATCH_FULL << 0) //
+      | (MATCH_FULL << 2) //
+      | (MATCH_FULL << 4) //
+      | (MATCH_FULL << 6) //
+      | (MATCH_FULL << 8) //
+  ) + 1;
+
+  private static final int CODE_SKIP = '.';
 
   public static int compare(Word answerWord, Word guessWord) {
     byte[] matchCodes = sWork;
@@ -99,25 +110,27 @@ public final class WordleUtils {
       a[i] = 0;
   }
 
-  private static Comparator<WordPartitionSubset> SUBSET_COMPARATOR = new Comparator<WordPartitionSubset>() {
-    @Override
-    public int compare(WordPartitionSubset o1, WordPartitionSubset o2) {
-      int res = o1.pop() - o2.pop();
-      if (res == 0)
-        res = o1.compareCode() - o2.compareCode();
-      return res;
-    }
-  };
+  public static short[] buildCompareCodeFrequencyTable() {
+    return new short[COMPARE_CODE_MAX];
+  }
+
+  public static void clearCompareCodeFreqTable(short[] compareCodeFreq) {
+    Arrays.fill(compareCodeFreq, (short) 0);
+  }
 
   /**
    * Given a set of possible answers, determine the best guesses
    */
   public static int[] bestGuess(WordSet dict) {
 
-    Map<Integer, WordPartitionSubset> partitionMap = hashMap();
+    // WordPartitionSubset.clear(sPartitionSubsets);
+
+    // Map<Integer, WordPartitionSubset> partitionMap = hashMap();
     Word guessWord = Word.buildEmpty();
     Word answerWord = Word.buildEmpty();
     int dictSize = dict.size();
+
+    short[] compareCodeFreq = buildCompareCodeFrequencyTable();
 
     // 
     // Let q be a word in the dictionary.
@@ -129,60 +142,63 @@ public final class WordleUtils {
     // Choose the q* that the largest subset {t0, t1, ...} is as small as possible.
     //
 
-    WordPartitionSubset bestGlobal = null;
-    Map<Integer, WordPartitionSubset> bestPartitionMap = null;
-
     IntArray.Builder bestQuerys = IntArray.newBuilder();
+
+    int minMaxCompareCode = -1;
+    int minMaxCompareCodeFreq = Integer.MAX_VALUE;
 
     for (int queryIndex = 0; queryIndex < dictSize; queryIndex++) {
       dict.getWord(guessWord, queryIndex);
 
-      partitionMap.clear();
+      clearCompareCodeFreqTable(compareCodeFreq);
 
       for (int answerIndex = 0; answerIndex < dictSize; answerIndex++) {
         dict.getWord(answerWord, answerIndex);
-
         int result = compare(answerWord, guessWord);
-        WordPartitionSubset ent = partitionMap.get(result);
-        if (ent == null) {
-          ent = new WordPartitionSubset(result);
-          partitionMap.put(result, ent);
-        }
-        ent.add(answerIndex);
+        compareCodeFreq[result]++;
       }
 
       // Choose the worst case, the largest subset
       //
-      WordPartitionSubset largestSubset = null;
-      for (WordPartitionSubset entry : partitionMap.values()) {
-        if (largestSubset == null || entry.pop() > largestSubset.pop())
-          largestSubset = entry;
-      }
-      if (false)
-        pr("examined word", queryIndex, ":", guessWord, ", largest subset size:", largestSubset.pop(),
-            compareCodeString(largestSubset.compareCode()));
 
-      if (bestGlobal == null || bestGlobal.pop() > largestSubset.pop()) {
-        bestGlobal = largestSubset;
+      int mostFrequentCode = maxCompareCodeFreq(compareCodeFreq);
+      int frequency = compareCodeFreq[mostFrequentCode];
+      if (frequency < minMaxCompareCodeFreq) {
+        minMaxCompareCodeFreq = frequency;
+        minMaxCompareCode = mostFrequentCode;
         bestQuerys.clear();
-        bestPartitionMap = partitionMap;
-        partitionMap = hashMap();
       }
-      if (bestGlobal.pop() == largestSubset.pop())
+      if (frequency == minMaxCompareCodeFreq)
         bestQuerys.add(queryIndex);
     }
 
-    if (false) {
-      List<WordPartitionSubset> cc = arrayList();
-      cc.addAll(bestPartitionMap.values());
-      cc.sort(SUBSET_COMPARATOR);
+    //    
+    //    if (false) {
+    //      List<WordPartitionSubset> cc = arrayList();
+    //      cc.addAll(bestPartitionMap.values());
+    //      cc.sort(SUBSET_COMPARATOR);
+    //
+    //      for (WordPartitionSubset ent : cc) {
+    //        pr(compareCodeString(ent.compareCode()), ent.pop());
+    //      }
+    //    }
+    pr("bestQuery:", compareCodeString(minMaxCompareCode));
+    return bestQuerys.array();
+  }
 
-      for (WordPartitionSubset ent : cc) {
-        pr(compareCodeString(ent.compareCode()), ent.pop());
+  private static int maxCompareCodeFreq(short[] compareCodeFreq) {
+    short maxFrequency = -1;
+    int maxIndex = -1;
+
+    int index = INIT_INDEX;
+    for (short freq : compareCodeFreq) {
+      index++;
+      if (freq > maxFrequency) {
+        maxFrequency = freq;
+        maxIndex = index;
       }
     }
-    pr("bestQuery:", compareCodeString(bestGlobal.compareCode()));
-    return bestQuerys.array();
+    return maxIndex;
   }
 
   public static List<String> sortWordsForDisplay(List<String> words) {

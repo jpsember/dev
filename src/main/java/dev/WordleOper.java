@@ -78,7 +78,6 @@ public class WordleOper extends AppOper {
 
   @Override
   public void perform() {
-
     if (true) {
       experiment();
       return;
@@ -177,7 +176,7 @@ public class WordleOper extends AppOper {
 
   private List<String> bestGuesses() {
     if (g.bestGuesses == null) {
-      if (g.turnNumber == 0)
+      if (g.turnNumber == 0 && !alert("disabling optimization for initial guess"))
         g.bestGuesses = WordSet.defaultDictionary().initialGuesses();
       else
         g.bestGuesses = dict().getWordStrings(bestGuess(dict()));

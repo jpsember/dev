@@ -3,27 +3,41 @@ package dev.wordle;
 import js.data.IntArray;
 
 /**
- * A subset of words, each keyed by a CompareCode, a collection of which form
- * a partition of a WordSet
+ * A subset of words, each keyed by a CompareCode, a collection of which form a
+ * partition of a WordSet
  */
+@Deprecated
 class WordPartitionSubset {
-
-  private final IntArray.Builder mSet = IntArray.newBuilder();
-  private final int mCompareCode;
 
   public int compareCode() {
     return mCompareCode;
   }
 
-  int pop() {
+  public int pop() {
     return mSet.size();
   }
 
-  void add(int wordIndex) {
+  public void add(int wordIndex) {
     mSet.add(wordIndex);
   }
 
-  WordPartitionSubset(int compareCode) {
+  public WordPartitionSubset(int compareCode) {
     mCompareCode = compareCode;
   }
+
+  /**
+   * Empty the current set
+   */
+  public void clear() {
+    mSet.clear();
+  }
+
+  public static void clear(WordPartitionSubset[] subsets) {
+    for (WordPartitionSubset s : subsets)
+      s.clear();
+  }
+
+  private final IntArray.Builder mSet = IntArray.newBuilder();
+  private final int mCompareCode;
+
 }
