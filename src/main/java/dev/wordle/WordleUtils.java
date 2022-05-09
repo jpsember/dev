@@ -318,7 +318,7 @@ public final class WordleUtils {
     Arrays.fill(compareCodeFreq, (short) 0);
   }
 
-  public static final boolean VERIFY = alert("verify is on");
+  public static final boolean VERIFY = false && alert("verify is on");
 
   public static final void verify(int wordId) {
     if (VERIFY && wordId % WORD_LENGTH != 0)
@@ -384,7 +384,6 @@ public final class WordleUtils {
     }
 
     pr("bestQuery:", compareCodeString(minMaxCompareCode));
-    pr("best querys:",bestQuerys);
     return bestQuerys.array();
   }
 

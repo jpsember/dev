@@ -176,7 +176,8 @@ public class WordleOper extends AppOper {
 
   private List<String> bestGuesses() {
     if (g.bestGuesses == null) {
-      if (g.turnNumber == 0 && !alert("disabling optimization for initial guess"))
+      if (g.turnNumber == 0 //&& !alert("disabling optimization for initial guess")
+          )
         g.bestGuesses = WordSet.defaultDictionary().initialGuesses();
       else
         g.bestGuesses = dict().getWordStrings(bestGuess(dict()));
