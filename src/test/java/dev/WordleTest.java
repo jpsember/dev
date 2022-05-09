@@ -33,7 +33,6 @@ import org.junit.Test;
 import dev.wordle.Word;
 import dev.wordle.WordSet;
 import dev.wordle.WordleUtils;
-import js.data.DataUtil;
 import js.json.JSMap;
 import js.testutil.MyTestCase;
 

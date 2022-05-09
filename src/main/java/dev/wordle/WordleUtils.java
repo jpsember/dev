@@ -28,8 +28,83 @@ public final class WordleUtils {
 
   private static final int CODE_SKIP = '.';
 
+  private static String vn(String prefix, int i) {
+    return prefix + "_" + i;
+  }
+
+  private static StringBuilder sGen;
+
+  private static void a(Object... items) {
+    for (Object itm : items) {
+      sGen.append(' ');
+      sGen.append(itm);
+    }
+  }
+
+  private static void cr() {
+    sGen.append('\n');
+  }
+
+  public static void genCode() {
+    sGen = new StringBuilder();
+
+    a("// Optimized compare for word length:", WORD_LENGTH);
+    cr();
+    a("final byte N= (byte)MATCH_NONE;");
+    cr();
+    a("final byte P= (byte)MATCH_PARTIAL;");
+    cr();
+    a("final byte F= (byte)MATCH_FULL;");
+    cr();
+
+    for (int i = 0; i < WORD_LENGTH; i++) {
+      a("byte", vn("g", i), "=guessBytes[guessOffset+", i, "];");
+      cr();
+
+    }
+    for (int i = 0; i < WORD_LENGTH; i++) {
+      a("byte", vn("a", i), "=answerBytes[answerOffset+", i, "];");
+      cr();
+    }
+    a("// First pass");
+    cr();
+    for (int x = 0; x < WORD_LENGTH; x++) {
+      a("if (", vn("g", x), "==", vn("a", x), ") {", vn("g", x), "=F;", vn("a", x), "=N;}");
+      cr();
+    }
+    a("// Second pass");
+    cr();
+    for (int x = 0; x < WORD_LENGTH; x++) {
+      for (int y = 0; y < WORD_LENGTH; y++) {
+        a("if (", vn("g", x), "==", vn("a", y), "&&", vn("g", x), "!=F) {", vn("g", x), "=P;", vn("a", y),
+            "=N;}");
+        cr();
+      }
+      a("if (", vn("g", x), ">F)", vn("g", x), "=N;");
+      cr();
+    }
+
+    a("return ");
+    for (int x = 0; x < WORD_LENGTH; x++) {
+      if (x > 0) {
+        a(" | ");
+      }
+      if (x > 0)
+        a("(");
+      a(vn("g", x));
+      if (x > 0)
+        a("<<", x * 2);
+      if (x > 0)
+        a(")");
+    }
+    a(";");
+    cr();
+
+    pr(VERT_SP, sGen, VERT_SP);
+  }
+
   public static int compareOpt(byte[] answerBytes, int answerOffset, byte[] guessBytes, int guessOffset) {
-   
+
     // Perform two passes
     //
     // First pass:
@@ -42,12 +117,167 @@ public final class WordleUtils {
     //     for each y
     //        if guess[x] == answer[y] and guess[x] != GREEN
     //           set guess[x] = YELLOW, answer[y] = GRAY
+    //     if guess[x] != GREEN and guess[x] != YELLOW
+    //           set guess[x] = GRAY
     //
-   
-    throw notFinished();
+    // Return guess[] values encoded as compare code
+    //
+
+    // Optimized compare for word length: 5
+    final byte N = (byte) MATCH_NONE;
+    final byte P = (byte) MATCH_PARTIAL;
+    final byte F = (byte) MATCH_FULL;
+    byte g_0 = guessBytes[guessOffset + 0];
+    byte g_1 = guessBytes[guessOffset + 1];
+    byte g_2 = guessBytes[guessOffset + 2];
+    byte g_3 = guessBytes[guessOffset + 3];
+    byte g_4 = guessBytes[guessOffset + 4];
+    byte a_0 = answerBytes[answerOffset + 0];
+    byte a_1 = answerBytes[answerOffset + 1];
+    byte a_2 = answerBytes[answerOffset + 2];
+    byte a_3 = answerBytes[answerOffset + 3];
+    byte a_4 = answerBytes[answerOffset + 4];
+    // First pass
+    if (g_0 == a_0) {
+      g_0 = F;
+      a_0 = N;
+    }
+    if (g_1 == a_1) {
+      g_1 = F;
+      a_1 = N;
+    }
+    if (g_2 == a_2) {
+      g_2 = F;
+      a_2 = N;
+    }
+    if (g_3 == a_3) {
+      g_3 = F;
+      a_3 = N;
+    }
+    if (g_4 == a_4) {
+      g_4 = F;
+      a_4 = N;
+    }
+    // Second pass
+    if (g_0 == a_0 && g_0 != F) {
+      g_0 = P;
+      a_0 = N;
+    }
+    if (g_0 == a_1 && g_0 != F) {
+      g_0 = P;
+      a_1 = N;
+    }
+    if (g_0 == a_2 && g_0 != F) {
+      g_0 = P;
+      a_2 = N;
+    }
+    if (g_0 == a_3 && g_0 != F) {
+      g_0 = P;
+      a_3 = N;
+    }
+    if (g_0 == a_4 && g_0 != F) {
+      g_0 = P;
+      a_4 = N;
+    }
+    if (g_0 > F)
+      g_0 = N;
+    if (g_1 == a_0 && g_1 != F) {
+      g_1 = P;
+      a_0 = N;
+    }
+    if (g_1 == a_1 && g_1 != F) {
+      g_1 = P;
+      a_1 = N;
+    }
+    if (g_1 == a_2 && g_1 != F) {
+      g_1 = P;
+      a_2 = N;
+    }
+    if (g_1 == a_3 && g_1 != F) {
+      g_1 = P;
+      a_3 = N;
+    }
+    if (g_1 == a_4 && g_1 != F) {
+      g_1 = P;
+      a_4 = N;
+    }
+    if (g_1 > F)
+      g_1 = N;
+    if (g_2 == a_0 && g_2 != F) {
+      g_2 = P;
+      a_0 = N;
+    }
+    if (g_2 == a_1 && g_2 != F) {
+      g_2 = P;
+      a_1 = N;
+    }
+    if (g_2 == a_2 && g_2 != F) {
+      g_2 = P;
+      a_2 = N;
+    }
+    if (g_2 == a_3 && g_2 != F) {
+      g_2 = P;
+      a_3 = N;
+    }
+    if (g_2 == a_4 && g_2 != F) {
+      g_2 = P;
+      a_4 = N;
+    }
+    if (g_2 > F)
+      g_2 = N;
+    if (g_3 == a_0 && g_3 != F) {
+      g_3 = P;
+      a_0 = N;
+    }
+    if (g_3 == a_1 && g_3 != F) {
+      g_3 = P;
+      a_1 = N;
+    }
+    if (g_3 == a_2 && g_3 != F) {
+      g_3 = P;
+      a_2 = N;
+    }
+    if (g_3 == a_3 && g_3 != F) {
+      g_3 = P;
+      a_3 = N;
+    }
+    if (g_3 == a_4 && g_3 != F) {
+      g_3 = P;
+      a_4 = N;
+    }
+    if (g_3 > F)
+      g_3 = N;
+    if (g_4 == a_0 && g_4 != F) {
+      g_4 = P;
+      a_0 = N;
+    }
+    if (g_4 == a_1 && g_4 != F) {
+      g_4 = P;
+      a_1 = N;
+    }
+    if (g_4 == a_2 && g_4 != F) {
+      g_4 = P;
+      a_2 = N;
+    }
+    if (g_4 == a_3 && g_4 != F) {
+      g_4 = P;
+      a_3 = N;
+    }
+    if (g_4 == a_4 && g_4 != F) {
+      g_4 = P;
+      a_4 = N;
+    }
+    if (g_4 > F)
+      g_4 = N;
+    return g_0 | (g_1 << 2) | (g_2 << 4) | (g_3 << 6) | (g_4 << 8);
   }
 
   public static int compare(Word answerWord, Word guessWord) {
+
+    if (true) {
+      return compareOpt(answerWord.letters(), 0, guessWord.letters(), 0);
+    }
+
     byte[] matchCodes = sWork;
     clearWork(matchCodes);
 
@@ -251,13 +481,17 @@ public final class WordleUtils {
 
   public static void experiment() {
     pr("running experiment");
-
+    if (false) {
+      genCode();
+      return;
+    }
     WordSet wordSet = WordSet.defaultSet();
     checkpoint("starting experiment");
     int[] bestGuesses = bestGuess(wordSet);
     checkpoint("done experiment"); // Takes about 9 seconds
     // Now takes about 6.3 seconds
-
+    // Now takes about 4.1 seconds
+    
     List<String> wordStrings = wordSet.getWordStrings(bestGuesses);
     pr("guesses:", INDENT, formatWords(wordStrings));
   }
