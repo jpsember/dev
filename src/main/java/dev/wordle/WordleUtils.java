@@ -5,6 +5,7 @@ import static js.base.Tools.*;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Random;
 
 import dev.gen.wordle.Dictionary;
 import js.data.IntArray;
@@ -26,7 +27,7 @@ public final class WordleUtils {
   public static final int COMPARE_CODE_MAX = COMPARE_CODE_FINISHED + 1;
 
   public static final boolean WITH_FIRST_GUESS_OPTIMIZATION = false;
-  
+
   private static String vn(String prefix, int i) {
     return prefix + "_" + i;
   }
@@ -349,10 +350,26 @@ public final class WordleUtils {
 
     IntArray.Builder bestQuerys = IntArray.newBuilder();
 
-    int minMaxCompareCode = -1;
     int minMaxCompareCodeFreq = Integer.MAX_VALUE;
 
-    for (int queryIndex = 0; queryIndex < dictSize; queryIndex++) {
+    // Heuristic:  we don't need to look at every word in the dictionary as a guess candidate,
+    // if the dictionary is large. Instead, choose a random sample of the words
+    //
+    int maxWords = dictSize;
+    if (dictSize > 2000) {
+      maxWords = (int) (Math.sqrt(dictSize - 2000) + 2000);
+    }
+    int[] samples = new int[maxWords];
+    if (maxWords == dictSize) {
+      for (int i = 0; i < maxWords; i++)
+        samples[i] = i;
+    } else {
+      Random r = new Random();
+      for (int i = 0; i < maxWords; i++)
+        samples[i] = r.nextInt(dictSize);
+    }
+
+    for (int queryIndex : samples) {
       int guessWordId = dict.wordId(queryIndex);
       verify(guessWordId);
 
@@ -372,7 +389,6 @@ public final class WordleUtils {
       int frequency = compareCodeFreq[mostFrequentCode];
       if (frequency < minMaxCompareCodeFreq) {
         minMaxCompareCodeFreq = frequency;
-        minMaxCompareCode = mostFrequentCode;
         bestQuerys.clear();
       }
       if (frequency == minMaxCompareCodeFreq)
