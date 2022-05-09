@@ -42,7 +42,7 @@ public class Guess {
 
       if (w.length() != WORD_LENGTH)
         badArg();
-      return with(Word.with(w.toString()), cres);
+      return with(new Word(w.toString()), cres);
     } catch (IllegalArgumentException e) {
       return null;
     }

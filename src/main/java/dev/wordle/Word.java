@@ -9,9 +9,6 @@ public final class Word {
     return new Word();
   }
 
-  public static Word with(String text) {
-    return new Word(text);
-  }
 
   private Word() {
   }
@@ -20,10 +17,14 @@ public final class Word {
     set(word);
   }
 
-  public byte[] letters() {
+  public byte[] lettersArray() {
     return mLetters;
   }
-
+  
+  public int lettersStart() {
+    return mLettersStart;
+  }
+  
   public Word(byte[] bytes, int id) {
     set(bytes, id);
   }
@@ -51,6 +52,7 @@ public final class Word {
   }
 
   private byte[] mLetters = new byte[WORD_LENGTH];
+private int mLettersStart;
 
   public void readLetters(byte[] target) {
     for (int i = 0; i < WORD_LENGTH; i++)

@@ -26,7 +26,6 @@ public final class WordleUtils {
       | (MATCH_FULL << 8) //
   ) + 1;
 
-  private static final int CODE_SKIP = '.';
 
   private static String vn(String prefix, int i) {
     return prefix + "_" + i;
@@ -274,46 +273,9 @@ public final class WordleUtils {
 
   public static int compare(Word answerWord, Word guessWord) {
 
-    if (true) {
-      return compareOpt(answerWord.letters(), 0, guessWord.letters(), 0);
-    }
+    return compareOpt(answerWord.lettersArray(), answerWord.lettersStart(), guessWord.lettersArray(),
+        guessWord.lettersStart());
 
-    byte[] matchCodes = sWork;
-    clearWork(matchCodes);
-
-    byte[] answerCopy = sWork2;
-    answerWord.readLetters(answerCopy);
-    byte[] guessBytes = guessWord.letters();
-
-    for (int i = 0; i < WORD_LENGTH; i++) {
-      if (guessBytes[i] == answerCopy[i]) {
-        matchCodes[i] = MATCH_FULL;
-        answerCopy[i] = CODE_SKIP;
-      }
-    }
-
-    for (int i = 0; i < WORD_LENGTH; i++) {
-      if (matchCodes[i] != MATCH_NONE)
-        continue;
-      int q = guessBytes[i];
-      for (int j = 0; j < WORD_LENGTH; j++) {
-        if (answerCopy[j] == CODE_SKIP)
-          continue;
-        if (answerCopy[j] == q) {
-          matchCodes[i] = MATCH_PARTIAL;
-          answerCopy[j] = CODE_SKIP;
-          break;
-        }
-      }
-    }
-
-    int mc = matchCodes[0] //
-        | (matchCodes[1] << 2 * 1) //
-        | (matchCodes[2] << 2 * 2) //
-        | (matchCodes[3] << 2 * 3) //
-        | (matchCodes[4] << 2 * 4) //
-    ;
-    return mc;
   }
 
   public static String compareCodeString(int compareCode) {
@@ -349,11 +311,6 @@ public final class WordleUtils {
     }
 
     return sb.toString();
-  }
-
-  private static final void clearWork(byte[] a) {
-    for (int i = 0; i < WORD_LENGTH; i++)
-      a[i] = 0;
   }
 
   public static short[] buildCompareCodeFrequencyTable() {
@@ -476,9 +433,6 @@ public final class WordleUtils {
     return sb.toString().toLowerCase();
   }
 
-  private static final byte[] sWork = new byte[WORD_LENGTH];
-  private static final byte[] sWork2 = new byte[WORD_LENGTH];
-
   public static void experiment() {
     pr("running experiment");
     if (false) {
@@ -491,7 +445,7 @@ public final class WordleUtils {
     checkpoint("done experiment"); // Takes about 9 seconds
     // Now takes about 6.3 seconds
     // Now takes about 4.1 seconds
-    
+
     List<String> wordStrings = wordSet.getWordStrings(bestGuesses);
     pr("guesses:", INDENT, formatWords(wordStrings));
   }
