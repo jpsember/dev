@@ -28,9 +28,11 @@ import static js.base.Tools.*;
 
 import java.util.List;
 import java.util.NoSuchElementException;
+import java.util.Random;
 import java.util.Scanner;
 
 import dev.wordle.WordSet;
+import dev.gen.wordle.Dictionary;
 import dev.wordle.Guess;
 import dev.wordle.Word;
 import js.app.AppOper;
@@ -84,7 +86,7 @@ public class WordleOper extends AppOper {
     }
     pr("Type 'h' for help");
     newGame();
-    advice();
+    //advice();
 
     Scanner input = new Scanner(System.in);
 
@@ -112,6 +114,7 @@ public class WordleOper extends AppOper {
           if (hasNextArg()) {
             g.answer = new Word(readArg());
           }
+          if (false)
           advice();
           break;
         case "a":
@@ -157,8 +160,17 @@ public class WordleOper extends AppOper {
 
   private void newGame() {
     g = new GameVars();
+
+    // Choose an answer from the small dictionary
+
+    Dictionary d = WordSet.dict("mit");
+    byte[] by = d.wordBytes();
+    int nw = by.length / WORD_LENGTH;
+    g.answer = new Word(by, WORD_LENGTH * mRand.nextInt(nw));
     pr(VERT_SP);
   }
+
+  private Random mRand = new Random();
 
   private void advice() {
     if (g.gameOver) {
@@ -185,15 +197,14 @@ public class WordleOper extends AppOper {
   }
 
   private List<String> bestGuesses() {
-    if (g.bestGuesses == null) {
-      if (turnNumber() == 0  && WITH_FIRST_GUESS_OPTIMIZATION
-      )
+   // if (g.bestGuesses == null) {
+      if (turnNumber() == 0 && WITH_FIRST_GUESS_OPTIMIZATION)
         g.bestGuesses = WordSet.defaultDictionary().initialGuesses();
       else
         g.bestGuesses = dict().getWordStrings(bestGuess(dict()));
       g.bestGuesses = sortWordsForDisplay(g.bestGuesses);
-    }
-    return g.bestGuesses;
+ //   }
+   return g.bestGuesses;
   }
 
   private class GameVars {
@@ -219,7 +230,7 @@ public class WordleOper extends AppOper {
       gu = Guess.with(gu.word(), result);
     }
     makeGuess(gu);
-    advice();
+    // advice();
   }
 
   private void makeGuess(Guess guess) {
