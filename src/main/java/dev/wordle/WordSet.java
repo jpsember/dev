@@ -1,8 +1,8 @@
 package dev.wordle;
 
 import js.base.BaseObject;
+import js.file.FileException;
 import js.file.Files;
-import js.json.JSList;
 import js.json.JSMap;
 
 import static dev.wordle.WordleUtils.*;
@@ -19,53 +19,67 @@ import static js.base.Tools.*;
  */
 public final class WordSet extends BaseObject {
 
-  public static void selectDictionary(String name) {
-    sName = name;
-    sDictionary = null;
-    sDefaultWordSet = null;
-    sWordBytes = null;
-    defaultDictionary();
+  public static DictionaryEntry bigDictionary() {
+    return dictEntry("big");
   }
 
-  private static String sName = "big";
-
-  public static Dictionary defaultDictionary() {
-    defaultSet();
-    return sDictionary;
+  public static DictionaryEntry smallDictionary() {
+    return dictEntry("small");
   }
 
-  private static WordSet sLargeSet;
+  public static DictionaryEntry selectDict(String name) {
+    DictionaryEntry ent = dictEntry(name);
+    if (ent == null)
+      return null;
+    sDefaultDictionary = ent;
+    sWordBytes = ent.dictionary.wordBytes();
+    return ent;
+  }
 
-  public static WordSet largeSet() {
-    if (sLargeSet == null) {
-      if (sName.equals("big"))
-        sLargeSet = sDefaultWordSet;
-      else {
-        sLargeSet = readSet("big");
+  public static DictionaryEntry defaultDictEntry() {
+    if (sDefaultDictionary == null)
+      selectDict("big");
+    return sDefaultDictionary;
+  }
+
+
+  private static DictionaryEntry dictEntry(String name) {
+    DictionaryEntry entry = sEntryMap.get(name);
+    if (entry == null) {
+      Dictionary d = readDictionary(name);
+      if (d != null) {
+        entry = new DictionaryEntry();
+        entry.name = name;
+        entry.dictionary = d;
+        {
+          int k = d.words().size();
+          int[] wordIds = new int[k];
+          for (int i = 0; i < k; i++)
+            wordIds[i] = i * WORD_LENGTH;
+          entry.wordSet = withWordIds(wordIds);
+        }
+        sEntryMap.put(name, entry);
       }
     }
-    return sLargeSet;
+    return entry;
   }
 
-  public static Dictionary dict(String name) {
-    Dictionary d = sDicts.get(name);
-    if (d == null) {
-      d = readDictionary2(name);
-      sDicts.put(name, d);
-    }
-    return d;
-  }
-
-  private static Map<String, Dictionary> sDicts = hashMap();
-
-  private static Dictionary readDictionary2(String name) {
+ 
+  private static Dictionary readDictionary(String name) {
     Dictionary dict = null;
     try {
-      dict = WordSet.readDictionary(name);
-      Dictionary.Builder db = dict.toBuilder();
-      byte[] b = new byte[dict.words().size() * WORD_LENGTH];
+      String listName = Files.setExtension(name, Files.EXT_JSON);
+      JSMap m = null;
+      try {
+        m = JSMap.fromResource(WordSet.class, listName);
+      } catch (FileException e) {
+        pr("...no such dictionary!");
+        return null;
+      }
+      Dictionary.Builder db = Files.parseAbstractDataOpt(Dictionary.DEFAULT_INSTANCE, m).toBuilder();
+      byte[] b = new byte[db.words().size() * WORD_LENGTH];
       int c = 0;
-      for (String s : dict.words()) {
+      for (String s : db.words()) {
         byte[] sourceBytes = s.getBytes("UTF-8");
         System.arraycopy(sourceBytes, 0, b, c, WORD_LENGTH);
         c += WORD_LENGTH;
@@ -77,35 +91,19 @@ public final class WordSet extends BaseObject {
     }
     return dict;
   }
-
-  private static WordSet readSet(String name) {
-    Dictionary dict = dict(name);
-    sLastDictRead = dict;
-    int k = dict.words().size();
-    int[] wordIds = new int[k];
-    for (int i = 0; i < k; i++)
-      wordIds[i] = i * WORD_LENGTH;
-    return withWordIds(wordIds);
-  }
-
-  private static Dictionary sLastDictRead;
-
-  public static WordSet defaultSet() {
-    if (sDefaultWordSet == null) {
-      WordSet ws = readSet(sName);
-      sWordBytes = sLastDictRead.wordBytes();
-      sDefaultWordSet = ws;
-      sDictionary = sLastDictRead;
-    }
-    return sDefaultWordSet;
-  }
+  
+  private static Map<String, DictionaryEntry> sEntryMap = hashMap();
+  private static DictionaryEntry sDefaultDictionary;
+  private static byte[] sWordBytes;
+  
 
   public static WordSet withWordIds(int[] wordIds) {
     WordSet d = new WordSet();
     d.mWordIds = wordIds;
     return d;
   }
-
+  
+  
   public int size() {
     return mWordIds.length;
   }
@@ -147,50 +145,13 @@ public final class WordSet extends BaseObject {
     return poss;
   }
 
+  public int getWordId(int wordNumber) {
+    return mWordIds[wordNumber];
+  }
+
   // Ids of words in this dictionary.  An id is its index within the master dictionary
   //
   private int[] mWordIds;
 
-  private static Dictionary readDictionary(String name) {
-    String listName = Files.setExtension(name, Files.EXT_JSON);
-    JSMap m = JSMap.fromResource(WordSet.class, listName);
-
-    if (false && alert("trimming plurals")) {
-      JSList newWordList = list();
-      for (String word : m.getList("words").asStrings()) {
-        boolean skip = false;
-        if (word.charAt(4) == 'S') {
-          if ("AEIOU".indexOf(word.charAt(4)) < 0) {
-            skip = true;
-          }
-        }
-        if (!skip)
-          newWordList.add(word);
-      }
-      m.put("words", newWordList);
-    }
-    if (false && alert("sorting")) {
-      Dictionary d = Files.parseAbstractDataOpt(Dictionary.DEFAULT_INSTANCE, m);
-      List<String> s = arrayList();
-      s.addAll(d.words());
-      s.sort(null);
-      if (!s.equals(d.words())) {
-        Dictionary.Builder db = d.toBuilder();
-        db.words(s);
-        Files.S.writeString(Files.getDesktopFile(listName), db.toJson().toString());
-        halt("words sorted are different");
-      }
-    }
-
-    return Files.parseAbstractDataOpt(Dictionary.DEFAULT_INSTANCE, m);
-  }
-
-  private static Dictionary sDictionary;
-  private static WordSet sDefaultWordSet;
-  private static byte[] sWordBytes;
-
-  public int getWordId(int wordNumber) {
-    return mWordIds[wordNumber];
-  }
 
 }

@@ -42,7 +42,7 @@ public class WordleTest extends MyTestCase {
 
   @Test
   public void testCompareWords() {
-    WordSet wordSet = WordSet.defaultSet();
+    WordSet wordSet = WordSet.defaultDictEntry().wordSet;
 
     List<Word> words = arrayList();
     for (int i = 0; i < 8; i++)

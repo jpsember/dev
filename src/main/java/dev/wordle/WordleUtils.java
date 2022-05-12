@@ -322,7 +322,7 @@ public final class WordleUtils {
    */
   public static int[] bestGuess(WordSet dict) {
     int dictSize = dict.size();
-    byte[] dictWords = WordSet.defaultDictionary().wordBytes();
+    byte[] dictWords = WordSet.defaultDictEntry().dictionary.wordBytes();
 
     short[] compareCodeFreq = buildCompareCodeFrequencyTable();
 
@@ -402,7 +402,7 @@ public final class WordleUtils {
   public static List<String> sortWordsForDisplay(List<String> words) {
     List<String> common = arrayList();
     List<String> rare = arrayList();
-    Dictionary comDict = WordSet.dict("small");
+    Dictionary comDict = WordSet.smallDictionary().dictionary;
     for (String w : words) {
       if (dictContainsWord(comDict, w))
         common.add(w);

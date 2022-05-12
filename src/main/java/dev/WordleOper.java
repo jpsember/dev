@@ -33,6 +33,7 @@ import java.util.Scanner;
 
 import dev.wordle.WordSet;
 import dev.gen.wordle.Dictionary;
+import dev.wordle.DictionaryEntry;
 import dev.wordle.Guess;
 import dev.wordle.Word;
 import js.app.AppOper;
@@ -51,13 +52,13 @@ public class WordleOper extends AppOper {
   public String getHelpDescription() {
     return "Wordle game and solver";
   }
- 
+
   private void help() {
     Object t = TAB(20);
     pr("Commands:", INDENT, //
         "a*ppl'e", t, "make a guess", CR, //
         "a", t, "advice", CR, //
-        "d [ big | mit ]", CR, //
+        "d [ big | small ]", CR, //
         "h", t, "help", CR, //
         "n [<answer>]", t, "new game", CR, //
         "q", t, "quit");
@@ -89,11 +90,19 @@ public class WordleOper extends AppOper {
         case "q":
           quit = true;
           break;
-        case "n":
-          newGame();
+        case "n": {
+          Word w = null;
           if (hasNextArg()) {
-            g.answer = new Word(readArg());
+            w = new Word(readArg());
+            if (!dictContainsWord(WordSet.defaultDictEntry().dictionary, w.toString())) {
+              pr("...word isn't in dictionary!");
+              break;
+            }
           }
+          newGame();
+          if (w != null)
+            g.answer = w;
+        }
           break;
         case "a":
           advice();
@@ -101,7 +110,10 @@ public class WordleOper extends AppOper {
         case "d": {
           String name = readArg();
           pr("...selecting dictionary:", name);
-          WordSet.selectDictionary(name);
+          DictionaryEntry ent = WordSet.selectDict(name);
+          // Dictionary d = WordSet.dict(name);
+          if (ent == null)
+            return;
           newGame();
         }
           break;
@@ -141,7 +153,7 @@ public class WordleOper extends AppOper {
 
     // Choose an answer from the small dictionary
 
-    Dictionary d = WordSet.dict("small");
+    Dictionary d = WordSet.smallDictionary().dictionary;
     byte[] by = d.wordBytes();
     int nw = by.length / WORD_LENGTH;
     g.answer = new Word(by, WORD_LENGTH * mRand.nextInt(nw));
@@ -169,7 +181,7 @@ public class WordleOper extends AppOper {
 
   private WordSet dict() {
     if (g.dict == null) {
-      g.dict = WordSet.defaultSet();
+      g.dict = WordSet.defaultDictEntry().wordSet;
     }
     return g.dict;
   }
@@ -197,6 +209,10 @@ public class WordleOper extends AppOper {
   private void parseCommand(String cmd) {
     Guess gu = Guess.parse(cmd);
     checkArgument(gu != null);
+    if (!dictContainsWord(WordSet.bigDictionary().dictionary, gu.word().toString())) {
+      pr("...word is not in dictionary!");
+      return;
+    }
     if (answerIsKnown()) {
       checkArgument(gu.compareCode() == 0);
       int result = compare(g.answer, gu.word());
@@ -209,7 +225,7 @@ public class WordleOper extends AppOper {
     WordSet dict = dict();
     int dictSize = dict.size();
 
-    byte[] dictWords = WordSet.defaultDictionary().wordBytes();
+    byte[] dictWords = WordSet.defaultDictEntry().dictionary.wordBytes();
     IntArray.Builder ib = IntArray.newBuilder();
     Word guessWord = guess.word();
 
@@ -237,6 +253,5 @@ public class WordleOper extends AppOper {
     }
     pr(VERT_SP);
   }
- 
 
 }
