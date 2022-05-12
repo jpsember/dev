@@ -102,11 +102,6 @@ public final class WordSet extends BaseObject {
 
   public static WordSet withWordIds(int[] wordIds) {
     WordSet d = new WordSet();
-    if (VERIFY) {
-      for (int id : wordIds) {
-        verify(id);
-      }
-    }
     d.mWordIds = wordIds;
     return d;
   }
@@ -120,7 +115,6 @@ public final class WordSet extends BaseObject {
   }
 
   public Word getWordWithId(int id) {
-    verify(id);
     return new Word(sWordBytes, id);
   }
 

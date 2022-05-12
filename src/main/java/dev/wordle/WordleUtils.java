@@ -271,10 +271,8 @@ public final class WordleUtils {
   }
 
   public static int compare(Word answerWord, Word guessWord) {
-
     return compareOpt(answerWord.lettersArray(), answerWord.lettersStart(), guessWord.lettersArray(),
         guessWord.lettersStart());
-
   }
 
   public static String compareCodeString(int compareCode) {
@@ -306,7 +304,6 @@ public final class WordleUtils {
         break;
       }
       compareCode >>= 2;
-      sb.append(' ');
     }
 
     return sb.toString();
@@ -318,13 +315,6 @@ public final class WordleUtils {
 
   public static void clearCompareCodeFreqTable(short[] compareCodeFreq) {
     Arrays.fill(compareCodeFreq, (short) 0);
-  }
-
-  public static final boolean VERIFY = false && alert("verify is on");
-
-  public static final void verify(int wordId) {
-    if (VERIFY && wordId % WORD_LENGTH != 0)
-      badArg("not a word id:", wordId);
   }
 
   /**
@@ -369,13 +359,11 @@ public final class WordleUtils {
 
     for (int queryIndex : samples) {
       int guessWordId = dict.wordId(queryIndex);
-      verify(guessWordId);
 
       clearCompareCodeFreqTable(compareCodeFreq);
 
       for (int answerIndex = 0; answerIndex < dictSize; answerIndex++) {
         int answerWordId = dict.wordId(answerIndex);
-        verify(answerWordId);
         int result = compareOpt(dictWords, answerWordId, dictWords, guessWordId);
         compareCodeFreq[result]++;
       }
@@ -438,46 +426,6 @@ public final class WordleUtils {
       sb.append((i % 8) == 7 ? '\n' : ' ');
     }
     return sb.toString().toLowerCase();
-  }
-
-  public static void experiment() {
-    pr("running experiment");
-    if (true) {
-      Dictionary d1 = WordSet.dict("small.json");
-      Dictionary d2 = WordSet.dict("big.json");
-
-      List<Integer> removeList = arrayList();
-      int i = INIT_INDEX;
-      for (String w : d1.words()) {
-        i++;
-        if (!dictContainsWord(d2, w)) {
-          pr("word not in big dict:", w);
-          removeList.add(i);
-        }
-      }
-      Collections.reverse(removeList);
-
-      Dictionary.Builder w1 = d1.toBuilder();
-      for (int k : removeList) {
-        w1.words().remove(k);
-      }
-      w1.wordBytes(null);
-      pr(w1.toJson().toString());
-      return;
-    }
-    if (false) {
-      genCode();
-      return;
-    }
-    WordSet wordSet = WordSet.defaultSet();
-    checkpoint("starting experiment");
-    int[] bestGuesses = bestGuess(wordSet);
-    checkpoint("done experiment"); // Takes about 9 seconds
-    // Now takes about 6.3 seconds
-    // Now takes about 4.1 seconds
-
-    List<String> wordStrings = wordSet.getWordStrings(bestGuesses);
-    pr("Advice:", INDENT, formatWords(wordStrings));
   }
 
 }

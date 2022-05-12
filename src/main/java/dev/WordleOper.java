@@ -36,7 +36,6 @@ import dev.gen.wordle.Dictionary;
 import dev.wordle.Guess;
 import dev.wordle.Word;
 import js.app.AppOper;
-import js.app.CmdLineArgs;
 import js.data.IntArray;
 
 import static dev.wordle.WordleUtils.*;
@@ -50,23 +49,9 @@ public class WordleOper extends AppOper {
 
   @Override
   public String getHelpDescription() {
-    return "investigating Wordle strategies";
+    return "Wordle game and solver";
   }
-
-  @Override
-  protected List<Object> getAdditionalArgs() {
-    return arrayList("<to be det>");
-  }
-
-  @Override
-  protected void processAdditionalArgs() {
-    CmdLineArgs args = app().cmdLineArgs();
-    if (false && args.hasNextArg()) {
-      args.nextArg();
-    }
-    args.assertArgsDone();
-  }
-
+ 
   private void help() {
     Object t = TAB(20);
     pr("Commands:", INDENT, //
@@ -80,10 +65,6 @@ public class WordleOper extends AppOper {
 
   @Override
   public void perform() {
-    if (false) {
-      experiment();
-      return;
-    }
     pr("Type 'h' for help");
     newGame();
 
