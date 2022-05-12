@@ -80,7 +80,7 @@ public class WordleOper extends AppOper {
 
   @Override
   public void perform() {
-    if (false) {
+    if (true) {
       experiment();
       return;
     }
@@ -115,7 +115,7 @@ public class WordleOper extends AppOper {
             g.answer = new Word(readArg());
           }
           if (false)
-          advice();
+            advice();
           break;
         case "a":
           advice();
@@ -197,14 +197,9 @@ public class WordleOper extends AppOper {
   }
 
   private List<String> bestGuesses() {
-   // if (g.bestGuesses == null) {
-      if (turnNumber() == 0 && WITH_FIRST_GUESS_OPTIMIZATION)
-        g.bestGuesses = WordSet.defaultDictionary().initialGuesses();
-      else
-        g.bestGuesses = dict().getWordStrings(bestGuess(dict()));
-      g.bestGuesses = sortWordsForDisplay(g.bestGuesses);
- //   }
-   return g.bestGuesses;
+    g.bestGuesses = dict().getWordStrings(bestGuess(dict()));
+    g.bestGuesses = sortWordsForDisplay(g.bestGuesses);
+    return g.bestGuesses;
   }
 
   private class GameVars {
@@ -265,9 +260,6 @@ public class WordleOper extends AppOper {
     }
     pr(VERT_SP);
   }
-
-  private int turnNumber() {
-    return g.guesses.size();
-  }
+ 
 
 }

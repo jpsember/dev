@@ -1,6 +1,6 @@
 fields {
-  string name;
+  //string name;
   *string words;
-  *string initial_guesses;
+  //*string initial_guesses;
   *byte word_bytes;
 }

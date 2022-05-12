@@ -26,8 +26,6 @@ public final class WordleUtils {
   );
   public static final int COMPARE_CODE_MAX = COMPARE_CODE_FINISHED + 1;
 
-  public static final boolean WITH_FIRST_GUESS_OPTIMIZATION = false;
-
   private static String vn(String prefix, int i) {
     return prefix + "_" + i;
   }
@@ -444,7 +442,31 @@ public final class WordleUtils {
 
   public static void experiment() {
     pr("running experiment");
-    if (false) {
+    if (true) {
+    Dictionary d1 = WordSet.dict("mit.json");
+    Dictionary d2 = WordSet.dict("big.json");
+    
+    
+    List<Integer> removeList = arrayList();
+    int i = INIT_INDEX;
+    for (String w : d1.words()) {
+      i++;
+      if (!dictContainsWord(d2, w)) {
+        pr("word not in big dict:",w);
+        removeList.add(i);
+      }
+    }
+    Collections.reverse(removeList);
+    
+    Dictionary.Builder w1 = d1.toBuilder();
+    for (  int k:removeList) {
+      w1.words().remove(k);
+    }
+    w1.wordBytes(null);
+    pr(w1.toJson().toString());
+    return;
+  }
+     if (false) {
       genCode();
       return;
     }
