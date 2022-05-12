@@ -160,7 +160,7 @@ public class WordleOper extends AppOper {
 
     // Choose an answer from the small dictionary
 
-    Dictionary d = WordSet.dict("mit");
+    Dictionary d = WordSet.dict("small");
     byte[] by = d.wordBytes();
     int nw = by.length / WORD_LENGTH;
     g.answer = new Word(by, WORD_LENGTH * mRand.nextInt(nw));

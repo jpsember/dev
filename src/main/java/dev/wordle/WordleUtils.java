@@ -414,7 +414,7 @@ public final class WordleUtils {
   public static List<String> sortWordsForDisplay(List<String> words) {
     List<String> common = arrayList();
     List<String> rare = arrayList();
-    Dictionary comDict = WordSet.dict("mit");
+    Dictionary comDict = WordSet.dict("small");
     for (String w : words) {
       if (dictContainsWord(comDict, w))
         common.add(w);
@@ -443,30 +443,29 @@ public final class WordleUtils {
   public static void experiment() {
     pr("running experiment");
     if (true) {
-    Dictionary d1 = WordSet.dict("mit.json");
-    Dictionary d2 = WordSet.dict("big.json");
-    
-    
-    List<Integer> removeList = arrayList();
-    int i = INIT_INDEX;
-    for (String w : d1.words()) {
-      i++;
-      if (!dictContainsWord(d2, w)) {
-        pr("word not in big dict:",w);
-        removeList.add(i);
+      Dictionary d1 = WordSet.dict("small.json");
+      Dictionary d2 = WordSet.dict("big.json");
+
+      List<Integer> removeList = arrayList();
+      int i = INIT_INDEX;
+      for (String w : d1.words()) {
+        i++;
+        if (!dictContainsWord(d2, w)) {
+          pr("word not in big dict:", w);
+          removeList.add(i);
+        }
       }
+      Collections.reverse(removeList);
+
+      Dictionary.Builder w1 = d1.toBuilder();
+      for (int k : removeList) {
+        w1.words().remove(k);
+      }
+      w1.wordBytes(null);
+      pr(w1.toJson().toString());
+      return;
     }
-    Collections.reverse(removeList);
-    
-    Dictionary.Builder w1 = d1.toBuilder();
-    for (  int k:removeList) {
-      w1.words().remove(k);
-    }
-    w1.wordBytes(null);
-    pr(w1.toJson().toString());
-    return;
-  }
-     if (false) {
+    if (false) {
       genCode();
       return;
     }
