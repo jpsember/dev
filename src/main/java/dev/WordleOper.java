@@ -80,13 +80,12 @@ public class WordleOper extends AppOper {
 
   @Override
   public void perform() {
-    if (true) {
+    if (false) {
       experiment();
       return;
     }
     pr("Type 'h' for help");
     newGame();
-    //advice();
 
     Scanner input = new Scanner(System.in);
 
@@ -114,8 +113,6 @@ public class WordleOper extends AppOper {
           if (hasNextArg()) {
             g.answer = new Word(readArg());
           }
-          if (false)
-            advice();
           break;
         case "a":
           advice();
@@ -225,7 +222,6 @@ public class WordleOper extends AppOper {
       gu = Guess.with(gu.word(), result);
     }
     makeGuess(gu);
-    // advice();
   }
 
   private void makeGuess(Guess guess) {
