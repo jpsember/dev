@@ -148,7 +148,7 @@ public abstract class RsyncOper extends AppOper {
       RemoteEntityInfo ent = remoteEntity();
       checkArgument(ent.port() > 0, "bad port:", INDENT, ent);
 
-      s.arg("-e", "ssh -p" + ent.port());
+      s.arg("-e", "'ssh -p" + ent.port()+"'");
 
       {
         StringBuilder sb = new StringBuilder();

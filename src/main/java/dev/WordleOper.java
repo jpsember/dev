@@ -94,7 +94,7 @@ public class WordleOper extends AppOper {
           Word w = null;
           if (hasNextArg()) {
             w = new Word(readArg());
-            if (!dictContainsWord(WordSet.defaultDictEntry().dictionary, w.toString())) {
+            if (!dictContainsWord(DictionaryEntry.active().dictionary(), w.toString())) {
               pr("...word isn't in dictionary!");
               break;
             }
@@ -110,8 +110,7 @@ public class WordleOper extends AppOper {
         case "d": {
           String name = readArg();
           pr("...selecting dictionary:", name);
-          DictionaryEntry ent = WordSet.selectDict(name);
-          // Dictionary d = WordSet.dict(name);
+          DictionaryEntry ent = DictionaryEntry.select(name);
           if (ent == null)
             return;
           newGame();
@@ -153,7 +152,7 @@ public class WordleOper extends AppOper {
 
     // Choose an answer from the small dictionary
 
-    Dictionary d = WordSet.smallDictionary().dictionary;
+    Dictionary d = DictionaryEntry.small().dictionary();
     byte[] by = d.wordBytes();
     int nw = by.length / WORD_LENGTH;
     g.answer = new Word(by, WORD_LENGTH * mRand.nextInt(nw));
@@ -180,10 +179,9 @@ public class WordleOper extends AppOper {
   }
 
   private WordSet dict() {
-    if (g.dict == null) {
-      g.dict = WordSet.defaultDictEntry().wordSet;
-    }
-    return g.dict;
+    if (g.wordSet == null)
+      g.wordSet = DictionaryEntry.active().wordSet();
+    return g.wordSet;
   }
 
   private List<String> bestGuesses() {
@@ -193,7 +191,7 @@ public class WordleOper extends AppOper {
   }
 
   private class GameVars {
-    WordSet dict;
+    WordSet wordSet;
     Word answer;
     List<String> bestGuesses;
     List<Guess> guesses = arrayList();
@@ -209,7 +207,7 @@ public class WordleOper extends AppOper {
   private void parseCommand(String cmd) {
     Guess gu = Guess.parse(cmd);
     checkArgument(gu != null);
-    if (!dictContainsWord(WordSet.bigDictionary().dictionary, gu.word().toString())) {
+    if (!dictContainsWord(DictionaryEntry.big().dictionary(), gu.word().toString())) {
       pr("...word is not in dictionary!");
       return;
     }
@@ -225,7 +223,7 @@ public class WordleOper extends AppOper {
     WordSet dict = dict();
     int dictSize = dict.size();
 
-    byte[] dictWords = WordSet.defaultDictEntry().dictionary.wordBytes();
+    byte[] dictWords = DictionaryEntry.active().dictionary().wordBytes();
     IntArray.Builder ib = IntArray.newBuilder();
     Word guessWord = guess.word();
 
@@ -239,7 +237,7 @@ public class WordleOper extends AppOper {
       ib.add(answerWordOffset);
     }
     dict = WordSet.withWordIds(ib.array());
-    g.dict = dict;
+    g.wordSet = dict;
     g.bestGuesses = null;
     g.guesses.add(guess);
     if (guess.compareCode() == COMPARE_CODE_FINISHED)

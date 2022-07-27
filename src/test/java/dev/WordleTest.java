@@ -30,6 +30,7 @@ import java.util.List;
 
 import org.junit.Test;
 
+import dev.wordle.DictionaryEntry;
 import dev.wordle.Word;
 import dev.wordle.WordSet;
 import dev.wordle.WordleUtils;
@@ -42,7 +43,7 @@ public class WordleTest extends MyTestCase {
 
   @Test
   public void testCompareWords() {
-    WordSet wordSet = WordSet.defaultDictEntry().wordSet;
+    WordSet wordSet =  DictionaryEntry.active().wordSet();
 
     List<Word> words = arrayList();
     for (int i = 0; i < 8; i++)
