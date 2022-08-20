@@ -87,7 +87,7 @@ public class ResizeOper extends AppOper {
       }
       // The color doesn't add much, ~1 %
       //
-      result = ImgEffects.makeMonochrome(result);
+      result = ImgEffects.makeMonochrome3Channel(result);
 
       File targFile = new File(targetDir, Files.setExtension(f.getName(), ImgUtil.EXT_JPEG));
       byte[] jpg = ImgUtil.toJPEG(result, null, 0.78f);

@@ -148,7 +148,9 @@ public abstract class RsyncOper extends AppOper {
       RemoteEntityInfo ent = remoteEntity();
       checkArgument(ent.port() > 0, "bad port:", INDENT, ent);
 
-      s.arg("-e", "'ssh -p" + ent.port()+"'");
+      // I don't think we need to add quotes around the (single) argument [ssh -p]; in fact,
+      // it maybe causes the SystemCall to fail 
+      s.arg("-e", "ssh -p" + ent.port());
 
       {
         StringBuilder sb = new StringBuilder();

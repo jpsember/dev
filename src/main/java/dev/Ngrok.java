@@ -53,7 +53,7 @@ public class Ngrok extends BaseObject {
    */
   private JSMap callAPI(String endpoint) {
     SystemCall sc = new SystemCall();
-    //sc.alertVerbose();
+    sc.setVerbose(verbose());
     sc.arg("curl", "-sS");
     sc.arg("-H", "Accept: application/json");
     sc.arg("-H", "Authorization: Bearer " + getNgrokToken());
