@@ -91,7 +91,7 @@ public class RemoveExtraneousScriptElementsOper extends AppOper {
     int scriptsProcessed = 0;
     int scriptsModified = 0;
 
-    for (ScriptFileEntry ent : ScriptUtil.buildScriptList(mSourceDir)) {
+    for (ScriptFileEntry ent : ScriptUtil.buildScriptList(mSourceDir, true)) {
 
       File scriptPath = new File(scriptsDir, ent.scriptName());
       if (!scriptPath.exists())

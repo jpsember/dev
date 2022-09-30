@@ -91,7 +91,7 @@ public class SplitProjectOper extends AppOper {
 
     File sourceScriptsDir = ScriptUtil.scriptDirForProject(mSourceDir);
 
-    List<ScriptFileEntry> scriptList = ScriptUtil.buildScriptList(mSourceDir);
+    List<ScriptFileEntry> scriptList = ScriptUtil.buildScriptList(mSourceDir, true);
 
     logMap.put("script_count", scriptList.size());
 

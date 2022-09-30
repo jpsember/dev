@@ -79,7 +79,7 @@ public class ExtractUsefulScriptsOper extends AppOper {
 
     JSMap logMap = map().put("source_dir", mSourceDir.getPath());
 
-    List<ScriptFileEntry> scriptEntries = ScriptUtil.buildScriptList(mSourceDir);
+    List<ScriptFileEntry> scriptEntries = ScriptUtil.buildScriptList(mSourceDir, true);
     File scriptDir = ScriptUtil.scriptDirForProject(mSourceDir);
 
     int inputImages = scriptEntries.size();

@@ -32,6 +32,7 @@ import java.util.regex.Matcher;
 
 import js.app.AppOper;
 import js.app.CmdLineArgs;
+import js.base.DateTimeTools;
 import js.file.DirWalk;
 import js.file.Files;
 import js.parsing.RegExp;
@@ -131,6 +132,20 @@ public final class CopyrightOper extends AppOper {
       sb.append(lines.get(i));
       sb.append('\n');
     }
+
+    // Look for special year expression, and replace with current year
+    String expr = "!!YEAR!!";
+    boolean found = true;
+    while (found) {
+      found = false;
+      int cursor = sb.indexOf(expr);
+      if (cursor >= 0) {
+        found = true;
+        int year = DateTimeTools.zonedDateTime(System.currentTimeMillis()).getYear();
+        sb.replace(cursor, cursor + expr.length(), "" + year);
+      }
+    }
+
     return sb.toString().trim();
   }
 
