@@ -1,0 +1,2 @@
+// To run this from the command line:  java -cp target/classes Q
+public class Q{public static void main(String[]args){String s="public class Q{public static void main(String[]args){String s=!;int i=s.indexOf(33);String q=Character.toString((char)34);System.out.print(s.substring(0,i)+q+s+q+s.substring(i+1));}}";int i=s.indexOf(33);String q=Character.toString((char)34);System.out.print(s.substring(0,i)+q+s+q+s.substring(i+1));}}
