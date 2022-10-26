@@ -83,7 +83,7 @@ public class Ngrok extends BaseObject {
   public RemoteEntityInfo tunnelInfo(String tag) {
     RemoteEntityInfo result = null;
     for (JSMap tunMap : tunnelsMap().asMaps()) {
-      String metadata = tunMap.get("metadata");
+      String metadata = tunMap.opt("metadata", "");
       if (metadata.isEmpty()) {
         // If this is not a tcp tunnel, ignore
         if (!tunMap.get("proto").equals("tcp"))
