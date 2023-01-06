@@ -32,6 +32,7 @@ import org.junit.Test;
 import dev.tokn.CodeSet;
 import js.data.IntArray;
 import js.testutil.MyTestCase;
+import static dev.tokn.TokenConst.*;
 
 public class CodeSetTest extends MyTestCase {
 
@@ -183,7 +184,7 @@ public class CodeSetTest extends MyTestCase {
 
     prep();
     add(10, 22);
-    neg(0, CodeSet.CODEMAX);
+    neg(0,  CODEMAX);
     equ("0 10 22 1114112");
 
     prep();

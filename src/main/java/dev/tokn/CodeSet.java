@@ -5,12 +5,9 @@ import js.data.IntArray;
 import js.json.JSList;
 
 import static js.base.Tools.*;
+import static dev.tokn.TokenConst.*;
 
 public final class CodeSet {
-
-  public static final int CODEMAX = 0x110000; // One plus the maximum code represented
-
-  public static final int EPSILON = -1; // Code for epsilon transitions
 
   public void add(int value) {
     add(value, value + 1);
