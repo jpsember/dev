@@ -5,6 +5,7 @@ import static js.base.Tools.*;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 
 import js.parsing.Edge;
@@ -59,14 +60,6 @@ public final class ToknUtils {
 
     Set<State> stateSet = reachableStates(startState);
     for (State s : stateSet) {
-      State u = new State(s.id());
-      newStateMap.put(u.id(), u);
-      if (s.id() == startState.id()) {
-        newFinalStateList.add(u);
-        u.finalState(true);
-      }
-      if (s.finalState())
-        newStartStateList.add(u);
 
       // s.edges.each {|lbl, dest| edgeList.push([dest.id, s.id, lbl])}
       for (Edge edge : s.edges()) {
@@ -76,19 +69,45 @@ public final class ToknUtils {
         rw.labelSet = edge.codeRanges();
         edgeList.add(rw);
       }
+
+      State u = new State(s.id(), s.id() == startState.id(), null);
+      newStateMap.put(u.id(), u);
+      if (u.finalState())
+        newFinalStateList.add(u);
+      if (s.finalState())
+        newStartStateList.add(u);
+
     }
+
+    // Build a list of edges for each state, so we can modify them
+    Map<Integer, List<Edge>> newStateEdgeLists = hashMap();
 
     for (RevWork w : edgeList) {
       State srcState = newStateMap.get(w.sourceId);
       State destState = newStateMap.get(w.destId);
-      srcState.edges().add(new Edge(w.labelSet, destState.id()));
+
+      List<Edge> edges = newStateEdgeLists.get(srcState.id());
+      if (edges == null) {
+        edges = arrayList();
+        newStateEdgeLists.put(srcState.id(), edges);
+      }
+      edges.add(new Edge(w.labelSet, destState.id()));
     }
+
+    for (Entry<Integer, List<Edge>> edgeEntry : newStateEdgeLists.entrySet()) {
+      int sourceId = edgeEntry.getKey();
+      State srcState = newStateMap.get(sourceId);
+      srcState = srcState.withEdges(edgeEntry.getValue());
+      newStateMap.put(sourceId, srcState);
+    }
+
     //  Create a distinguished start node that points to each of the start nodes
     int[] rang = rangeOfStateIds(stateSet);
-    State w = new State(rang[1]);
-    for (State s : newStartStateList) {
-      w.addEps(s);
-    }
+    List<Edge> edges = arrayList();
+    for (State s : newStartStateList)
+      edges.add(Edge.constructEpsilonEdge(s.id()));
+    State w = new State(rang[1], false, edges);
+
     return w;
   }
 
@@ -115,7 +134,6 @@ public final class ToknUtils {
     return result;
   }
 
-
   /**
    * Duplicate the NFA reachable from this state, possibly with new ids
    * 
@@ -135,11 +153,8 @@ public final class ToknUtils {
     int oldMaxId = res[1];
 
     for (State s : oldStates) {
-      State s2 = new State((s.id() - oldMinId) + dupBaseId);
-
-      s2.finalState(s.finalState());
+      State s2 = new State((s.id() - oldMinId) + dupBaseId, s.finalState(),null);
       origToDupStateMap.put(s.id(), s2);
-
     }
     for (State s : oldStates) {
       State s2 = origToDupStateMap.get(s.id());

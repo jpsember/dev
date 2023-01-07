@@ -249,22 +249,25 @@ public class NFAToDFA {
     *  [] sort edges by destination state ids
    * </pre>
    */
-  public static void normalize(State state) {
-    halt("we should return a new, normalized state");
-    state.edges().sort((e1, e2) -> Integer.compare(e1.destinationStateId(), e2.destinationStateId()));
+  public static State normalize(State state) {
+    List<Edge> edgeList = arrayList();
+    edgeList.addAll(state.edges());
+    edgeList.sort((e1, e2) -> Integer.compare(e1.destinationStateId(), e2.destinationStateId()));
 
     List<Edge> new_edges = arrayList();
     CodeSet prev_label = null;
-    Integer prev_dest = null;
+    int prev_dest = -1;
 
-    for (Edge edge : state.edges()) {
+    for (Edge edge : edgeList) {
       int[] label = edge.codeRanges();
       int dest = edge.destinationStateId();
 
-      if (prev_dest != null && prev_dest == dest)
+      // If this edge goes to the same state as a previous one, merge with that one...
+      todo("probably can't assume previous is meaningful, as they may be in a random order");
+      if (prev_dest == dest)
         prev_label.addSet(label);
       else {
-        if (prev_dest != null) {
+        if (prev_dest >= 0) {
           new_edges.add(new Edge(prev_label.elements(), prev_dest));
         }
         // Must start a fresh copy!  Don't want to modify the original label.
@@ -272,9 +275,11 @@ public class NFAToDFA {
         prev_dest = edge.destinationStateId();
       }
     }
-    if (prev_dest != null)
+    if (prev_dest >= 0)
       new_edges.add(new Edge(prev_label.elements(), prev_dest));
-    state.setEdges(new_edges);
+    State newState = new State(state.id(), state.finalState(), new_edges);
+    halt("we should return a new, normalized state");
+    return newState;
   }
 
 }

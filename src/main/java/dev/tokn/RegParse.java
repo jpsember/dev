@@ -306,26 +306,11 @@ public class RegParse {
   }
 
   private State newState() {
-    State s = new State(mNextStateId);
+    State s = new State(mNextStateId, false, null);
     mNextStateId++;
     return s;
   }
 
-  //
-  //  def parseSET code_set=
-  //
-  //  parse_code_set(true)
-  //      if read_if('-')
-  //        u = code_set.single_value
-  //        v = parse_code_set(true).single_value
-  //        if v < u
-  //          abort "Illegal range"
-  //        end
-  //        code_set = CodeSet.new(u,v+1)
-  //      end
-  //      code_set
-  //    end
-  //
   private StatePair parseBRACKETEXPR() {
     read('[');
     CodeSet rs = new CodeSet();
@@ -556,72 +541,49 @@ public class RegParse {
     return found;
   }
 
-  //
-  //  def read(expChar = nil)
-  //      ch = peek(0)
-  //      @char_buffer.shift
-  //      if
-  //
-  //  ch and ((not expChar) or ch == expChar)
-  //        ch
-  //      else
-  //        abort 'Unexpected end of input'
-  //      end
-  //    end
-  //
+  /**
+   * Construct an NFA that accepts the complement of an NFA
+   */
   private StatePair construct_complement(StatePair statesp) {
 
     State nfa_start = statesp.start;
     State nfa_end = statesp.end;
+    nfa_end = new State(nfa_end.id(), true, nfa_end.edges());
 
-    //
-    //      nfa_start, nfa_end = states
-    //
-    nfa_end.finalState(true);
-    //
-    //      nfa_end.final_state = true
-    //
     NFAToDFA builder = new NFAToDFA(nfa_start);
-    //      builder = NFAToDFA.new(nfa_start)
     builder.withFilter(false);
-    //      builder.with_filter = false
     State dfa_start_state = builder.nfa_to_dfa();
-    //
-    //      if v
-    //        puts "\n\nconverted to DFA:\n"
-    //        puts dfa_start_state.describe_state_machine
-    //        dfa_start_state.generate_pdf("../../_SKIP_dfa.pdf")
-    //      end
-    //
-    Set<State> states = ToknUtils.reachableStates(dfa_start_state);
-    //      states = dfa_start_state.reachable_states
-    //
-    State f = new State(states.size());
 
-    /*
+    Set<State> states = ToknUtils.reachableStates(dfa_start_state);
+
+    /**
      * <pre>
-     * 
-     * # + Let S be the DFA's start state # + Create F, a new final state # +
-     * for each state X in the DFA (excluding F): # + if X is a final state,
-     * clear its final state flag; # + otherwise: # + construct C, a set of
-     * labels that is the complement of the union of any existing edge labels
-     * from X # + if C is nonempty, add transition on C from X to F # + if X is
-     * not the start state, add e-transition from X to F # + augment original
-     * NFA by copying each state X to a state X' (clearing final state flags) #
-     * + return [S', F'] #
-     * 
-     * # We don't process any final states in the above loop, because # we've
-     * sort of "lost" once we reach a final state no matter what # edges leave
-     * that state. This is because we're looking for # substrings of the input
-     * string to find matches, instead of # just answering a yes/no recognition
-     * question for an (entire) # input string.
+     *
+        + Let S be the DFA's start state
+        + Create F, a new final state
+        + for each state X in the DFA (excluding F):
+          + if X is a final state, clear its final state flag;
+          + otherwise:
+            + construct C, a set of labels that is the complement of the union of any existing edge labels from X
+            + if C is nonempty, add transition on C from X to F
+            + if X is not the start state, add e-transition from X to F
+        + augment original NFA by copying each state X to a state X' (clearing final state flags)
+        + return [S', F']
      * 
      * </pre>
+     * 
+     * We don't process any final states in the above loop, because we've sort
+     * of "lost" once we reach a final state no matter what edges leave that
+     * state. This is because we're looking for substrings of the input string
+     * to find matches, instead of just answering a yes/no recognition question
+     * for an (entire) input string.
      */
+
+    State f = new State(states.size(), false, null);
 
     for (State x : states) {
       if (x.finalState()) {
-        x.finalState(false);
+        // x.finalState(false);
         continue;
       }
       CodeSet codeset = CodeSet.withRange(0, CODEMAX);
