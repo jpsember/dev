@@ -339,7 +339,7 @@ public class RegParse {
       }
       if (!expecting_set && read_if(']'))
         break;
-      
+
       CodeSet set = parseSET();
       expecting_set = false;
       if (negated) {
@@ -351,20 +351,20 @@ public class RegParse {
         rs.addSet(set);
         had_initial_set = true;
       }
-      
+
     }
     if (negated && !had_initial_set) {
-      rs = rs.negate(0,CODEMAX);
+      rs = rs.negate(0, CODEMAX);
     }
     if (rs.elements().length == 0)
       abort("Empty character range");
     State sA = newState();
     State sB = newState();
-    pr("sA edges:",sA.edges());
-    pr("rs.elements:",rs.elements());
-    pr("sB:",sB);
-    sA.edges().add(new Edge(rs.elements(),sB.id()));
-    return pair(sA,sB);
+    pr("sA edges:", sA.edges());
+    pr("rs.elements:", rs.elements());
+    pr("sB:", sB);
+    sA.edges().add(new Edge(rs.elements(), sB.id()));
+    return pair(sA, sB);
   }
 
   //      if negated && !had_initial_set
@@ -384,58 +384,60 @@ public class RegParse {
   //    TOKENREF_EXPR = Regexp.new('^[_A-Za-z][_A-Za-z0-9]*$')
   //    TOKENCHAR_EXPR = Regexp.new('[_A-Za-z0-9]')
   //
-  
+
   private static Pattern TOKENREF_EXPR = RegExp.pattern("[_A-Za-z][_A-Za-z0-9]*");
   private static String TOKEN_CHARS = "_ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-  private StatePair parseTokenDef() {
-  char delim = read();
-  StringBuilder name = new StringBuilder();
-  if (delim == '$') {
-    while (true) {
-      char q = peek(0);
-      if (!charWithin(q, TOKEN_CHARS)) break;
-      read();
-      name.append(q);
-    }
-  } else {
-    while (true) {
-      char q = read();
-      if (q == '}')break;
-      name.append(q);
-    }
-  }
-  String nameStr = name.toString();
-  if (!RegExp.patternMatchesString(TOKENREF_EXPR, nameStr))
-    abort("Problem with token name");
-  TokenEntry tokInfo = mTokenDefMap.get(nameStr);
-  if (tokInfo == null) {
-  // Leading underscore is optional, as a convenience
-    tokInfo = mTokenDefMap.get("_"+nameStr);
-  }
-  if (tokInfo == null) abort("Undefined token");
-  RegParse rg = tokInfo.reg_ex;
-  
-  todo("clean this up");
-  
-  Map<Integer,State> origToDupStateMap = hashMap();
-  
-  mNextStateId =
-rg.startState().duplicateNFA(mNextStateId, origToDupStateMap);
-  State newStart = origToDupStateMap.get(rg.startState().id()) ;
-  State newEnd = origToDupStateMap.get(rg.endState().id()) ;
-  return pair(newStart,newEnd);
-  
 
-  //      oldToNewMap, @nextStateId = rg.start_state.duplicateNFA(@nextStateId)
-  //
-  //      newStart = oldToNewMap[rg.start_state]
-  //      newEnd = oldToNewMap[rg.endState]
-  //
-  //      [newStart, newEnd]
-  //    end
-  //
+  private StatePair parseTokenDef() {
+    char delim = read();
+    StringBuilder name = new StringBuilder();
+    if (delim == '$') {
+      while (true) {
+        char q = peek(0);
+        if (!charWithin(q, TOKEN_CHARS))
+          break;
+        read();
+        name.append(q);
+      }
+    } else {
+      while (true) {
+        char q = read();
+        if (q == '}')
+          break;
+        name.append(q);
+      }
+    }
+    String nameStr = name.toString();
+    if (!RegExp.patternMatchesString(TOKENREF_EXPR, nameStr))
+      abort("Problem with token name");
+    TokenEntry tokInfo = mTokenDefMap.get(nameStr);
+    if (tokInfo == null) {
+      // Leading underscore is optional, as a convenience
+      tokInfo = mTokenDefMap.get("_" + nameStr);
+    }
+    if (tokInfo == null)
+      abort("Undefined token");
+    RegParse rg = tokInfo.reg_ex;
+
+    todo("clean this up");
+
+    Map<Integer, State> origToDupStateMap = hashMap();
+
+    mNextStateId = ToknUtils.duplicateNFA(rg.startState(), mNextStateId, origToDupStateMap);
+    State newStart = origToDupStateMap.get(rg.startState().id());
+    State newEnd = origToDupStateMap.get(rg.endState().id());
+    return pair(newStart, newEnd);
+
+    //      oldToNewMap, @nextStateId = rg.start_state.duplicateNFA(@nextStateId)
+    //
+    //      newStart = oldToNewMap[rg.start_state]
+    //      newEnd = oldToNewMap[rg.endState]
+    //
+    //      [newStart, newEnd]
+    //    end
+    //
   }
-  
+
   private StatePair parseP() {
     char ch = peek(0);
     StatePair e1;
@@ -568,166 +570,133 @@ rg.startState().duplicateNFA(mNextStateId, origToDupStateMap);
   //    end
   //
   private StatePair construct_complement(StatePair statesp) {
-    
- State nfa_start = statesp.start;
- State nfa_end = statesp.end;
- 
-  //
-  //      nfa_start, nfa_end = states
-  //
-  nfa_end.finalState(true);
-  //
-  //      nfa_end.final_state = true
-  //
-  NFAToDFA builder = 
-  new NFAToDFA(nfa_start);
-  //      builder = NFAToDFA.new(nfa_start)
-  builder.withFilter(false);
-  //      builder.with_filter = false
- State      dfa_start_state = builder.nfa_to_dfa();
-  //
-  //      if v
-  //        puts "\n\nconverted to DFA:\n"
-  //        puts dfa_start_state.describe_state_machine
-  //        dfa_start_state.generate_pdf("../../_SKIP_dfa.pdf")
-  //      end
-  //
- Set<State> states = dfa_start_state.reachableStates();
-  //      states = dfa_start_state.reachable_states
-  //
- State f = new State(states.size());
- 
- /* 
-  * <pre>
-  * 
-  *       # + Let S be the DFA's start state
-      # + Create F, a new final state
-      # + for each state X in the DFA (excluding F):
-      #   + if X is a final state, clear its final state flag;
-      #   + otherwise:
-      #     + construct C, a set of labels that is the complement of the union of any existing edge labels from X
-      #     + if C is nonempty, add transition on C from X to F
-      #     + if X is not the start state, add e-transition from X to F
-      # + augment original NFA by copying each state X to a state X' (clearing final state flags)
-      # + return [S', F']
-      #
 
-      # We don't process any final states in the above loop, because
-      # we've sort of "lost" once we reach a final state no matter what
-      # edges leave that state.  This is because we're looking for
-      # substrings of the input string to find matches, instead of
-      # just answering a yes/no recognition question for an (entire)
-      # input string.
+    State nfa_start = statesp.start;
+    State nfa_end = statesp.end;
 
-  * </pre>
-  */
-  
- for (State x : states) {
-   if (x.finalState()) {
-     x.finalState(false);
-     continue;
-   }
-   CodeSet codeset = CodeSet.withRange(0,CODEMAX);
-   for (Edge e : x.edges()) {
-     codeset = codeset.difference(CodeSet.with(e.codeRanges()));
-   }
-   if ( codeset.elements().length != 0) {
-     x.edges().add(new Edge(codeset.elements(), f.id()));
-   }
-   x.addEps(f);
-   }
- f.finalState(true);
- 
- states.add(f);
- 
-  // Build a map from the DFA state ids to new states within the NFA we're constructing
- Map<Integer, State> new_state_map = hashMap();
- for (State x : states) {
-   State x_new = newState();
-   new_state_map.put(x.id(), x_new);
- }
- 
- for (State x : states) {
-   State x_new = new_state_map.get(x.id());
-   for (Edge edge : x.edges()) {
-     x_new.edges().add(new Edge(edge.codeRanges(), new_state_map.get(edge.destinationStateId()).id()));
-   }
- }
- return pair(new_state_map.get(dfa_start_state.id()), new_state_map.get(f.id()));
- /**
-  *
-      states.each do |x|
-        x_new = new_state_map[x.id]
-        x.edges.each do |code_set, dest_state|
-          x_new.addEdge(code_set, new_state_map[dest_state.id])
-        end
-      end
+    //
+    //      nfa_start, nfa_end = states
+    //
+    nfa_end.finalState(true);
+    //
+    //      nfa_end.final_state = true
+    //
+    NFAToDFA builder = new NFAToDFA(nfa_start);
+    //      builder = NFAToDFA.new(nfa_start)
+    builder.withFilter(false);
+    //      builder.with_filter = false
+    State dfa_start_state = builder.nfa_to_dfa();
+    //
+    //      if v
+    //        puts "\n\nconverted to DFA:\n"
+    //        puts dfa_start_state.describe_state_machine
+    //        dfa_start_state.generate_pdf("../../_SKIP_dfa.pdf")
+    //      end
+    //
+    Set<State> states = ToknUtils.reachableStates(dfa_start_state);
+    //      states = dfa_start_state.reachable_states
+    //
+    State f = new State(states.size());
 
-      new_start = new_state_map[dfa_start_state.id]
-      new_end = new_state_map[f.id]
+    /*
+     * <pre>
+     * 
+     * # + Let S be the DFA's start state # + Create F, a new final state # +
+     * for each state X in the DFA (excluding F): # + if X is a final state,
+     * clear its final state flag; # + otherwise: # + construct C, a set of
+     * labels that is the complement of the union of any existing edge labels
+     * from X # + if C is nonempty, add transition on C from X to F # + if X is
+     * not the start state, add e-transition from X to F # + augment original
+     * NFA by copying each state X to a state X' (clearing final state flags) #
+     * + return [S', F'] #
+     * 
+     * # We don't process any final states in the above loop, because # we've
+     * sort of "lost" once we reach a final state no matter what # edges leave
+     * that state. This is because we're looking for # substrings of the input
+     * string to find matches, instead of # just answering a yes/no recognition
+     * question for an (entire) # input string.
+     * 
+     * </pre>
+     */
 
-  * @param position
-  * @return
-  */
- 
- 
- 
- /*<pre>
-  
+    for (State x : states) {
+      if (x.finalState()) {
+        x.finalState(false);
+        continue;
+      }
+      CodeSet codeset = CodeSet.withRange(0, CODEMAX);
+      for (Edge e : x.edges()) {
+        codeset = codeset.difference(CodeSet.with(e.codeRanges()));
+      }
+      if (codeset.elements().length != 0) {
+        x.edges().add(new Edge(codeset.elements(), f.id()));
+      }
+      x.addEps(f);
+    }
+    f.finalState(true);
 
-      states.add(f)
+    states.add(f);
 
-      # Build a map from the DFA state ids to new states within the NFA we're constructing
-      #
-      new_state_map = {}
-      states.each do |x|
-        x_new = newState
-        new_state_map[x.id] = x_new
-        puts "...mapping #{x.id} --> #{x_new.id}" if v
-      end
+    // Build a map from the DFA state ids to new states within the NFA we're constructing
+    Map<Integer, State> new_state_map = hashMap();
+    for (State x : states) {
+      State x_new = newState();
+      new_state_map.put(x.id(), x_new);
+    }
 
-      states.each do |x|
-        x_new = new_state_map[x.id]
-        x.edges.each do |code_set, dest_state|
-          x_new.addEdge(code_set, new_state_map[dest_state.id])
-        end
-      end
+    for (State x : states) {
+      State x_new = new_state_map.get(x.id());
+      for (Edge edge : x.edges()) {
+        x_new.edges().add(new Edge(edge.codeRanges(), new_state_map.get(edge.destinationStateId()).id()));
+      }
+    }
+    return pair(new_state_map.get(dfa_start_state.id()), new_state_map.get(f.id()));
+    /**
+     *
+     * states.each do |x| x_new = new_state_map[x.id] x.edges.each do |code_set,
+     * dest_state| x_new.addEdge(code_set, new_state_map[dest_state.id]) end end
+     * 
+     * new_start = new_state_map[dfa_start_state.id] new_end =
+     * new_state_map[f.id]
+     * 
+     * @param position
+     * @return
+     */
 
-      new_start = new_state_map[dfa_start_state.id]
-      new_end = new_state_map[f.id]
+    /*
+     * <pre>
+     * 
+     * 
+     * states.add(f)
+     * 
+     * # Build a map from the DFA state ids to new states within the NFA we're
+     * constructing # new_state_map = {} states.each do |x| x_new = newState
+     * new_state_map[x.id] = x_new puts "...mapping #{x.id} --> #{x_new.id}" if
+     * v end
+     * 
+     * states.each do |x| x_new = new_state_map[x.id] x.edges.each do |code_set,
+     * dest_state| x_new.addEdge(code_set, new_state_map[dest_state.id]) end end
+     * 
+     * new_start = new_state_map[dfa_start_state.id] new_end =
+     * new_state_map[f.id]
+     * 
+     * if v puts "returning new start #{new_start.id}, end #{new_end.id}" puts
+     * new_start.describe_state_machine end
+     * 
+     * [new_start,new_end] end
+     * 
+     * </pre>
+     */
 
-      if v
-        puts "returning new start #{new_start.id}, end #{new_end.id}"
-        puts new_start.describe_state_machine
-      end
-
-      [new_start,new_end]
-    end
-
-  *</pre>
-  */
- 
   }
- 
- 
- 
- 
- 
- 
- 
- //    end
+
+  //    end
 
   /**
-   *  code_set = parse_code_set(true)
-      if read_if('-')
-        u = code_set.single_value
-        v = parse_code_set(true).single_value
-        if v < u
-          abort "Illegal range"
-        end
-        code_set = CodeSet.new(u,v+1)
-      end
-      code_set
+   * code_set = parse_code_set(true) if read_if('-') u = code_set.single_value v
+   * = parse_code_set(true).single_value if v < u abort "Illegal range" end
+   * code_set = CodeSet.new(u,v+1) end code_set
+   * 
    * @param position
    * @return
    */
@@ -736,13 +705,13 @@ rg.startState().duplicateNFA(mNextStateId, origToDupStateMap);
     if (read_if('-')) {
       int u = code_set.single_value();
       int v = parse_code_set(true).single_value();
-      if (v < u) abort("Illegal range");
-      code_set = CodeSet.withRange(u, v+1);
+      if (v < u)
+        abort("Illegal range");
+      code_set = CodeSet.withRange(u, v + 1);
     }
     return code_set;
   }
-  
-  
+
   private char peek(int position) {
     while (mCharBuffer.length() <= position) {
       char ch = 0;

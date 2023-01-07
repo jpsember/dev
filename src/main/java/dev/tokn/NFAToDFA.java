@@ -69,9 +69,9 @@ public class NFAToDFA {
     // Apparently this  produces a minimal DFA.
     //
 
-    mStartState = mStartState.reverseNFA();
+    mStartState = ToknUtils.reverseNFA(mStartState);
     nfa_to_dfa_aux();
-    mStartState = mStartState.reverseNFA();
+    mStartState = ToknUtils.reverseNFA(mStartState);
     nfa_to_dfa_aux();
     normalizeStates(mStartState);
   }
@@ -234,7 +234,7 @@ public class NFAToDFA {
    * </pre>
    */
   public static void normalizeStates(State startState) {
-    Set<State> reachable = startState.reachableStates();
+    Set<State> reachable = ToknUtils.reachableStates(startState);
     for (State s : reachable) {
       normalize(s);
     }
@@ -250,6 +250,7 @@ public class NFAToDFA {
    * </pre>
    */
   public static void normalize(State state) {
+    halt("we should return a new, normalized state");
     state.edges().sort((e1, e2) -> Integer.compare(e1.destinationStateId(), e2.destinationStateId()));
 
     List<Edge> new_edges = arrayList();
@@ -274,7 +275,6 @@ public class NFAToDFA {
     if (prev_dest != null)
       new_edges.add(new Edge(prev_label.elements(), prev_dest));
     state.setEdges(new_edges);
-
   }
 
 }
