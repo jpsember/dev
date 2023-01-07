@@ -37,29 +37,37 @@ public final class CodeSet {
     add(value, value + 1);
   }
 
-  
- /**
-  *  Return the single value represented by the set*/
+  /**
+   * Return the single value represented by the set
+   */
   public int single_value() {
     if (mElements.length == 2) {
-  int a = mElements[0];
-  int b = mElements[1];
-  if (b == a+1) return a;
+      int a = mElements[0];
+      int b = mElements[1];
+      if (b == a + 1)
+        return a;
     }
     throw badArg("CodeSet does not contain exactly one value");
   }
-  
-   
- /**
-  *  Add every value from another CodeSet to this one
-  *  
-  */
-  public void addSet(CodeSet s) {
-    int[] sa = s.elements();
-    for (int i = 0; i < sa.length; i+=2) {
-      add(sa[i],sa[i+1]);
+
+  /**
+   * Add every value from another CodeSet to this one
+   * 
+   */
+  public void addSet(int[] sa) {
+    for (int i = 0; i < sa.length; i += 2) {
+      add(sa[i], sa[i + 1]);
     }
   }
+
+  /**
+   * Add every value from another CodeSet to this one
+   * 
+   */
+  public void addSet(CodeSet s) {
+    addSet(s.elements());
+  }
+
   /**
    * Add a contiguous range of values to the set
    * 

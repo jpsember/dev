@@ -2,8 +2,8 @@ package dev.tokn;
 
 import static js.base.Tools.*;
 
-import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.regex.Pattern;
 
 import js.base.BasePrinter;
@@ -217,6 +217,7 @@ public class RegParse {
 
   private CodeSet parse_code_set(boolean within_bracket_expr) {
 
+    //pr("parse_code_set:",debPeek());
     int val;
     char c;
 
@@ -265,8 +266,10 @@ public class RegParse {
           val = ' ';
           break;
         default:
-          if (!RegExp.patternMatchesString(NO_ESCAPE_CHARS, Character.toString(c)))
-            abort("Unsupported escape sequence:", c);
+          // If attempting to escape a letter (that doesn't appear in the list above) or a digit,
+          // that's a problem, since it is most likely not what the user intended
+          if (RegExp.patternMatchesString(NO_ESCAPE_CHARS, Character.toString(c)))
+            abort("Unsupported escape sequence:", quote(c));
           val = c;
           break;
         }
@@ -290,7 +293,6 @@ public class RegParse {
   }
 
   private void parseScript() {
-    notFinished();
     mCharBuffer = new StringBuilder();
     mCursor = 0;
     //    # Set up the input scanner
@@ -358,6 +360,9 @@ public class RegParse {
       abort("Empty character range");
     State sA = newState();
     State sB = newState();
+    pr("sA edges:",sA.edges());
+    pr("rs.elements:",rs.elements());
+    pr("sB:",sB);
     sA.edges().add(new Edge(rs.elements(),sB.id()));
     return pair(sA,sB);
   }
@@ -586,7 +591,7 @@ rg.startState().duplicateNFA(mNextStateId, origToDupStateMap);
   //        dfa_start_state.generate_pdf("../../_SKIP_dfa.pdf")
   //      end
   //
- List<State> states = dfa_start_state.reachableStates();
+ Set<State> states = dfa_start_state.reachableStates();
   //      states = dfa_start_state.reachable_states
   //
  State f = new State(states.size());
@@ -735,6 +740,17 @@ rg.startState().duplicateNFA(mNextStateId, origToDupStateMap);
     }
     return code_set;
   }
+  
+  private String debPeek() {
+  StringBuilder r = new StringBuilder("{");
+  for (int i = 0; i < 8; i++) {
+    if (i >= mCharBuffer.length()) break;
+    r.append(mCharBuffer.charAt(i));
+  }
+  r.append("}");
+  return r.toString();
+  }
+  
   
   private char peek(int position) {
     while (mCharBuffer.length() <= position) {

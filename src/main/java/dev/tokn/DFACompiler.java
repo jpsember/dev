@@ -159,6 +159,10 @@ public final class DFACompiler {
       if (state == end_state)
         return true;
 
+      for (Edge edge: state.edges()) {
+        zz
+      }
+      
       die("not finished yet");
       //      state.edges.each do |label, dest_state|
       //        next unless label.contains? EPSILON
