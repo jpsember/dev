@@ -16,15 +16,15 @@ import static dev.tokn.TokenConst.*;
 /**
  * <pre>
  * 
- *   # Parses a single regular expression from a string.
-  # Produces an NFA with distinguished start and end states
-  # (none of these states are marked as final states)
-  #
-  # Here is the grammar for regular expressions.  Spaces are ignored,
-  # and can be liberally sprinkled within the regular expressions to
-  # aid readability.  To represent a space, the \s escape sequence must be used.
-  # See the file 'sampletokens.txt' for some examples.
-  #
+ *  Parses a single regular expression from a string.
+    Produces an NFA with distinguished start and end states
+    (none of these states are marked as final states)
+   
+    Here is the grammar for regular expressions.  Spaces are ignored,
+    and can be liberally sprinkled within the regular expressions to
+    aid readability.  To represent a space, the \s escape sequence must be used.
+    See the file 'sampletokens.txt' for some examples.
+   
   #   Expressions have one of these types:
   #
   #   E : base class
@@ -89,19 +89,6 @@ public class RegParse {
     checkNotNull(mEndState);
     return mEndState;
   }
-
-  private static CodeSet sDigitCodeSet;
-  private static CodeSet sWordCharCodeSet;
-
-  private State mStartState, mEndState;
-
-  private String mOrigScript;
-  private String mScript;
-  private int mNextStateId;
-  private Map<String, TokenEntry> mTokenDefMap;
-  private int mOrigLineNumber;
-  private StringBuilder mCharBuffer;
-  private int mCursor;
 
   /**
    * Construct a parser and perform the parsing
@@ -172,7 +159,7 @@ public class RegParse {
 
   // Read next character as a hex digit
   //
-  public int read_hex() {
+  private int read_hex() {
     char v = Character.toUpperCase(read());
     if (v >= 48 && v < 58)
       return v - 48;
@@ -181,9 +168,7 @@ public class RegParse {
     throw abort("missing hex digit");
   }
 
-  private static Pattern NO_ESCAPE_CHARS = RegExp.pattern("[A-Za-z0-9]");
-
-  public static CodeSet digit_code_set() {
+  private static CodeSet digit_code_set() {
     if (sDigitCodeSet == null) {
       CodeSet cset = new CodeSet();
       cset.add('0', 1 + '9');
@@ -192,7 +177,7 @@ public class RegParse {
     return sDigitCodeSet;
   }
 
-  public static CodeSet wordchar_code_set() {
+  private static CodeSet wordchar_code_set() {
     if (sWordCharCodeSet == null) {
       CodeSet cset = new CodeSet();
       cset.add('a', 1 + 'z');
@@ -268,7 +253,9 @@ public class RegParse {
         default:
           // If attempting to escape a letter (that doesn't appear in the list above) or a digit,
           // that's a problem, since it is most likely not what the user intended
-          if (RegExp.patternMatchesString(NO_ESCAPE_CHARS, Character.toString(c)))
+          final String noEscapeChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+
+          if (charWithin(c, noEscapeChars))
             abort("Unsupported escape sequence:", quote(c));
           val = c;
           break;
@@ -287,6 +274,9 @@ public class RegParse {
     return sp;
   }
 
+  /**
+   * Bookkeeping class
+   */
   private static class StatePair {
     State start;
     State end;
@@ -295,10 +285,6 @@ public class RegParse {
   private void parseScript() {
     mCharBuffer = new StringBuilder();
     mCursor = 0;
-    //    # Set up the input scanner
-    //    @char_buffer = []
-    //    @cursor = 0
-    //
     StatePair sp = parseE();
     mStartState = sp.start;
     mEndState = sp.end;
@@ -352,28 +338,10 @@ public class RegParse {
     return pair(sA, sB);
   }
 
-  //      if negated && !had_initial_set
-  //        rs.negate(0, CODEMAX)
-  //      end
-  //
-  //      if rs.empty?
-  //        abort "Empty character range"
-  //      end
-  //
-  //      sA = newState
-  //      sB = newState
-  //      sA.addEdge(rs, sB)
-  //      return [sA,sB]
-  //    end
-  //
-  //    TOKENREF_EXPR = Regexp.new('^[_A-Za-z][_A-Za-z0-9]*$')
-  //    TOKENCHAR_EXPR = Regexp.new('[_A-Za-z0-9]')
-  //
-
   private static Pattern TOKENREF_EXPR = RegExp.pattern("[_A-Za-z][_A-Za-z0-9]*");
-  private static String TOKEN_CHARS = "_ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
 
   private StatePair parseTokenDef() {
+    final String TOKEN_CHARS = "_ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
     char delim = read();
     StringBuilder name = new StringBuilder();
     if (delim == '$') {
@@ -546,6 +514,8 @@ public class RegParse {
    */
   private StatePair construct_complement(StatePair statesp) {
 
+    todo("verify no states are marked final, to simplify");
+    
     State nfa_start = statesp.start;
     State nfa_end = statesp.end;
     nfa_end = new State(nfa_end.id(), true, nfa_end.edges());
@@ -697,4 +667,18 @@ public class RegParse {
       return ch;
     throw abort("Unexpected end of input");
   }
+
+  private static CodeSet sDigitCodeSet;
+  private static CodeSet sWordCharCodeSet;
+
+  private State mStartState;
+  private State mEndState;
+  private String mOrigScript;
+  private String mScript;
+  private int mNextStateId;
+  private Map<String, TokenEntry> mTokenDefMap;
+  private int mOrigLineNumber;
+  private StringBuilder mCharBuffer;
+  private int mCursor;
+
 }
