@@ -9,6 +9,18 @@ import static dev.tokn.TokenConst.*;
 
 public final class CodeSet {
 
+  public static CodeSet withValue(int value) {
+    CodeSet c = new CodeSet();
+    c.add(value);
+    return c;
+  }
+
+  public CodeSet dup() {
+    CodeSet c = new CodeSet();
+    c.withElem(mElements);
+    return c;
+  }
+
   public void add(int value) {
     add(value, value + 1);
   }
