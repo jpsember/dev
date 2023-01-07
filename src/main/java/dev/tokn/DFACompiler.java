@@ -26,8 +26,6 @@ public final class DFACompiler {
   //  Regex for token names preceding regular expressions
   private static Pattern TOKENNAME_EXPR = RegExp.pattern("[_A-Za-z][_A-Za-z0-9]*\\s*:\\s*.*");
 
-  
-  
   public DFA parse(String script) {
 
     int next_token_id = 0;
@@ -43,12 +41,12 @@ public final class DFACompiler {
     // only do this if there's an odd number of '\' at the end
 
     mSourceLines = arrayList();
-    StringBuilder accum = null;  
+    StringBuilder accum = null;
 
     int accum_start_line = -1;
 
     int originalLineNumber = 0;
-    
+
     for (String line : script_lines) {
       originalLineNumber++;
 
@@ -75,7 +73,7 @@ public final class DFACompiler {
         accum.append(line);
         mSourceLines.add(accum.toString());
         mOriginalLineNumbers.add(accum_start_line);
-        
+
         accum = null;
       }
     }
@@ -108,7 +106,7 @@ public final class DFACompiler {
       String tokenName = line.substring(0, pos).trim();
 
       String expr = line.substring(pos + 1);
-      
+
       RegParse rex = new RegParse(expr, tokenNameMap, line_number);
 
       // Give it the next available token id, if it's not an anonymous token; else -1
@@ -159,15 +157,11 @@ public final class DFACompiler {
       if (state == end_state)
         return true;
 
-      for (Edge edge: state.edges()) {
-        zz
+      for (Edge edge : state.edges()) {
+        if (CodeSet.contains(edge.codeRange(), edge.destinationStateId())) {
+          push(state_stack, State.fetch(null, edge.destinationStateId()));
+        }
       }
-      
-      die("not finished yet");
-      //      state.edges.each do |label, dest_state|
-      //        next unless label.contains? EPSILON
-      //        state_stack << dest_state
-      //      end
     }
     return false;
   }

@@ -211,9 +211,9 @@ public final class CodeSet {
     ia.remove(ia.size() - 1);
   }
 
-  public boolean contains(int val) {
+  public static boolean contains(int[] rangePairs, int val) {
     int i = 0;
-    int[] e = mElements;
+    int[] e = rangePairs;
     while (i < e.length) {
       if (val < e[i])
         return false;
@@ -221,7 +221,11 @@ public final class CodeSet {
         return true;
       i += 2;
     }
-    return false;
+    return false;}
+  
+  @Deprecated
+  public boolean contains(int val) {
+    return contains(mElements, val);
   }
 
   /**

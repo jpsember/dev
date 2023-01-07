@@ -394,6 +394,7 @@ public class RegParse {
     while (true) {
       char q = peek(0);
       if (!charWithin(q, TOKEN_CHARS)) break;
+      read();
       name.append(q);
     }
   } else {
