@@ -16,7 +16,6 @@ import static dev.tokn.TokenConst.*;
 
 public final class DFACompiler {
 
-
   private IntArray.Builder mOriginalLineNumbers;
   private List<String> mSourceLines;
 
@@ -26,12 +25,13 @@ public final class DFACompiler {
   }
 
   //  Regex for token names preceding regular expressions
-  private static Pattern TOKENNAME_EXPR = RegExp.pattern("[_A-Za-z][_A-Za-z0-9]*\\s*:\\s*");
+  private static Pattern TOKENNAME_EXPR = RegExp.pattern("[_A-Za-z][_A-Za-z0-9]*\\s*:\\s*.*");
 
-  public void parse(String script) {
+  
+  
+  public DFA parse(String script) {
 
-    int
-    next_token_id = 0;
+    int next_token_id = 0;
     List<TokenEntry> token_records = arrayList();
 
     // Maps token name to token entry
@@ -44,17 +44,26 @@ public final class DFACompiler {
     // only do this if there's an odd number of '\' at the end
 
     mSourceLines = arrayList();
-    StringBuilder accum = null; // = new StringBuilder();
+    StringBuilder accum = null;  
 
     int accum_start_line = -1;
 
     int originalLineNumber = 0;
+    
     for (String line : script_lines) {
       originalLineNumber++;
 
       int trailing_backslash_count = 0;
-      while (line.length() > trailing_backslash_count && line.charAt(-1 - trailing_backslash_count) == '\\')
+      while (true) {
+        if (line.length() <= trailing_backslash_count)
+          break;
+        int j = line.length() - 1 - trailing_backslash_count;
+        if (j < 0)
+          break;
+        if (line.charAt(j) != '\\')
+          break;
         trailing_backslash_count++;
+      }
 
       if (accum == null) {
         accum = new StringBuilder();
@@ -67,6 +76,7 @@ public final class DFACompiler {
         accum.append(line);
         mSourceLines.add(accum.toString());
         mOriginalLineNumbers.add(accum_start_line);
+        
         accum = null;
       }
     }
@@ -92,14 +102,14 @@ public final class DFACompiler {
         continue;
 
       if (!RegExp.patternMatchesString(TOKENNAME_EXPR, line))
-        throw badArg("Syntax error:", line_number, line);
+        throw badArg("Syntax error:", line_number, quote(line));
 
       int pos = line.indexOf(":");
 
       String tokenName = line.substring(0, pos).trim();
 
       String expr = line.substring(pos + 1);
-
+      
       RegParse rex = new RegParse(expr, tokenNameMap, line_number);
 
       // Give it the next available token id, if it's not an anonymous token; else -1
@@ -128,111 +138,107 @@ public final class DFACompiler {
     State combined = combine_token_nfas(token_records);
 
     NFAToDFA builder = new NFAToDFA(combined);
-   State dfa = builder.nfa_to_dfa();
+    State dfa = builder.nfa_to_dfa();
 
     apply_redundant_token_filter(token_records, dfa);
 
-    die("not finished yet");
+    throw notFinished();
+
     // Tokn::DFA.new(token_records.map{|x| x.name}, dfa)
   }
 
   /** Determine if regex accepts zero characters */
-  private static boolean 
-  accepts_zero_characters(State start_state, State end_state) {
+  private static boolean accepts_zero_characters(State start_state, State end_state) {
     Set<State> marked_states = hashSet();
     List<State> state_stack = arrayList();
-    push(state_stack,start_state);
-while (nonEmpty(state_stack)) {
-  State state = pop(state_stack);
-  if (marked_states.contains(state))
-    continue;
+    push(state_stack, start_state);
+    while (nonEmpty(state_stack)) {
+      State state = pop(state_stack);
+      if (marked_states.contains(state))
+        continue;
       marked_states.add(state);
       if (state == end_state)
         return true;
-      
+
       die("not finished yet");
-//      state.edges.each do |label, dest_state|
-//        next unless label.contains? EPSILON
-//        state_stack << dest_state
-//      end
-}
-return false;
+      //      state.edges.each do |label, dest_state|
+      //        next unless label.contains? EPSILON
+      //        state_stack << dest_state
+      //      end
+    }
+    return false;
   }
 
   /**
-   * Combine the individual NFAs constructed for the token definitions into
-   * one large NFA, each augmented with an edge labelled with the appropriate
-   token identifier to let the tokenizer see which token led to the final state.
-  */
-  private State 
-    combine_token_nfas(List<TokenEntry> token_records) {
-throw notFinished( );
+   * Combine the individual NFAs constructed for the token definitions into one
+   * large NFA, each augmented with an edge labelled with the appropriate token
+   * identifier to let the tokenizer see which token led to the final state.
+   */
+  private State combine_token_nfas(List<TokenEntry> token_records) {
+    throw notFinished();
 
-//    // Create a new distinguished start state
-//
-//   State start_state = new State(0);
-//   int baseId = 1;
-//for (TokenEntry tk : token_records) {
-//    RegParse  regParse = tk.reg_ex;
-//
-//      oldToNewMap  = regParse.startState().duplicateNFA( );
-//
-//     State dupStart = oldToNewMap[regParse.startState()];
-//
-//     // Transition from the expression's end state (not a final state)
-//     // to a new final state, with the transitioning edge
-//     // labelled with the token id (actually, a transformed token id to distinguish
-//     // it from character codes)
-//    State  dupEnd = oldToNewMap[regParse.endState()];
-//
-//      State dupfinal_state =new State();
-//      dupfinal_state.final_state = true;
-//
-//      //# Why do I need to add 'ToknInternal.' here?  Very confusing.
-//      dupEnd.addEdge(CodeSet.withValue(ToknInternal.token_id_to_edge_label(tk.id)), dupfinal_state);
-//
-//      
-//      // Add an e-transition from the start state to this expression's start
-//      
-//      start_state.addEdge(  CodeSet.withValue(EPSILON),dupStart);
-//}
-//   return start_state;
+    //    // Create a new distinguished start state
+    //
+    //   State start_state = new State(0);
+    //   int baseId = 1;
+    //for (TokenEntry tk : token_records) {
+    //    RegParse  regParse = tk.reg_ex;
+    //
+    //      oldToNewMap  = regParse.startState().duplicateNFA( );
+    //
+    //     State dupStart = oldToNewMap[regParse.startState()];
+    //
+    //     // Transition from the expression's end state (not a final state)
+    //     // to a new final state, with the transitioning edge
+    //     // labelled with the token id (actually, a transformed token id to distinguish
+    //     // it from character codes)
+    //    State  dupEnd = oldToNewMap[regParse.endState()];
+    //
+    //      State dupfinal_state =new State();
+    //      dupfinal_state.final_state = true;
+    //
+    //      //# Why do I need to add 'ToknInternal.' here?  Very confusing.
+    //      dupEnd.addEdge(CodeSet.withValue(ToknInternal.token_id_to_edge_label(tk.id)), dupfinal_state);
+    //
+    //      
+    //      // Add an e-transition from the start state to this expression's start
+    //      
+    //      start_state.addEdge(  CodeSet.withValue(EPSILON),dupStart);
+    //}
+    //   return start_state;
   }
-  
-  
+
   private static void addEdge(State source, CodeSet codeSet, State target) {
-     Edge edge = new Edge(codeSet.elements(), target.id());
+    Edge edge = new Edge(codeSet.elements(), target.id());
   }
-  
-  
-  
-  // Determine if any tokens are redundant
-  private void 
- 
-   apply_redundant_token_filter( List<TokenEntry>  token_records, State start_state) {
 
-//    recognized_token_id_set = Set.new
-//
-//    start_state.reachable_states.each do |state|
-//      state.edges.each do |label, dest|
-//        next unless dest.final_state
-//        token_id = ToknInternal::edge_label_to_token_id(label.elements[0])
-//        recognized_token_id_set.add(token_id)
-//      end
-//    end
-//
-//    unrecognized = []
-//
-//    token_records.each do |rec|
-//      next if recognized_token_id_set.include? rec.id
-//      unrecognized << rec.name
-//    end
-//
-//    return if unrecognized.empty?
-//
-//    raise ParseException, "Redundant token(s) found: #{unrecognized.join(", ")}"
-//  end
-throw notFinished();
+  // Determine if any tokens are redundant
+  private void
+
+      apply_redundant_token_filter(List<TokenEntry> token_records, State start_state) {
+
+    //    recognized_token_id_set = Set.new
+    //
+    //    start_state.reachable_states.each do |state|
+    //      state.edges.each do |label, dest|
+    //        next unless dest.final_state
+    //        token_id = ToknInternal::edge_label_to_token_id(label.elements[0])
+    //        recognized_token_id_set.add(token_id)
+    //      end
+    //    end
+    //
+    //    unrecognized = []
+    //
+    //    token_records.each do |rec|
+    //      next if recognized_token_id_set.include? rec.id
+    //      unrecognized << rec.name
+    //    end
+    //
+    //    return if unrecognized.empty?
+    //
+    //    raise ParseException, "Redundant token(s) found: #{unrecognized.join(", ")}"
+    //  end
+    throw notFinished();
   }
-  
+
 }
