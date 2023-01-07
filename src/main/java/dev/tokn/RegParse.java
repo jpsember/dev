@@ -629,7 +629,7 @@ rg.startState().duplicateNFA(mNextStateId, origToDupStateMap);
    }
    CodeSet codeset = CodeSet.withRange(0,CODEMAX);
    for (Edge e : x.edges()) {
-     codeset = codeset.difference(CodeSet.with(e.codeRange()));
+     codeset = codeset.difference(CodeSet.with(e.codeRanges()));
    }
    if ( codeset.elements().length != 0) {
      x.edges().add(new Edge(codeset.elements(), f.id()));
@@ -650,7 +650,7 @@ rg.startState().duplicateNFA(mNextStateId, origToDupStateMap);
  for (State x : states) {
    State x_new = new_state_map.get(x.id());
    for (Edge edge : x.edges()) {
-     x_new.edges().add(new Edge(edge.codeRange(), new_state_map.get(edge.destinationStateId()).id()));
+     x_new.edges().add(new Edge(edge.codeRanges(), new_state_map.get(edge.destinationStateId()).id()));
    }
  }
  return pair(new_state_map.get(dfa_start_state.id()), new_state_map.get(f.id()));
@@ -740,16 +740,6 @@ rg.startState().duplicateNFA(mNextStateId, origToDupStateMap);
       code_set = CodeSet.withRange(u, v+1);
     }
     return code_set;
-  }
-  
-  private String debPeek() {
-  StringBuilder r = new StringBuilder("{");
-  for (int i = 0; i < 8; i++) {
-    if (i >= mCharBuffer.length()) break;
-    r.append(mCharBuffer.charAt(i));
-  }
-  r.append("}");
-  return r.toString();
   }
   
   

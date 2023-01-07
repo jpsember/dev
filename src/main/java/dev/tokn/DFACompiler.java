@@ -158,7 +158,7 @@ public final class DFACompiler {
         return true;
 
       for (Edge edge : state.edges()) {
-        if (CodeSet.contains(edge.codeRange(), edge.destinationStateId())) {
+        if (CodeSet.contains(edge.codeRanges(), edge.destinationStateId())) {
           push(state_stack, State.fetch(null, edge.destinationStateId()));
         }
       }
@@ -205,9 +205,9 @@ public final class DFACompiler {
     //   return start_state;
   }
 
-  private static void addEdge(State source, CodeSet codeSet, State target) {
-    Edge edge = new Edge(codeSet.elements(), target.id());
-  }
+  //  private static void addEdge(State source, CodeSet codeSet, State target) {
+  //    Edge edge = new Edge(codeSet.elements(), target.id());
+  //  }
 
   // Determine if any tokens are redundant
   private void

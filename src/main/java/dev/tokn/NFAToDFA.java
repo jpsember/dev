@@ -32,7 +32,7 @@ public class NFAToDFA {
     mWithFilter = false;
   }
 
-  private   State mStartState;
+  private State mStartState;
   private boolean mWithFilter;
 
   //    attr_reader :start_state
@@ -68,11 +68,11 @@ public class NFAToDFA {
     // Reverse this NFA, convert to DFA, then reverse it, and convert it again.  
     // Apparently this  produces a minimal DFA.
     //
-    
+
     mStartState = mStartState.reverseNFA();
-    nfa_to_dfa_aux(); 
+    nfa_to_dfa_aux();
     mStartState = mStartState.reverseNFA();
-    nfa_to_dfa_aux(); 
+    nfa_to_dfa_aux();
     normalizeStates(mStartState);
   }
 
@@ -222,79 +222,59 @@ public class NFAToDFA {
   //
   //end  # module ToknInternal
 
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-
-/** Normalize a state machine.
-*
-*<pre>
-* For each state:
-*  [] merge edges that go to a common state
-*  [] delete edges that have empty labels
-*  [] sort edges by destination state ids
-*  
-* </pre>
-*/
-public static void normalizeStates(State startState) {
-  Set<State> reachable = 
-  startState.reachableStates();
-  for (State s : reachable) {
-   normalize(s);
+  /**
+   * Normalize a state machine.
+   *
+   * <pre>
+  * For each state:
+  *  [] merge edges that go to a common state
+  *  [] delete edges that have empty labels
+  *  [] sort edges by destination state ids
+   * 
+   * </pre>
+   */
+  public static void normalizeStates(State startState) {
+    Set<State> reachable = startState.reachableStates();
+    for (State s : reachable) {
+      normalize(s);
+    }
   }
-}
 
-  
-  
-  /** Normalize a state
-  * <pre>
-   *  [] merge edges that go to a common state
-   *  [] delete edges that have empty labels
-   *  [] sort edges by destination state ids
+  /**
+   * Normalize a state
+   * 
+   * <pre>
+    *  [] merge edges that go to a common state
+    *  [] delete edges that have empty labels
+    *  [] sort edges by destination state ids
    * </pre>
    */
   public static void normalize(State state) {
-  state.  edges().sort((e1,e2) ->  Integer.compare(e1.destinationStateId(),  e2.destinationStateId()));
- 
-  List<Edge> new_edges = arrayList();
-CodeSet prev_label = null;
-Integer prev_dest = null;
+    state.edges().sort((e1, e2) -> Integer.compare(e1.destinationStateId(), e2.destinationStateId()));
 
-for (Edge edge : state.edges()) {
-  int[] label = edge.codeRange();
-  int dest = edge.destinationStateId();
-  
-  CodeSet codeSet = CodeSet.with(label);
-  
-  
-if (prev_dest != null && prev_dest  == dest)
-  prev_label.addSet(label);
-else {
-  if (prev_dest != null) {
-    new_edges.add(new Edge(prev_label.elements(), prev_dest));
-  }
+    List<Edge> new_edges = arrayList();
+    CodeSet prev_label = null;
+    Integer prev_dest = null;
+
+    for (Edge edge : state.edges()) {
+      int[] label = edge.codeRanges();
+      int dest = edge.destinationStateId();
+
+      if (prev_dest != null && prev_dest == dest)
+        prev_label.addSet(label);
+      else {
+        if (prev_dest != null) {
+          new_edges.add(new Edge(prev_label.elements(), prev_dest));
+        }
         // Must start a fresh copy!  Don't want to modify the original label.
         prev_label = CodeSet.with(label);
         prev_dest = edge.destinationStateId();
-}
-}
-if (prev_dest != null)
-  new_edges.add(new Edge(prev_label.elements(), prev_dest));
-state.setEdges(new_edges);
-  
+      }
+    }
+    if (prev_dest != null)
+      new_edges.add(new Edge(prev_label.elements(), prev_dest));
+    state.setEdges(new_edges);
+
   }
-  
-  
-  
-  
 
 }
