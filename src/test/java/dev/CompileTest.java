@@ -25,17 +25,13 @@
 package dev;
 
 import static js.base.Tools.*;
-import static org.junit.Assert.*;
 
 import org.junit.Test;
 
-import dev.tokn.CodeSet;
 import dev.tokn.DFACompiler;
-import js.data.IntArray;
 import js.file.Files;
 import js.parsing.DFA;
 import js.testutil.MyTestCase;
-import static dev.tokn.TokenConst.*;
 
 public class CompileTest extends MyTestCase {
 

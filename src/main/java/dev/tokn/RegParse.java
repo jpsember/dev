@@ -2,12 +2,16 @@ package dev.tokn;
 
 import static js.base.Tools.*;
 
+import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
 
 import js.base.BasePrinter;
+import js.parsing.Edge;
 import js.parsing.RegExp;
 import js.parsing.State;
+
+import static dev.tokn.TokenConst.*;
 
 /**
  * <pre>
@@ -236,12 +240,12 @@ public class RegParse {
 
       if (c == '0') {
         c = read();
-        if ("xX".indexOf(c) < 0)
+        if (!charWithin(c, "xX"))
           abort("Unsupported escape sequence:", c);
         val = (read_hex() << 4) | read_hex();
-      } else if ("xX".indexOf(c) >= 0) {
+      } else if (charWithin(c, "xX")) {
         val = (read_hex() << 4) | read_hex();
-      } else if ("uU".indexOf(c) >= 0) {
+      } else if (charWithin(c, "uU")) {
         val = (read_hex() << 12) | (read_hex() << 8) | (read_hex() << 4) | read_hex();
       } else {
         switch (c) {
@@ -273,6 +277,18 @@ public class RegParse {
     return cs;
   }
 
+  private static StatePair pair(State start, State end) {
+    StatePair sp = new StatePair();
+    sp.start = start;
+    sp.end = end;
+    return sp;
+  }
+
+  private static class StatePair {
+    State start;
+    State end;
+  }
+
   private void parseScript() {
     notFinished();
     mCharBuffer = new StringBuilder();
@@ -281,17 +297,16 @@ public class RegParse {
     //    @char_buffer = []
     //    @cursor = 0
     //
-    //    exp = parseE
-    //    @start_state = exp[0]
-    //    @endState = exp[1]
+    StatePair sp = parseE();
+    mStartState = sp.start;
+    mEndState = sp.end;
 
   }
 
   private State newState() {
-    throw notFinished();
-    //    s = State.new(@nextStateId)
-    //    @nextStateId += 1
-    //    return s
+    State s = new State(mNextStateId);
+    mNextStateId++;
+    return s;
   }
 
   //
@@ -309,35 +324,44 @@ public class RegParse {
   //      code_set
   //    end
   //
-  //    def parseBRACKETEXPR
-  //      read('[')
-  //      rs = CodeSet.new
-  //      expecting_set = true
-  //      negated = false
-  //      had_initial_set = false
-  //      while true
-  //        if !negated && read_if('^')
-  //          negated = true
-  //          expecting_set = true
-  //        end
-  //
-  //        if !expecting_set && read_if(']')
-  //          break
-  //        end
-  //
-  //        set = parseSET
-  //        expecting_set = false
-  //        if negated
-  //          if had_initial_set
-  //            rs = rs.difference(set)
-  //          else
-  //            rs.addSet(set)
-  //          end
-  //        else
-  //          rs.addSet(set)
-  //          had_initial_set = true
-  //        end
-  //      end
+  private StatePair parseBRACKETEXPR() {
+    read('[');
+    CodeSet rs = new CodeSet();
+    boolean expecting_set = true;
+    boolean negated = false;
+    boolean had_initial_set = false;
+    while (true) {
+      if (!negated && read_if('^')) {
+        negated = true;
+        expecting_set = true;
+      }
+      if (!expecting_set && read_if(']'))
+        break;
+      
+      CodeSet set = parseSET();
+      expecting_set = false;
+      if (negated) {
+        if (had_initial_set)
+          rs = rs.difference(set);
+        else
+          rs.addSet(set);
+      } else {
+        rs.addSet(set);
+        had_initial_set = true;
+      }
+      
+    }
+    if (negated && !had_initial_set) {
+      rs = rs.negate(0,CODEMAX);
+    }
+    if (rs.elements().length == 0)
+      abort("Empty character range");
+    State sA = newState();
+    State sB = newState();
+    sA.edges().add(new Edge(rs.elements(),sB.id()));
+    return pair(sA,sB);
+  }
+
   //      if negated && !had_initial_set
   //        rs.negate(0, CODEMAX)
   //      end
@@ -355,34 +379,47 @@ public class RegParse {
   //    TOKENREF_EXPR = Regexp.new('^[_A-Za-z][_A-Za-z0-9]*$')
   //    TOKENCHAR_EXPR = Regexp.new('[_A-Za-z0-9]')
   //
-  //    def parseTokenDef
-  //      delim = read
-  //      name = ''
-  //      if delim == '$'
-  //        while true
-  //          q = peek(0)
-  //          break if q !~ TOKENCHAR_EXPR
-  //          name += read
-  //        end
-  //      else
-  //        while true
-  //          q = read
-  //          break if q == '}'
-  //          name += q
-  //        end
-  //      end
-  //      if name  !~ TOKENREF_EXPR
-  //        abort "Problem with token name"
-  //      end
-  //
-  //      tokInfo = @tokenDefMap[name]
-  //      # Leading underscore is optional in this instance, as a convenience
-  //      tokInfo ||= @tokenDefMap["_#{name}"]
-  //      if !tokInfo
-  //        abort "Undefined token"
-  //      end
-  //      rg = tokInfo.reg_ex
-  //
+  
+  private static Pattern TOKENREF_EXPR = RegExp.pattern("[_A-Za-z][_A-Za-z0-9]*");
+  private static String TOKEN_CHARS = "_ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+  private StatePair parseTokenDef() {
+  char delim = read();
+  StringBuilder name = new StringBuilder();
+  if (delim == '$') {
+    while (true) {
+      char q = peek(0);
+      if (!charWithin(q, TOKEN_CHARS)) break;
+      name.append(q);
+    }
+  } else {
+    while (true) {
+      char q = read();
+      if (q == '}')break;
+      name.append(q);
+    }
+  }
+  String nameStr = name.toString();
+  if (!RegExp.patternMatchesString(TOKENREF_EXPR, nameStr))
+    abort("Problem with token name");
+  TokenEntry tokInfo = mTokenDefMap.get(nameStr);
+  if (tokInfo == null) {
+  // Leading underscore is optional, as a convenience
+    tokInfo = mTokenDefMap.get("_"+nameStr);
+  }
+  if (tokInfo == null) abort("Undefined token");
+  RegParse rg = tokInfo.reg_ex;
+  
+  todo("clean this up");
+  
+  Map<Integer,State> origToDupStateMap = hashMap();
+  
+  mNextStateId =
+rg.startState().duplicateNFA(mNextStateId, origToDupStateMap);
+  State newStart = origToDupStateMap.get(rg.startState().id()) ;
+  State newEnd = origToDupStateMap.get(rg.endState().id()) ;
+  return pair(newStart,newEnd);
+  
+
   //      oldToNewMap, @nextStateId = rg.start_state.duplicateNFA(@nextStateId)
   //
   //      newStart = oldToNewMap[rg.start_state]
@@ -391,93 +428,106 @@ public class RegParse {
   //      [newStart, newEnd]
   //    end
   //
-  //    def parseP
-  //      ch = peek(0)
-  //      if ch == '('
-  //        read
-  //        e1 = parseE
-  //        read ')'
-  //      elsif ch == '^'
-  //        read
-  //        e1 = parseP
-  //        e1 = construct_complement(e1)
-  //      elsif ch == '{' || ch == '$'
-  //        e1 = parseTokenDef
-  //      elsif ch == '['
-  //        e1 = parseBRACKETEXPR
-  //      else
-  //        code_set = parse_code_set
-  //        # Construct a pair of states with an edge between them
-  //        # labelled with this code set
-  //        sA = newState
-  //        sB = newState
-  //        sA.addEdge(code_set, sB)
-  //        e1 = [sA,sB]
-  //      end
-  //      e1
-  //    end
-  //
-  //    def parseE
-  //      e1 = parseJ
-  //      if read_if('|')
-  //        e2 = parseE
-  //
-  //        u = newState
-  //        v = newState
-  //        u.addEps(e1[0])
-  //        u.addEps(e2[0])
-  //        e1[1].addEps(v)
-  //        e2[1].addEps(v)
-  //        e1 = [u,v]
-  //      end
-  //      e1
-  //    end
-  //
-  //    def parseJ
-  //      e1 = parseQ
-  //      p = peek(0)
-  //      if p and not "|)".include? p
-  //        e2 = parseJ
-  //        #dump_pdf(e2[0])
-  //        e1[1].addEps(e2[0])
-  //        e1 = [e1[0],e2[1]]
-  //        #dump_pdf(e1[0])
-  //      end
-  //      return e1
-  //    end
-  //
-  //    def parseQ
-  //      e1 = parseP
-  //      p = peek(0)
-  //
-  //      if p == '*'
-  //        read
-  //        e1[0].addEps(e1[1])
-  //        e1[1].addEps(e1[0])
-  //      elsif p == '+'
-  //        read
-  //        e1[1].addEps(e1[0])
-  //      elsif p == '?'
-  //        read
-  //        e1[0].addEps(e1[1])
-  //      end
-  //      create_new_final_state_if_nec(e1)
-  //    end
-  //
-  //    # If existing final state has outgoing edges,
-  //    # then create a new final state, and add an e-transition to it from the old final state,
-  //    # so the final state has no edges back
-  //    #
-  //
-  //  def create_new_final_state_if_nec(start_end_states)
-  //      end_state = start_end_states[1]
-  //      if !end_state.edges.empty?
-  //        new_final_state = newState
-  //        end_state.addEps(new_final_state)
-  //        start_end_states[1] = new_final_state
-  //      end
-  //      start_end_states
-  //    end
+  }
+  
+  private StatePair parseP() {
+    char ch = peek(0);
+    StatePair e1;
+    switch (ch) {
+    case '(': {
+      read();
+      e1 = parseE();
+      read(')');
+    }
+      break;
+    case '^':
+      read();
+      e1 = parseP();
+      e1 = construct_complement(e1);
+      break;
+    case '{':
+    case '$':
+      e1 = parseTokenDef();
+      break;
+    case '[':
+      e1 = parseBRACKETEXPR();
+      break;
+    default: {
+      CodeSet code_set = parse_code_set(false);
+      // Construct a pair of states with an edge between them
+      // labelled with this code set
+      State sA = newState();
+      State sB = newState();
+      sA.edges().add(new Edge(code_set.elements(), sB.id()));
+      e1 = pair(sA, sB);
+    }
+      break;
+    }
+    return e1;
+  }
+
+  private StatePair parseE() {
+    StatePair e1 = parseJ();
+    if (read_if('|')) {
+      StatePair e2 = parseE();
+      State u = newState();
+      State v = newState();
+      u.addEps(e1.start);
+      u.addEps(e2.start);
+      e1.end.addEps(v);
+      e2.end.addEps(v);
+      e1 = pair(u, v);
+    }
+    return e1;
+  }
+
+  private static boolean charWithin(char c, String string) {
+    return string.indexOf(c) >= 0;
+  }
+
+  private StatePair parseJ() {
+    StatePair e1 = parseQ();
+    char p = peek(0);
+    if (p != 0 && !charWithin(p, "|)")) {
+      StatePair e2 = parseJ();
+      e2.end.addEps(e2.start);
+      e1 = pair(e1.start, e2.end);
+    }
+    return e1;
+  }
+
+  private StatePair parseQ() {
+    StatePair e1 = parseP();
+    char p = peek(0);
+    if (p == '*') {
+      read();
+      e1.start.addEps(e1.end);
+      e1.end.addEps(e1.start);
+    } else if (p == '+') {
+      read();
+      e1.end.addEps(e1.start);
+    } else if (p == '?') {
+      read();
+      e1.start.addEps(e1.end);
+    }
+    return create_new_final_state_if_nec(e1);
+  }
+
+  /**
+   * If existing final state has outgoing edges, then create a new final state,
+   * and add an e-transition to it from the old final state, so the final state
+   * has no edges back
+   */
+  private StatePair create_new_final_state_if_nec(StatePair start_end_states) {
+    State end_state = start_end_states.end;
+    if (!end_state.edges().isEmpty()) {
+      State new_final_state = newState();
+      end_state.addEps(new_final_state);
+      start_end_states.end = new_final_state;
+    }
+    return start_end_states;
+  }
+
   //
   //  def peek(position)
   //      while @char_buffer.length <= position
@@ -491,13 +541,13 @@ public class RegParse {
   //      @char_buffer[position]
   //    end
   //
-  //  def read_if(expChar)
-  //      found = (peek(0) == expChar)
-  //      if found
-  //        read
-  //      end
-  //      found
-  //    end
+  private boolean read_if(char expChar) {
+    boolean found = (peek(0) == expChar);
+    if (found)
+      read();
+    return found;
+  }
+
   //
   //  def read(expChar = nil)
   //      ch = peek(0)
@@ -511,23 +561,24 @@ public class RegParse {
   //      end
   //    end
   //
-  //  def construct_complement(states)
-  //      v = false
+  private StatePair construct_complement(StatePair statesp) {
+    
+ State nfa_start = statesp.start;
+ State nfa_end = statesp.end;
+ 
   //
   //      nfa_start, nfa_end = states
   //
-  //      if v
-  //        puts "\n\nconstruct_complement of:\n"
-  //        puts nfa_start.describe_state_machine
-  //
-  //        nfa_start.generate_pdf("../../_SKIP_nfa.pdf")
-  //      end
+  nfa_end.finalState(true);
   //
   //      nfa_end.final_state = true
   //
+  NFAToDFA builder = 
+  new NFAToDFA(nfa_start);
   //      builder = NFAToDFA.new(nfa_start)
+  builder.withFilter(false);
   //      builder.with_filter = false
-  //      dfa_start_state = builder.nfa_to_dfa
+ State      dfa_start_state = builder.nfa_to_dfa();
   //
   //      if v
   //        puts "\n\nconverted to DFA:\n"
@@ -535,46 +586,156 @@ public class RegParse {
   //        dfa_start_state.generate_pdf("../../_SKIP_dfa.pdf")
   //      end
   //
+ List<State> states = dfa_start_state.reachableStates();
   //      states = dfa_start_state.reachable_states
   //
-  //      f = State.new(states.size)
-  //
-  //      # + Let S be the DFA's start state
-  //      # + Create F, a new final state
-  //      # + for each state X in
-  //
-  //  the DFA(
-  //      excluding F):#+if X is a final state,clear its final state flag;#+otherwise:#+construct C,a set of labels that is the complement of the union of any existing edge labels from X#+if C is nonempty,add transition on C from X to F#+if X is not the start state,add e-transition from X to F#+augment original NFA by copying each state X to a state X' (clearing final state flags)#+return[S', F']#
-  //
-  //  #We don'tprocess any final states in the above loop,because#we've sort of"lost"once we reach a final state no matter what#edges leave that state.This is because we're looking for#substrings of the input string to find matches,instead of#just answering a yes/no recognition question for an(entire)#input string.
-  //
-  //  states.each do|x|puts"processing state: #{x}"if v
-  //
-  //  if x.final_state puts"...a final state"if v x.final_state=false next end
-  //
-  //  codeset=CodeSet.new(0,CODEMAX)x.edges.each do|crs,s|puts"  edge to #{s}: #{crs}"if v codeset.difference!(crs)end puts" complement of edge code sets: #{codeset}"if v
-  //
-  //  if!codeset.empty?x.addEdge(codeset,f)puts" adding edge to #{f.id} for #{codeset}"if v end
-  //
-  //  puts" adding e-transition to #{f.id}"if v x.addEps(f)end f.final_state=true
-  //
-  //  if v puts"\n\ncomplemented:\n"puts dfa_start_state.describe_state_machine dfa_start_state.generate_pdf("../../_SKIP_dfa_complemented.pdf")end
-  //
-  //  states.add(f)
-  //
-  //  #Build a map from the DFA state ids to new states within the NFA we're constructing#new_state_map= {
-  //    }states.each do|x|x_new=newState new_state_map[x.id]=x_new puts"...mapping #{x.id} --> #{x_new.id}"if v end
-  //
-  //    states.each do|x|x_new=new_state_map[x.id]x.edges.each do|code_set,dest_state|x_new.addEdge(code_set,new_state_map[dest_state.id])end end
-  //
-  //    new_start=new_state_map[dfa_start_state.id]new_end=new_state_map[f.id]
-  //
-  //    if v puts"returning new start #{new_start.id}, end #{new_end.id}"puts new_start.describe_state_machine end
-  //
-  //    [new_start,new_end]end
-  //
-  //    end
+ State f = new State(states.size());
+ 
+ /* 
+  * <pre>
+  * 
+  *       # + Let S be the DFA's start state
+      # + Create F, a new final state
+      # + for each state X in the DFA (excluding F):
+      #   + if X is a final state, clear its final state flag;
+      #   + otherwise:
+      #     + construct C, a set of labels that is the complement of the union of any existing edge labels from X
+      #     + if C is nonempty, add transition on C from X to F
+      #     + if X is not the start state, add e-transition from X to F
+      # + augment original NFA by copying each state X to a state X' (clearing final state flags)
+      # + return [S', F']
+      #
 
+      # We don't process any final states in the above loop, because
+      # we've sort of "lost" once we reach a final state no matter what
+      # edges leave that state.  This is because we're looking for
+      # substrings of the input string to find matches, instead of
+      # just answering a yes/no recognition question for an (entire)
+      # input string.
+
+  * </pre>
+  */
+  
+ for (State x : states) {
+   if (x.finalState()) {
+     x.finalState(false);
+     continue;
+   }
+   CodeSet codeset = CodeSet.withRange(0,CODEMAX);
+   for (Edge e : x.edges()) {
+     codeset = codeset.difference(CodeSet.with(e.codeRange()));
+   }
+   if ( codeset.elements().length != 0) {
+     x.edges().add(new Edge(codeset.elements(), f.id()));
+   }
+   x.addEps(f);
+   }
+ f.finalState(true);
+ 
+ states.add(f);
+ 
+  // Build a map from the DFA state ids to new states within the NFA we're constructing
+ Map<Integer, State> new_state_map = hashMap();
+ for (State x : states) {
+   State x_new = newState();
+   new_state_map.put(x.id(), x_new);
+ }
+ 
+ for (State x : states) {
+   State x_new = new_state_map.get(x.id());
+   for (Edge edge : x.edges()) {
+     x_new.edges().add(new Edge(edge.codeRange(), new_state_map.get(edge.destinationStateId()).id()));
+   }
+ }
+ return pair(new_state_map.get(dfa_start_state.id()), new_state_map.get(f.id()));
+ /**
+  *
+      states.each do |x|
+        x_new = new_state_map[x.id]
+        x.edges.each do |code_set, dest_state|
+          x_new.addEdge(code_set, new_state_map[dest_state.id])
+        end
+      end
+
+      new_start = new_state_map[dfa_start_state.id]
+      new_end = new_state_map[f.id]
+
+  * @param position
+  * @return
+  */
+ 
+ 
+ 
+ /*<pre>
+  
+
+      states.add(f)
+
+      # Build a map from the DFA state ids to new states within the NFA we're constructing
+      #
+      new_state_map = {}
+      states.each do |x|
+        x_new = newState
+        new_state_map[x.id] = x_new
+        puts "...mapping #{x.id} --> #{x_new.id}" if v
+      end
+
+      states.each do |x|
+        x_new = new_state_map[x.id]
+        x.edges.each do |code_set, dest_state|
+          x_new.addEdge(code_set, new_state_map[dest_state.id])
+        end
+      end
+
+      new_start = new_state_map[dfa_start_state.id]
+      new_end = new_state_map[f.id]
+
+      if v
+        puts "returning new start #{new_start.id}, end #{new_end.id}"
+        puts new_start.describe_state_machine
+      end
+
+      [new_start,new_end]
+    end
+
+  *</pre>
+  */
+ 
+  }
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ //    end
+
+  /**
+   *  code_set = parse_code_set(true)
+      if read_if('-')
+        u = code_set.single_value
+        v = parse_code_set(true).single_value
+        if v < u
+          abort "Illegal range"
+        end
+        code_set = CodeSet.new(u,v+1)
+      end
+      code_set
+   * @param position
+   * @return
+   */
+  private CodeSet parseSET() {
+    CodeSet code_set = parse_code_set(true);
+    if (read_if('-')) {
+      int u = code_set.single_value();
+      int v = parse_code_set(true).single_value();
+      if (v < u) abort("Illegal range");
+      code_set = CodeSet.withRange(u, v+1);
+    }
+    return code_set;
+  }
+  
   private char peek(int position) {
     while (mCharBuffer.length() <= position) {
       char ch = 0;

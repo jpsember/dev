@@ -3,6 +3,7 @@ package dev.tokn;
 import js.data.DataUtil;
 import js.data.IntArray;
 import js.json.JSList;
+import js.parsing.State;
 
 import static js.base.Tools.*;
 import static dev.tokn.TokenConst.*;
@@ -10,21 +11,55 @@ import static dev.tokn.TokenConst.*;
 public final class CodeSet {
 
   public static CodeSet withValue(int value) {
+    todo("This class can be reduced to an int array (or a 'range') for simplicity");
     CodeSet c = new CodeSet();
     c.add(value);
     return c;
   }
 
-  public CodeSet dup() {
+  public static CodeSet withRange(int min, int maxPlusOne) {
     CodeSet c = new CodeSet();
-    c.withElem(mElements);
+    c.add(min, maxPlusOne);
     return c;
+  }
+
+  public static CodeSet with(int[] elements) {
+    CodeSet c = new CodeSet();
+    c.withElem(elements);
+    return c;
+  }
+
+  public CodeSet dup() {
+    return with(mElements);
   }
 
   public void add(int value) {
     add(value, value + 1);
   }
 
+  
+ /**
+  *  Return the single value represented by the set*/
+  public int single_value() {
+    if (mElements.length == 2) {
+  int a = mElements[0];
+  int b = mElements[1];
+  if (b == a+1) return a;
+    }
+    throw badArg("CodeSet does not contain exactly one value");
+  }
+  
+   
+ /**
+  *  Add every value from another CodeSet to this one
+  *  
+  */
+  public void addSet(CodeSet s) {
+    int[] sa = s.elements();
+    for (int i = 0; i < sa.length; i+=2) {
+      add(sa[i],sa[i+1]);
+    }
+  }
   /**
    * Add a contiguous range of values to the set
    * 
@@ -289,7 +324,7 @@ public final class CodeSet {
 
     // Unless it corresponds to a non-confusing printable ASCII value,
     // just print its decimal equivalent
-    if (charCode == EPSILON)
+    if (charCode == State.EPSILON)
       return "(e)";
     if (charCode > ' ' && charCode < 0x7f && forbidden.indexOf(charCode) < 0)
       return "'" + Character.toString((char) charCode) + "'";

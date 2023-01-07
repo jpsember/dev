@@ -12,7 +12,6 @@ import js.parsing.RegExp;
 import js.parsing.State;
 
 import static js.base.Tools.*;
-import static dev.tokn.TokenConst.*;
 
 public final class DFACompiler {
 

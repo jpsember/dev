@@ -25,6 +25,9 @@ public class NFAToDFA {
     mWithFilter = true;
   }
   
+  public void withFilter(boolean f) {mWithFilter = false;
+  }
+  
   private final State mStartState;
   private boolean mWithFilter;
 
