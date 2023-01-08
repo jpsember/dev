@@ -138,21 +138,24 @@ public final class ToknUtils {
   }
 
   /**
-   * Duplicate the NFA reachable from this state, possibly with new ids
+   * Duplicate the NFA reachable from a state 
    * 
-   * @param dupBaseId
-   *          lowest state id to use for duplicates
    * @param origToDupStateMap
    *          where to construct map of original state ids to new states
    */
-  public static void duplicateNFA(State startState, ToknContext context,
-      Map<Integer, State> origToDupStateMap) {
+  public static StatePair duplicateNFA(State startState, State endState, ToknContext context ) {
 
     pr("duplicateNFA,startState:", startState.id());
 
-    checkArgument(origToDupStateMap.isEmpty());
+  //  checkArgument(origToDupStateMap.isEmpty());
 
+    
+    Map<Integer, State> origToDupStateMap = hashMap();
+
+    
+    
     Set<State> oldStates = reachableStates(startState);
+checkState(oldStates.contains(endState),"end state not reachable");
 
     for (State s : oldStates) {
       State s2 = new State(context.allocateId(), s.finalState(), null);
@@ -162,14 +165,18 @@ public final class ToknUtils {
 
     for (State s : oldStates) {
       State s2 = origToDupStateMap.get(s.id());
+      System.out.println("s.edges():"+s.edges());
       for (Edge edge : s.edges()) {
 
+        pr("attempting to update edges for state:",s.id(),"new:",s2.id(),"edge:",edge.destinationState().id());
         State newTargetState = origToDupStateMap.get(edge.destinationState().id());
 
         pr("...adding modified edge:", s.id(), "=>", edge.destinationState().id(), "//", newTargetState.id());
-        s2.edges().add(new Edge(edge.codeRanges(), newTargetState));
+        System.out.println("s2.edges(:"+s2.edges());
+         s2.edges().add(new Edge(edge.codeRanges(), newTargetState));
       }
     }
+   return statePair(origToDupStateMap.get(startState.id()), origToDupStateMap.get(endState.id()));
   }
 
   private static int[] EPSILON_RANGE = { EPSILON, 1 + EPSILON };
@@ -183,6 +190,16 @@ public final class ToknUtils {
 
   public static Edge constructEpsilonEdge(State target) {
     return new Edge(EPSILON_RANGE, target);
+  }
+
+
+  public static StatePair statePair(State start, State end) {
+    checkNotNull(start);
+    checkNotNull(end);
+    StatePair sp = new StatePair();
+    sp.start = start;
+    sp.end = end;
+    return sp;
   }
 
 }

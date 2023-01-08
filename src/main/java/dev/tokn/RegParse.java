@@ -12,6 +12,7 @@ import js.parsing.RegExp;
 import js.parsing.State;
 
 import static dev.tokn.TokenConst.*;
+import static dev.tokn.ToknUtils.*;
 
 /**
  * <pre>
@@ -100,14 +101,15 @@ public class RegParse {
    *          ids) to be consulted if a curly brace expression appears in the
    *          script
    */
-  public RegParse(ToknContext context, String script, Map<String, TokenEntry> tokenDefMap, int orig_line_number) {
+  public RegParse(ToknContext context, String script, Map<String, TokenEntry> tokenDefMap,
+      int orig_line_number) {
     mOrigScript = script;
     mScript = filter_ws(script);
     mTokenDefMap = tokenDefMap;
     mOrigLineNumber = orig_line_number;
     mContext = context;
     parseScript();
-  } 
+  }
 
   //   Filter out all spaces and tabs
   private static String filter_ws(String s) {
@@ -268,21 +270,6 @@ public class RegParse {
     return cs;
   }
 
-  private static StatePair pair(State start, State end) {
-    StatePair sp = new StatePair();
-    sp.start = start;
-    sp.end = end;
-    return sp;
-  }
-
-  /**
-   * Bookkeeping class
-   */
-  private static class StatePair {
-    State start;
-    State end;
-  }
-
   private void parseScript() {
     mCharBuffer = new StringBuilder();
     mCursor = 0;
@@ -293,7 +280,7 @@ public class RegParse {
   }
 
   private State newState() {
-   return new State(mContext.allocateId(), false, null);
+    return new State(mContext.allocateId(), false, null);
   }
 
   private StatePair parseBRACKETEXPR() {
@@ -334,7 +321,7 @@ public class RegParse {
     pr("rs.elements:", rs.elements());
     pr("sB:", sB);
     sA.edges().add(new Edge(rs.elements(), sB));
-    return pair(sA, sB);
+    return statePair(sA, sB);
   }
 
   private static Pattern TOKENREF_EXPR = RegExp.pattern("[_A-Za-z][_A-Za-z0-9]*");
@@ -373,12 +360,7 @@ public class RegParse {
 
     todo("clean this up");
 
-    Map<Integer, State> origToDupStateMap = hashMap();
-
-   ToknUtils.duplicateNFA(rg.startState(), mContext, origToDupStateMap);
-    State newStart = origToDupStateMap.get(rg.startState().id());
-    State newEnd = origToDupStateMap.get(rg.endState().id());
-    return pair(newStart, newEnd);
+    return duplicateNFA(rg.startState(), rg.endState(), mContext);
 
     //      oldToNewMap, @nextStateId = rg.start_state.duplicateNFA(@nextStateId)
     //
@@ -419,7 +401,7 @@ public class RegParse {
       State sA = newState();
       State sB = newState();
       sA.edges().add(new Edge(code_set.elements(), sB));
-      e1 = pair(sA, sB);
+      e1 = statePair(sA, sB);
     }
       break;
     }
@@ -433,15 +415,15 @@ public class RegParse {
       State u = newState();
       State v = newState();
 
-      ToknUtils.addEps(u, e1.start);
-      ToknUtils.addEps(u, e2.start);
+      addEps(u, e1.start);
+      addEps(u, e2.start);
       State w = e1.end;
-      ToknUtils.addEps(w, v);
-      ToknUtils.addEps(w, v);
+      addEps(w, v);
+      addEps(w, v);
 
-      ToknUtils.addEps(e1.end, v);
-      ToknUtils.addEps(e2.end, v);
-      e1 = pair(u, v);
+      addEps(e1.end, v);
+      addEps(e2.end, v);
+      e1 = statePair(u, v);
     }
     return e1;
   }
@@ -456,7 +438,7 @@ public class RegParse {
     if (p != 0 && !charWithin(p, "|)")) {
       StatePair e2 = parseJ();
       ToknUtils.addEps(e2.end, e2.start);
-      e1 = pair(e1.start, e2.end);
+      e1 = statePair(e1.start, e2.end);
     }
     return e1;
   }
@@ -589,7 +571,7 @@ public class RegParse {
         x_new.edges().add(new Edge(edge.codeRanges(), new_state_map.get(edge.destinationState().id())));
       }
     }
-    return pair(new_state_map.get(dfa_start_state.id()), new_state_map.get(f.id()));
+    return statePair(new_state_map.get(dfa_start_state.id()), new_state_map.get(f.id()));
     /**
      *
      * states.each do |x| x_new = new_state_map[x.id] x.edges.each do |code_set,
