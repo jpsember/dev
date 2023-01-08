@@ -64,15 +64,6 @@ public final class ToknUtils {
     return output;
   }
 
-  //  /**
-  //   * Bookkeeping class for reversing NFA
-  //   */
-  //  private static class RevWork {
-  //    State source;
-  //    State dest;
-  //    int[] labelSet;
-  //  }
-
   /**
    * Construct the reverse of an NFA
    * 
@@ -103,7 +94,7 @@ public final class ToknUtils {
 
     for (State s : stateSet) {
 
-      if (db)
+      if (false && db)
         pr("processing state:", s);
 
       //      for (Edge edge : s.edges()) {
@@ -117,7 +108,8 @@ public final class ToknUtils {
       //      }
 
       State u = new State(s == startState, null);
-      pr("converted state to:", u);
+      if (false && db)
+        pr("converted state to:", u);
       newerStateMap.put(s, u);
 
       //  oldToNewStateIdMap.put(s.id(), u.id());
@@ -301,10 +293,27 @@ public final class ToknUtils {
     sb.append("=======================================================\n");
     List<State> reachableStates = reachableStates(initialState);
     for (State s : reachableStates) {
-      sb.append(s.toString(true));
-      sb.append('\n');
+      sb.append(toString(s, true));
     }
     sb.append("=======================================================\n");
     return sb.toString();
   }
+
+  public static String toString(State state, boolean includeEdges) {
+    StringBuilder sb = new StringBuilder();
+    sb.append(state.debugId());
+    sb.append(state.finalState() ? '*' : ' ');
+    if (includeEdges) {
+      sb.append("=>\n");
+      for (Edge e : state.edges()) {
+        sb.append("       ");
+        sb.append(e.destinationState().debugId());
+        sb.append(' ');
+        sb.append(dumpCodeRange(e.codeRanges()));
+        sb.append('\n');
+      }
+    }
+    return sb.toString();
+  }
+
 }
