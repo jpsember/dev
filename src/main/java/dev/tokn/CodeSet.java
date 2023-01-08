@@ -3,7 +3,6 @@ package dev.tokn;
 import js.data.DataUtil;
 import js.data.IntArray;
 import js.json.JSList;
-import js.parsing.State;
 
 import static js.base.Tools.*;
 import static dev.tokn.TokenConst.*;
@@ -336,7 +335,7 @@ public final class CodeSet {
 
     // Unless it corresponds to a non-confusing printable ASCII value,
     // just print its decimal equivalent
-    if (charCode == State.EPSILON)
+    if (charCode == ToknUtils.EPSILON)
       return "(e)";
     if (charCode > ' ' && charCode < 0x7f && forbidden.indexOf(charCode) < 0)
       return "'" + Character.toString((char) charCode) + "'";

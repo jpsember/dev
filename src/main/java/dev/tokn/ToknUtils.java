@@ -14,6 +14,11 @@ import js.parsing.State;
 public final class ToknUtils {
 
   /**
+   * edge label for epsilon transitions
+   */
+  public static final int EPSILON = -1;
+
+  /**
    * Build set of states reachable from this state
    */
   public static Set<State> reachableStates(State sourceState) {
@@ -24,8 +29,7 @@ public final class ToknUtils {
       State st = pop(stack);
       set.add(st);
       for (Edge edge : st.edges()) {
-        int destId = edge.destinationStateId();
-        State dest = State.fetch(null, destId);
+        State dest = edge.destinationState();
         if (set.add(dest))
           push(stack, dest);
       }
@@ -37,8 +41,8 @@ public final class ToknUtils {
    * Bookkeeping class for reversing NFA
    */
   private static class RevWork {
-    int sourceId;
-    int destId;
+    State source;
+    State dest;
     int[] labelSet;
   }
 
@@ -64,8 +68,8 @@ public final class ToknUtils {
       // s.edges.each {|lbl, dest| edgeList.push([dest.id, s.id, lbl])}
       for (Edge edge : s.edges()) {
         RevWork rw = new RevWork();
-        rw.sourceId = edge.destinationStateId();
-        rw.destId = s.id();
+        rw.source = edge.destinationState();
+        rw.dest = s;
         rw.labelSet = edge.codeRanges();
         edgeList.add(rw);
       }
@@ -83,21 +87,21 @@ public final class ToknUtils {
     Map<Integer, List<Edge>> newStateEdgeLists = hashMap();
 
     for (RevWork w : edgeList) {
-      State srcState = newStateMap.get(w.sourceId);
-      State destState = newStateMap.get(w.destId);
+      State srcState = newStateMap.get(w.source.id());
+      State destState = newStateMap.get(w.dest.id());
 
       List<Edge> edges = newStateEdgeLists.get(srcState.id());
       if (edges == null) {
         edges = arrayList();
         newStateEdgeLists.put(srcState.id(), edges);
       }
-      edges.add(new Edge(w.labelSet, destState.id()));
+      edges.add(new Edge(w.labelSet, destState));
     }
 
     for (Entry<Integer, List<Edge>> edgeEntry : newStateEdgeLists.entrySet()) {
       int sourceId = edgeEntry.getKey();
       State srcState = newStateMap.get(sourceId);
-      srcState = srcState.withEdges(edgeEntry.getValue());
+      srcState = new State(sourceId, srcState.finalState(), edgeEntry.getValue());
       newStateMap.put(sourceId, srcState);
     }
 
@@ -105,9 +109,8 @@ public final class ToknUtils {
     int[] rang = rangeOfStateIds(stateSet);
     List<Edge> edges = arrayList();
     for (State s : newStartStateList)
-      edges.add(Edge.constructEpsilonEdge(s.id()));
+      edges.add(constructEpsilonEdge(s));
     State w = new State(rang[1], false, edges);
-
     return w;
   }
 
@@ -141,28 +144,45 @@ public final class ToknUtils {
    *          lowest state id to use for duplicates
    * @param origToDupStateMap
    *          where to construct map of original state ids to new states
-   * @return next available state id
    */
-  public static int duplicateNFA(State startState, int dupBaseId, Map<Integer, State> origToDupStateMap) {
+  public static void duplicateNFA(State startState, ToknContext context,
+      Map<Integer, State> origToDupStateMap) {
+
+    pr("duplicateNFA,startState:", startState.id());
+
     checkArgument(origToDupStateMap.isEmpty());
 
     Set<State> oldStates = reachableStates(startState);
 
-    int[] res = rangeOfStateIds(oldStates);
-    int oldMinId = res[0];
-    int oldMaxId = res[1];
-
     for (State s : oldStates) {
-      State s2 = new State((s.id() - oldMinId) + dupBaseId, s.finalState(),null);
+      State s2 = new State(context.allocateId(), s.finalState(), null);
       origToDupStateMap.put(s.id(), s2);
+      pr("mapping old to new:", s.id(), s2.id());
     }
+
     for (State s : oldStates) {
       State s2 = origToDupStateMap.get(s.id());
       for (Edge edge : s.edges()) {
-        s2.edges().add(new Edge(edge.codeRanges(), origToDupStateMap.get(edge.destinationStateId()).id()));
+
+        State newTargetState = origToDupStateMap.get(edge.destinationState().id());
+
+        pr("...adding modified edge:", s.id(), "=>", edge.destinationState().id(), "//", newTargetState.id());
+        s2.edges().add(new Edge(edge.codeRanges(), newTargetState));
       }
     }
-    return (oldMaxId - oldMinId) + dupBaseId;
+  }
+
+  private static int[] EPSILON_RANGE = { EPSILON, 1 + EPSILON };
+
+  /**
+   * Add an epsilon transition to a state
+   */
+  public static void addEps(State source, State target) {
+    source.edges().add(new Edge(EPSILON_RANGE, target));
+  }
+
+  public static Edge constructEpsilonEdge(State target) {
+    return new Edge(EPSILON_RANGE, target);
   }
 
 }

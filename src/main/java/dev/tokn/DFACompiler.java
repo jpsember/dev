@@ -28,6 +28,8 @@ public final class DFACompiler {
 
   public DFA parse(String script) {
 
+    ToknContext context = new ToknContext();
+    
     int next_token_id = 0;
     List<TokenEntry> token_records = arrayList();
 
@@ -106,8 +108,9 @@ public final class DFACompiler {
       String tokenName = line.substring(0, pos).trim();
 
       String expr = line.substring(pos + 1);
+      pr("============== parsing regex:", tokenName);
 
-      RegParse rex = new RegParse(expr, tokenNameMap, line_number);
+      RegParse rex = new RegParse(context, expr, tokenNameMap, line_number );
 
       // Give it the next available token id, if it's not an anonymous token; else -1
 
@@ -158,8 +161,8 @@ public final class DFACompiler {
         return true;
 
       for (Edge edge : state.edges()) {
-        if (CodeSet.contains(edge.codeRanges(), edge.destinationStateId())) {
-          push(state_stack, State.fetch(null, edge.destinationStateId()));
+        if (CodeSet.contains(edge.codeRanges(), edge.destinationState().id())) {
+          push(state_stack, edge.destinationState());
         }
       }
     }
