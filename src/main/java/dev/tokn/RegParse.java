@@ -100,13 +100,12 @@ public class RegParse {
    *          ids) to be consulted if a curly brace expression appears in the
    *          script
    */
-  public RegParse(ToknContext context, String script, Map<String, TokenEntry> tokenDefMap,
+  public RegParse(  String script, Map<String, TokenEntry> tokenDefMap,
       int orig_line_number) {
     mOrigScript = script;
     mScript = filter_ws(script);
     mTokenDefMap = tokenDefMap;
     mOrigLineNumber = orig_line_number;
-    mContext = context;
     parseScript();
   }
 
@@ -310,8 +309,8 @@ public class RegParse {
     }
     if (rs.elements().length == 0)
       abort("Empty character range");
-    State sA = newState();
-    State sB = newState();
+    State sA = new State();
+    State sB = new State();
     pr("sA edges:", sA.edges());
     pr("rs.elements:", rs.elements());
     pr("sB:", sB);
@@ -355,7 +354,7 @@ public class RegParse {
 
     todo("clean this up");
 
-    return duplicateNFA(rg.startState(), rg.endState(), mContext);
+    return duplicateNFA(rg.startState(), rg.endState());
 
     //      oldToNewMap, @nextStateId = rg.start_state.duplicateNFA(@nextStateId)
     //
@@ -393,8 +392,8 @@ public class RegParse {
       CodeSet code_set = parse_code_set(false);
       // Construct a pair of states with an edge between them
       // labelled with this code set
-      State sA = newState();
-      State sB = newState();
+      State sA = new State();
+      State sB = new State();
       sA.edges().add(new Edge(code_set.elements(), sB));
       e1 = statePair(sA, sB);
     }
@@ -407,8 +406,8 @@ public class RegParse {
     StatePair e1 = parseJ();
     if (read_if('|')) {
       StatePair e2 = parseE();
-      State u = newState();
-      State v = newState();
+      State u = new State();
+      State v = new State();
 
       addEps(u, e1.start);
       addEps(u, e2.start);
@@ -463,7 +462,7 @@ public class RegParse {
   private StatePair create_new_final_state_if_nec(StatePair start_end_states) {
     State end_state = start_end_states.end;
     if (!end_state.edges().isEmpty()) {
-      State new_final_state = newState();
+      State new_final_state = new State();
       ToknUtils.addEps(end_state, new_final_state);
       start_end_states.end = new_final_state;
     }
@@ -501,7 +500,7 @@ public class RegParse {
 
     nfa_end = new State( false, nfa_end.edges());
 
-    NFAToDFA builder = new NFAToDFA(mContext, nfa_start);
+    NFAToDFA builder = new NFAToDFA(  nfa_start);
     builder.withFilter(false);
     State dfa_start_state = builder.nfa_to_dfa();
 
@@ -556,7 +555,7 @@ public class RegParse {
     // Build a map of old to new states for the NFA
     Map<State, State> new_state_map = hashMap();
     for (State x : states) {
-      State x_new = newState();
+      State x_new = new State();
       new_state_map.put(x, x_new);
     }
 
@@ -652,14 +651,9 @@ public class RegParse {
     throw abort("Unexpected end of input");
   }
 
-  private State newState() {
-    return mContext.newState();
-  }
-
   private static CodeSet sDigitCodeSet;
   private static CodeSet sWordCharCodeSet;
 
-  private ToknContext mContext;
   private State mStartState;
   private State mEndState;
   private String mOrigScript;

@@ -2,6 +2,7 @@ package dev.tokn;
 
 import js.parsing.State;
 
+@Deprecated
 public final class ToknContext {
 
   public void bumpIds(int minValue) {

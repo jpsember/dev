@@ -28,8 +28,6 @@ public final class DFACompiler {
 
   public DFA parse(String script) {
 
-    ToknContext context = new ToknContext();
-
     int next_token_id = 0;
     List<TokenEntry> token_records = arrayList();
 
@@ -110,7 +108,7 @@ public final class DFACompiler {
       String expr = line.substring(pos + 1);
       pr("============== parsing regex:", tokenName);
 
-      RegParse rex = new RegParse(context, expr, tokenNameMap, line_number);
+      RegParse rex = new RegParse(  expr, tokenNameMap, line_number);
 
       // Give it the next available token id, if it's not an anonymous token; else -1
 
@@ -135,9 +133,9 @@ public final class DFACompiler {
 
       token_records.add(entry);
     }
-    State combined = combine_token_nfas(context, token_records);
+    State combined = combine_token_nfas(  token_records);
 
-    NFAToDFA builder = new NFAToDFA(context, combined);
+    NFAToDFA builder = new NFAToDFA(  combined);
     State dfa = builder.nfa_to_dfa();
 
     apply_redundant_token_filter(token_records, dfa);
@@ -177,15 +175,15 @@ public final class DFACompiler {
    * 
    * @param context
    */
-  private State combine_token_nfas(ToknContext context, List<TokenEntry> token_records) {
+  private State combine_token_nfas(  List<TokenEntry> token_records) {
 
     // Create a new distinguished start state
     //
-    State start_state = context.newState();
+    State start_state = new State();
     for (TokenEntry tk : token_records) {
       RegParse regParse = tk.reg_ex;
 
-      StatePair newStates = ToknUtils.duplicateNFA(regParse.startState(), regParse.endState(), context);
+      StatePair newStates = ToknUtils.duplicateNFA(regParse.startState(), regParse.endState() );
 
       State dupStart = newStates.start;
 
@@ -194,7 +192,7 @@ public final class DFACompiler {
       // labelled with the token id (actually, a transformed token id to distinguish
       // it from character codes)
       State dupEnd = newStates.end;
-      State dupfinal_state = context.newState(true);
+      State dupfinal_state =new State(true);
 
       //  List<Edge> edges = arrayList();
       //  edges.add(ToknUtils.constructEpsilonEdge(dupfinal_state));

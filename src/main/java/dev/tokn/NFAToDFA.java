@@ -22,8 +22,7 @@ import java.util.Set;
  *
  */
 public class NFAToDFA {
-  public NFAToDFA(ToknContext context, State start_state) {
-    mContext = context;
+  public NFAToDFA(State start_state) {
     mStartState = start_state;
     mWithFilter = true;
   }
@@ -70,10 +69,10 @@ public class NFAToDFA {
     //
 
     pr("reversing #1");
-    mStartState = ToknUtils.reverseNFA(mContext, mStartState);
+    mStartState = ToknUtils.reverseNFA(mStartState);
     nfa_to_dfa_aux();
     pr("reversing #2");
-    mStartState = ToknUtils.reverseNFA(mContext, mStartState);
+    mStartState = ToknUtils.reverseNFA(mStartState);
     nfa_to_dfa_aux();
     normalizeStates(mStartState);
   }
@@ -290,11 +289,9 @@ public class NFAToDFA {
     }
     if (prev_dest != null)
       new_edges.add(new Edge(prev_label.elements(), prev_dest));
-    State newState = new State(  state.finalState(), new_edges);
+    State newState = new State(state.finalState(), new_edges);
     halt("we should return a new, normalized state");
     return newState;
   }
-
-  private ToknContext mContext;
 
 }

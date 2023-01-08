@@ -45,7 +45,7 @@ public final class ToknUtils {
       State st = pop(stack);
       set.add(st);
 
-      pr(dump(st));
+      pr(st.toString(true));
 
       for (Edge edge : st.edges()) {
         State dest = edge.destinationState();
@@ -74,7 +74,7 @@ public final class ToknUtils {
    *          start state for NFA
    * @return start state of reversed NFA
    */
-  public static State reverseNFA(ToknContext context, State startState) {
+  public static State reverseNFA( State startState) {
 
     pr("reversing NFA");
 
@@ -90,7 +90,7 @@ public final class ToknUtils {
     Set<State> stateSet = reachableStates(startState);
     for (State s : stateSet) {
 
-      pr("processing state:", dump(s));
+      pr("processing state:", s);
       // s.edges.each {|lbl, dest| edgeList.push([dest.id, s.id, lbl])}
       for (Edge edge : s.edges()) {
         RevWork rw = new RevWork();
@@ -101,7 +101,7 @@ public final class ToknUtils {
       }
 
       State u = new State(s == startState, null);
-      pr("converted state to:", dump(u));
+      pr("converted state to:", u);
       newerStateMap.put(s, u);
 
       //  oldToNewStateIdMap.put(s.id(), u.id());
@@ -175,7 +175,7 @@ public final class ToknUtils {
    * @param origToDupStateMap
    *          where to construct map of original state ids to new states
    */
-  public static StatePair duplicateNFA(State startState, State endState, ToknContext context) {
+  public static StatePair duplicateNFA(State startState, State endState ) {
 
     Map<State, State> origToDupStateMap = hashMap();
 
@@ -219,19 +219,6 @@ public final class ToknUtils {
     return sp;
   }
 
-  private static String dump(State s) {
-    StringBuilder sb = new StringBuilder();
-    sb.append(s.id());
-    sb.append(s.finalState() ? '*' : ' ');
-    if (false) {
-      sb.append("=>");
-      for (Edge e : s.edges()) {
-        sb.append(" ");
-        sb.append(e.destinationState().id());
-      }
-    }
-    return sb.toString();
-  }
 
   public static String dumpCodeRange(int[] elements) {
     checkArgument((elements.length & 1) == 0);
