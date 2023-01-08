@@ -29,7 +29,7 @@ public final class DFACompiler {
   public DFA parse(String script) {
 
     ToknContext context = new ToknContext();
-    
+
     int next_token_id = 0;
     List<TokenEntry> token_records = arrayList();
 
@@ -110,7 +110,7 @@ public final class DFACompiler {
       String expr = line.substring(pos + 1);
       pr("============== parsing regex:", tokenName);
 
-      RegParse rex = new RegParse(context, expr, tokenNameMap, line_number );
+      RegParse rex = new RegParse(context, expr, tokenNameMap, line_number);
 
       // Give it the next available token id, if it's not an anonymous token; else -1
 
@@ -135,7 +135,7 @@ public final class DFACompiler {
 
       token_records.add(entry);
     }
-    State combined = combine_token_nfas(token_records);
+    State combined = combine_token_nfas(context, token_records);
 
     NFAToDFA builder = new NFAToDFA(combined);
     State dfa = builder.nfa_to_dfa();
@@ -173,39 +173,46 @@ public final class DFACompiler {
    * Combine the individual NFAs constructed for the token definitions into one
    * large NFA, each augmented with an edge labelled with the appropriate token
    * identifier to let the tokenizer see which token led to the final state.
+   * 
+   * @param context
    */
-  private State combine_token_nfas(List<TokenEntry> token_records) {
-    throw notFinished();
+  private State combine_token_nfas(ToknContext context, List<TokenEntry> token_records) {
 
-    //    // Create a new distinguished start state
+    // Create a new distinguished start state
     //
-    //   State start_state = new State(0);
-    //   int baseId = 1;
-    //for (TokenEntry tk : token_records) {
-    //    RegParse  regParse = tk.reg_ex;
-    //
-    //      oldToNewMap  = regParse.startState().duplicateNFA( );
-    //
-    //     State dupStart = oldToNewMap[regParse.startState()];
-    //
-    //     // Transition from the expression's end state (not a final state)
-    //     // to a new final state, with the transitioning edge
-    //     // labelled with the token id (actually, a transformed token id to distinguish
-    //     // it from character codes)
-    //    State  dupEnd = oldToNewMap[regParse.endState()];
-    //
-    //      State dupfinal_state =new State();
-    //      dupfinal_state.final_state = true;
-    //
-    //      //# Why do I need to add 'ToknInternal.' here?  Very confusing.
-    //      dupEnd.addEdge(CodeSet.withValue(ToknInternal.token_id_to_edge_label(tk.id)), dupfinal_state);
-    //
-    //      
-    //      // Add an e-transition from the start state to this expression's start
-    //      
-    //      start_state.addEdge(  CodeSet.withValue(EPSILON),dupStart);
-    //}
-    //   return start_state;
+    State start_state = context.newState();
+    for (TokenEntry tk : token_records) {
+      RegParse regParse = tk.reg_ex;
+
+      StatePair newStates = ToknUtils.duplicateNFA(regParse.startState(), regParse.endState(), context);
+
+      State dupStart = newStates.start;
+
+      // Transition from the expression's end state (not a final state)
+      // to a new final state, with the transitioning edge
+      // labelled with the token id (actually, a transformed token id to distinguish
+      // it from character codes)
+      State dupEnd = newStates.end;
+      State dupfinal_state = context.newState(true);
+
+      //  List<Edge> edges = arrayList();
+      //  edges.add(ToknUtils.constructEpsilonEdge(dupfinal_state));
+
+      CodeSet cs = CodeSet.withValue(token_id_to_edge_label(tk.id));
+      dupEnd.edges().add(new Edge(cs.elements(), dupfinal_state));
+
+      // Add an e-transition from the start state to this expression's start
+
+      ToknUtils.addEps(start_state, dupStart);
+    }
+    return start_state;
+  }
+
+  /**
+   * Convert a token id (>=0) to an edge label value ( < 0)
+   */
+  private static int token_id_to_edge_label(int id) {
+    return ToknUtils.EPSILON - 1 - id;
   }
 
   //  private static void addEdge(State source, CodeSet codeSet, State target) {

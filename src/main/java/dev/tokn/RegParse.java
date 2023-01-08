@@ -279,10 +279,6 @@ public class RegParse {
 
   }
 
-  private State newState() {
-    return new State(mContext.allocateId(), false, null);
-  }
-
   private StatePair parseBRACKETEXPR() {
     read('[');
     CodeSet rs = new CodeSet();
@@ -655,6 +651,10 @@ public class RegParse {
     if (ch != 0 && (expChar == 0 || ch == expChar))
       return ch;
     throw abort("Unexpected end of input");
+  }
+
+  private State newState() {
+    return mContext.newState();
   }
 
   private static CodeSet sDigitCodeSet;

@@ -220,8 +220,9 @@ public final class CodeSet {
         return true;
       i += 2;
     }
-    return false;}
-  
+    return false;
+  }
+
   @Deprecated
   public boolean contains(int val) {
     return contains(mElements, val);
@@ -304,44 +305,9 @@ public final class CodeSet {
   @Override
   public String toString() {
     if (mCachedStringRep == null || alert("always recalc")) {
-      checkArgument((mElements.length & 1) == 0);
-
-      StringBuilder s = new StringBuilder();
-      int i = 0;
-      while (i < mElements.length) {
-        if (s.length() > 0)
-          s.append(' ');
-
-        int lower = mElements[i];
-        int upper = mElements[i + 1];
-        s.append(element_to_s(lower));
-        if (upper != 1 + lower) {
-          s.append("..");
-          s.append(element_to_s(upper - 1));
-        }
-        i += 2;
-      }
-      mCachedStringRep = s.toString();
+      mCachedStringRep = ToknUtils.dumpCodeRange(mElements);
     }
     return mCachedStringRep;
-  }
-
-  /**
-   * Get a debug description of a value within a CodeSet
-   */
-  private static String element_to_s(int charCode) {
-
-    final String forbidden = "\'\"\\[]{}()";
-
-    // Unless it corresponds to a non-confusing printable ASCII value,
-    // just print its decimal equivalent
-    if (charCode == ToknUtils.EPSILON)
-      return "(e)";
-    if (charCode > ' ' && charCode < 0x7f && forbidden.indexOf(charCode) < 0)
-      return "'" + Character.toString((char) charCode) + "'";
-    if (charCode == CODEMAX - 1)
-      return "MAX";
-    return Integer.toString(charCode);
   }
 
   private int[] mElements = DataUtil.EMPTY_INT_ARRAY;
