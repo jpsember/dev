@@ -80,13 +80,11 @@ public final class ToknUtils {
 
     State.bumpDebugIds();
 
-    List<Edge> edgeList = arrayList();
-
     List<State> newStartStateList = arrayList();
     List<State> newFinalStateList = arrayList();
 
     StateRenamer newStateMap = new StateRenamer();
-    StateRenamer newerStateMap = new StateRenamer();
+//    StateRenamer newerStateMap = new StateRenamer();
 
     List<State> stateSet = reachableStates(startState);
     if (db)
@@ -107,31 +105,22 @@ public final class ToknUtils {
       //        edgeList.add(rw);
       //      }
 
-      State u = new State(s == startState, null);
-      if (false && db)
-        pr("converted state to:", u);
-      newerStateMap.put(s, u);
-
-      //  oldToNewStateIdMap.put(s.id(), u.id());
-      newStateMap.put(s, u);
-      if (u.finalState())
-        newFinalStateList.add(u);
+      State newState = newStateMap.put(s, new State(s == startState));
+      if (newState.finalState())
+        newFinalStateList.add(newState);
       if (s.finalState())
-        newStartStateList.add(u);
-
+        newStartStateList.add(newState);
     }
-
-    // Build a list of edges for each state, so we can modify them
-    // Map<State, List<Edge>> newStateEdgeLists = hashMap();
 
     StateEdgeManager em = new StateEdgeManager();
 
-    for (State oldS : stateSet) {
-      State newS = newStateMap.get(oldS);
-      for (Edge oldEdge : oldS.edges()) {
+    for (State oldState : stateSet) {
+      State newState = newStateMap.get(oldState);
+      for (Edge oldEdge : oldState.edges()) {
         State oldDest = oldEdge.destinationState();
         State newDest = newStateMap.get(oldDest);
-        em.addEdge(newS, oldEdge.codeRanges(), newDest);
+        // We want a reversed edge
+        em.addEdge(newDest, oldEdge.codeRanges(), newState);
       }
     }
 
