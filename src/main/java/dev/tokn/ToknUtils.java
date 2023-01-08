@@ -1,8 +1,8 @@
 package dev.tokn;
 
-import static dev.tokn.TokenConst.*;
 import static js.base.Tools.*;
 
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -18,6 +18,16 @@ public final class ToknUtils {
    * edge label for epsilon transitions
    */
   public static final int EPSILON = -1;
+
+  /**
+   * One plus the maximum code represented
+   */
+  public static final int CODEMAX = 0x110000;
+
+  /**
+   * Minimum code possible (e.g., indicating a token id)
+   */
+  public static final int CODEMIN = -10000;
 
   /**
    * Build set of states reachable from this state
@@ -251,4 +261,9 @@ public final class ToknUtils {
       return "MAX";
     return Integer.toString(charCode);
   }
+  
+  public static boolean equal(CodeSet a, CodeSet b) {
+      return Arrays.equals(a.elements(),b.elements());
+  }
+  
 }

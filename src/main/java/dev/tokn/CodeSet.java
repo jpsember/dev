@@ -5,7 +5,7 @@ import js.data.IntArray;
 import js.json.JSList;
 
 import static js.base.Tools.*;
-import static dev.tokn.TokenConst.*;
+import static dev.tokn.ToknUtils.*;
 
 public final class CodeSet {
 
@@ -315,5 +315,9 @@ public final class CodeSet {
 
   public int[] elements() {
     return mElements;
+  }
+
+  public boolean isEmpty() {
+    return mElements.length == 0;
   }
 }

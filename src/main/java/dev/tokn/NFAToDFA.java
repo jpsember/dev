@@ -51,6 +51,7 @@ public class NFAToDFA {
   public State nfa_to_dfa() {
 
     partition_edges();
+    halt("done part");
     minimize();
     if (mWithFilter) {
       Filter filter = new Filter(mStartState);
@@ -147,14 +148,28 @@ public class NFAToDFA {
   //  as well as RangePartition.rb.
   //  
   private void partition_edges() {
-    //
-    //      par = RangePartition.new
-    //
-    //      stateSet = @start_state.reachable_states
-    //
-    //      stateSet.each do |s|
-    //        s.edges.each {|lbl,dest| par.addSet(lbl) }
-    //      end
+    RangePartition par = new RangePartition();
+    Set<State> 
+          stateSet = ToknUtils.reachableStates(mStartState);
+    for (State s : stateSet) {
+      for (Edge edge : s.edges()) {
+        // TODO: unnecessary wrapping int[] within CodeSet
+        par.addSet(CodeSet.with(edge.codeRanges()));
+      }
+    }
+    par.prepare();
+    for (State s : stateSet) {
+      List<Edge> newEdges = arrayList();
+      for (Edge edge : s.edges()) {
+        List<CodeSet> newLbls = par.apply(CodeSet.with(edge.codeRanges()));
+        for (CodeSet x : newLbls) {
+          push(newEdges,new Edge(x.elements(),edge.destinationState()));
+        }
+        
+      }
+        s.edges().clear();
+        s.edges().addAll(newEdges);
+    } 
     //
     //      par.prepare
     //
@@ -173,7 +188,6 @@ public class NFAToDFA {
     //
     //    end
     //
-    notFinished();
   }
   //    # Adds a DFA state for a set of NFA states, if one doesn't already exist
   //    # for the set

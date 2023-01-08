@@ -11,7 +11,6 @@ import js.parsing.Edge;
 import js.parsing.RegExp;
 import js.parsing.State;
 
-import static dev.tokn.TokenConst.*;
 import static dev.tokn.ToknUtils.*;
 
 /**
