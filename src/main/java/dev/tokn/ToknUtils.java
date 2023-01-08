@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import js.base.BasePrinter;
 import js.parsing.Edge;
 import js.parsing.State;
 
@@ -31,41 +32,46 @@ public final class ToknUtils {
   /**
    * Build set of states reachable from this state
    */
-  public static Set<State> reachableStates(State sourceState) {
+  public static List<State> reachableStates(State sourceState) {
 
-    final boolean db = true;
+    final boolean db = false;
 
     if (db)
       pr("reachableStates from:", sourceState);
 
-    Set<State> set = hashSet();
-    List<State> stack = arrayList();
-    push(stack, sourceState);
-    while (nonEmpty(stack)) {
-      State st = pop(stack);
-      set.add(st);
+    Set<State> knownStatesSet = hashSet();
+    List<State> scanStack = arrayList();
+    List<State> output = arrayList();
+    push(scanStack, sourceState);
+    knownStatesSet.add(sourceState);
 
-      pr(st.toString(true));
+    while (nonEmpty(scanStack)) {
+
+      State st = pop(scanStack);
+      output.add(st);
+      if (db)
+        pr(st.toString(true));
 
       for (Edge edge : st.edges()) {
         State dest = edge.destinationState();
-        pr(" => ", dest, "(", dumpCodeRange(edge.codeRanges()), ")");
-
-        if (set.add(dest))
-          push(stack, dest);
+        if (knownStatesSet.add(dest))
+          push(scanStack, dest);
       }
     }
-    return set;
+
+    if (db)
+      pr("reachable set:", State.toString(knownStatesSet));
+    return output;
   }
 
-  /**
-   * Bookkeeping class for reversing NFA
-   */
-  private static class RevWork {
-    State source;
-    State dest;
-    int[] labelSet;
-  }
+  //  /**
+  //   * Bookkeeping class for reversing NFA
+  //   */
+  //  private static class RevWork {
+  //    State source;
+  //    State dest;
+  //    int[] labelSet;
+  //  }
 
   /**
    * Construct the reverse of an NFA
@@ -74,31 +80,41 @@ public final class ToknUtils {
    *          start state for NFA
    * @return start state of reversed NFA
    */
-  public static State reverseNFA( State startState) {
+  public static State reverseNFA(State startState) {
 
-    pr("reversing NFA");
+    final boolean db = true;
+    if (db) {
+      pr(dumpStateMachine(startState, "reverseNFA:"));
+    }
 
-    List<RevWork> edgeList = arrayList();
+    State.bumpDebugIds();
+
+    List<Edge> edgeList = arrayList();
 
     List<State> newStartStateList = arrayList();
     List<State> newFinalStateList = arrayList();
 
     StateRenamer newStateMap = new StateRenamer();
-    //    Map<State, State> newStateMap = hashMap();
     StateRenamer newerStateMap = new StateRenamer();
 
-    Set<State> stateSet = reachableStates(startState);
+    List<State> stateSet = reachableStates(startState);
+    if (db)
+      pr("reachable states from", startState, INDENT, State.toString(stateSet));
+
     for (State s : stateSet) {
 
-      pr("processing state:", s);
-      // s.edges.each {|lbl, dest| edgeList.push([dest.id, s.id, lbl])}
-      for (Edge edge : s.edges()) {
-        RevWork rw = new RevWork();
-        rw.source = edge.destinationState();
-        rw.dest = s;
-        rw.labelSet = edge.codeRanges();
-        edgeList.add(rw);
-      }
+      if (db)
+        pr("processing state:", s);
+
+      //      for (Edge edge : s.edges()) {
+      //        Edge rw = new Edge(edge.codeRanges(),s);
+      //        
+      //        RevWork rw = new RevWork();
+      //        rw.source = edge.destinationState();
+      //        rw.dest = s;
+      //        rw.labelSet = edge.codeRanges();
+      //        edgeList.add(rw);
+      //      }
 
       State u = new State(s == startState, null);
       pr("converted state to:", u);
@@ -114,27 +130,35 @@ public final class ToknUtils {
     }
 
     // Build a list of edges for each state, so we can modify them
-    Map<State, List<Edge>> newStateEdgeLists = hashMap();
+    // Map<State, List<Edge>> newStateEdgeLists = hashMap();
 
-    for (RevWork w : edgeList) {
-      State srcState = newStateMap.get(w.source );
-      State destState = newStateMap.get(w.dest );
+    StateEdgeManager em = new StateEdgeManager();
 
-      List<Edge> edges = newStateEdgeLists.get(srcState);
-      if (edges == null) {
-        edges = arrayList();
-     //   newStateEdgeLists.put(srcState.id(), edges);
+    for (State oldS : stateSet) {
+      State newS = newStateMap.get(oldS);
+      for (Edge oldEdge : oldS.edges()) {
+        State oldDest = oldEdge.destinationState();
+        State newDest = newStateMap.get(oldDest);
+        em.addEdge(newS, oldEdge.codeRanges(), newDest);
       }
-      edges.add(new Edge(w.labelSet, destState));
     }
 
-    for (Entry<State, List<Edge>> edgeEntry : newStateEdgeLists.entrySet()) {
-      State oldSrcState = edgeEntry.getKey();
-      State srcState = newerStateMap.get(oldSrcState);
+    //    
+    //    for (RevWork w : edgeList) {
+    //      State srcState = newStateMap.get(w.source);
+    //      State destState = newStateMap.get(w.dest);
+    //
+    //      List<Edge> edges = newStateEdgeLists.get(srcState);
+    //      if (edges == null) {
+    //        edges = arrayList();
+    //        //   newStateEdgeLists.put(srcState.id(), edges);
+    //      }
+    //      edges.add(new Edge(w.labelSet, destState));
+    //    }
 
-      halt("getting crazy... lost in remapping these ids");
-      srcState = new State(  srcState.finalState(), edgeEntry.getValue());
-     // newerStateMap.put(sourceId, srcState);
+    for (State oldS : stateSet) {
+      State newState = newStateMap.get(oldS);
+      newState.setEdges(em.edgesForState(newState));
     }
 
     //  Create a distinguished start node that points to each of the start nodes
@@ -142,6 +166,12 @@ public final class ToknUtils {
     for (State s : newStartStateList)
       edges.add(constructEpsilonEdge(s));
     State w = new State(false, edges);
+
+    if (db) {
+      pr("new start state:", w);
+      pr(dumpStateMachine(w, "Reversed:"));
+    }
+
     return w;
   }
 
@@ -175,11 +205,11 @@ public final class ToknUtils {
    * @param origToDupStateMap
    *          where to construct map of original state ids to new states
    */
-  public static StatePair duplicateNFA(State startState, State endState ) {
+  public static StatePair duplicateNFA(State startState, State endState) {
 
     Map<State, State> origToDupStateMap = hashMap();
 
-    Set<State> oldStates = reachableStates(startState);
+    List<State> oldStates = reachableStates(startState);
     checkState(oldStates.contains(endState), "end state not reachable");
 
     for (State s : oldStates) {
@@ -218,7 +248,6 @@ public final class ToknUtils {
     sp.end = end;
     return sp;
   }
-
 
   public static String dumpCodeRange(int[] elements) {
     checkArgument((elements.length & 1) == 0);
@@ -263,4 +292,19 @@ public final class ToknUtils {
     return Arrays.equals(a.elements(), b.elements());
   }
 
+  public static String dumpStateMachine(State initialState, Object... title) {
+    StringBuilder sb = new StringBuilder();
+    if (title.length != 0) {
+      sb.append(BasePrinter.toString(title));
+      sb.append('\n');
+    }
+    sb.append("=======================================================\n");
+    List<State> reachableStates = reachableStates(initialState);
+    for (State s : reachableStates) {
+      sb.append(s.toString(true));
+      sb.append('\n');
+    }
+    sb.append("=======================================================\n");
+    return sb.toString();
+  }
 }

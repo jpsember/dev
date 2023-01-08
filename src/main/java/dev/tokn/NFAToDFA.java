@@ -149,7 +149,7 @@ public class NFAToDFA {
   //  
   private void partition_edges() {
     RangePartition par = new RangePartition();
-    Set<State> stateSet = ToknUtils.reachableStates(mStartState);
+    List<State> stateSet = ToknUtils.reachableStates(mStartState);
     for (State s : stateSet) {
       for (Edge edge : s.edges()) {
         // TODO: unnecessary wrapping int[] within CodeSet
@@ -247,7 +247,7 @@ public class NFAToDFA {
    * </pre>
    */
   public static void normalizeStates(State startState) {
-    Set<State> reachable = ToknUtils.reachableStates(startState);
+    List<State> reachable = ToknUtils.reachableStates(startState);
     for (State s : reachable) {
       normalize(s);
     }

@@ -2,6 +2,7 @@ package dev.tokn;
 
 import static js.base.Tools.*;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
@@ -504,7 +505,7 @@ public class RegParse {
     builder.withFilter(false);
     State dfa_start_state = builder.nfa_to_dfa();
 
-    Set<State> states = ToknUtils.reachableStates(dfa_start_state);
+    List<State> states = ToknUtils.reachableStates(dfa_start_state);
 
     /**
      * <pre>
