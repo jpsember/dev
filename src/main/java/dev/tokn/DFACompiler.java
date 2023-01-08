@@ -137,7 +137,7 @@ public final class DFACompiler {
     }
     State combined = combine_token_nfas(context, token_records);
 
-    NFAToDFA builder = new NFAToDFA(combined);
+    NFAToDFA builder = new NFAToDFA(context, combined);
     State dfa = builder.nfa_to_dfa();
 
     apply_redundant_token_filter(token_records, dfa);
@@ -160,11 +160,12 @@ public final class DFACompiler {
       if (state == end_state)
         return true;
 
-      for (Edge edge : state.edges()) {
-        if (CodeSet.contains(edge.codeRanges(), edge.destinationState().id())) {
-          push(state_stack, edge.destinationState());
-        }
-      }
+      if (todo("refactor this code now that id is no longer there"))return false;
+//      for (Edge edge : state.edges()) {
+//        if (CodeSet.contains(edge.codeRanges(), edge.destinationState().id())) {
+//          push(state_stack, edge.destinationState());
+//        }
+//      }
     }
     return false;
   }

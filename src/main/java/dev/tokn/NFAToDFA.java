@@ -22,8 +22,8 @@ import java.util.Set;
  *
  */
 public class NFAToDFA {
-
-  public NFAToDFA(State start_state) {
+  public NFAToDFA(ToknContext context, State start_state) {
+    mContext = context;
     mStartState = start_state;
     mWithFilter = true;
   }
@@ -51,7 +51,6 @@ public class NFAToDFA {
   public State nfa_to_dfa() {
 
     partition_edges();
-    halt("done part");
     minimize();
     if (mWithFilter) {
       Filter filter = new Filter(mStartState);
@@ -70,9 +69,11 @@ public class NFAToDFA {
     // Apparently this  produces a minimal DFA.
     //
 
-    mStartState = ToknUtils.reverseNFA(mStartState);
+    pr("reversing #1");
+    mStartState = ToknUtils.reverseNFA(mContext, mStartState);
     nfa_to_dfa_aux();
-    mStartState = ToknUtils.reverseNFA(mStartState);
+    pr("reversing #2");
+    mStartState = ToknUtils.reverseNFA(mContext, mStartState);
     nfa_to_dfa_aux();
     normalizeStates(mStartState);
   }
@@ -149,8 +150,7 @@ public class NFAToDFA {
   //  
   private void partition_edges() {
     RangePartition par = new RangePartition();
-    Set<State> 
-          stateSet = ToknUtils.reachableStates(mStartState);
+    Set<State> stateSet = ToknUtils.reachableStates(mStartState);
     for (State s : stateSet) {
       for (Edge edge : s.edges()) {
         // TODO: unnecessary wrapping int[] within CodeSet
@@ -163,13 +163,13 @@ public class NFAToDFA {
       for (Edge edge : s.edges()) {
         List<CodeSet> newLbls = par.apply(CodeSet.with(edge.codeRanges()));
         for (CodeSet x : newLbls) {
-          push(newEdges,new Edge(x.elements(),edge.destinationState()));
+          push(newEdges, new Edge(x.elements(), edge.destinationState()));
         }
-        
+
       }
-        s.edges().clear();
-        s.edges().addAll(newEdges);
-    } 
+      s.edges().clear();
+      s.edges().addAll(newEdges);
+    }
     //
     //      par.prepare
     //
@@ -260,13 +260,12 @@ public class NFAToDFA {
    * <pre>
     *  [] merge edges that go to a common state
     *  [] delete edges that have empty labels
-    *  [] sort edges by destination state ids
    * </pre>
    */
   public static State normalize(State state) {
     List<Edge> edgeList = arrayList();
     edgeList.addAll(state.edges());
-    edgeList.sort((e1, e2) -> Integer.compare(e1.destinationState ().id(), e2.destinationState ().id()));
+    //edgeList.sort((e1, e2) -> Integer.compare(e1.destinationState().id(), e2.destinationState().id()));
 
     List<Edge> new_edges = arrayList();
     CodeSet prev_label = null;
@@ -291,9 +290,11 @@ public class NFAToDFA {
     }
     if (prev_dest != null)
       new_edges.add(new Edge(prev_label.elements(), prev_dest));
-    State newState = new State(state.id(), state.finalState(), new_edges);
+    State newState = new State(  state.finalState(), new_edges);
     halt("we should return a new, normalized state");
     return newState;
   }
+
+  private ToknContext mContext;
 
 }

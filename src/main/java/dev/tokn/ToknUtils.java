@@ -3,7 +3,6 @@ package dev.tokn;
 import static js.base.Tools.*;
 
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -37,7 +36,7 @@ public final class ToknUtils {
     final boolean db = true;
 
     if (db)
-      pr("reachableStates from:", sourceState.id());
+      pr("reachableStates from:", sourceState);
 
     Set<State> set = hashSet();
     List<State> stack = arrayList();
@@ -50,7 +49,7 @@ public final class ToknUtils {
 
       for (Edge edge : st.edges()) {
         State dest = edge.destinationState();
-        pr(" => ", dest.id(), "(", dumpCodeRange(edge.codeRanges()), ")");
+        pr(" => ", dest, "(", dumpCodeRange(edge.codeRanges()), ")");
 
         if (set.add(dest))
           push(stack, dest);
@@ -75,18 +74,23 @@ public final class ToknUtils {
    *          start state for NFA
    * @return start state of reversed NFA
    */
-  public static State reverseNFA(State startState) {
+  public static State reverseNFA(ToknContext context, State startState) {
+
+    pr("reversing NFA");
 
     List<RevWork> edgeList = arrayList();
 
     List<State> newStartStateList = arrayList();
     List<State> newFinalStateList = arrayList();
 
-    Map<Integer, State> newStateMap = hashMap();
+    StateRenamer newStateMap = new StateRenamer();
+    //    Map<State, State> newStateMap = hashMap();
+    StateRenamer newerStateMap = new StateRenamer();
 
     Set<State> stateSet = reachableStates(startState);
     for (State s : stateSet) {
 
+      pr("processing state:", dump(s));
       // s.edges.each {|lbl, dest| edgeList.push([dest.id, s.id, lbl])}
       for (Edge edge : s.edges()) {
         RevWork rw = new RevWork();
@@ -96,8 +100,12 @@ public final class ToknUtils {
         edgeList.add(rw);
       }
 
-      State u = new State(s.id(), s.id() == startState.id(), null);
-      newStateMap.put(u.id(), u);
+      State u = new State(s == startState, null);
+      pr("converted state to:", dump(u));
+      newerStateMap.put(s, u);
+
+      //  oldToNewStateIdMap.put(s.id(), u.id());
+      newStateMap.put(s, u);
       if (u.finalState())
         newFinalStateList.add(u);
       if (s.finalState())
@@ -106,58 +114,60 @@ public final class ToknUtils {
     }
 
     // Build a list of edges for each state, so we can modify them
-    Map<Integer, List<Edge>> newStateEdgeLists = hashMap();
+    Map<State, List<Edge>> newStateEdgeLists = hashMap();
 
     for (RevWork w : edgeList) {
-      State srcState = newStateMap.get(w.source.id());
-      State destState = newStateMap.get(w.dest.id());
+      State srcState = newStateMap.get(w.source );
+      State destState = newStateMap.get(w.dest );
 
-      List<Edge> edges = newStateEdgeLists.get(srcState.id());
+      List<Edge> edges = newStateEdgeLists.get(srcState);
       if (edges == null) {
         edges = arrayList();
-        newStateEdgeLists.put(srcState.id(), edges);
+     //   newStateEdgeLists.put(srcState.id(), edges);
       }
       edges.add(new Edge(w.labelSet, destState));
     }
 
-    for (Entry<Integer, List<Edge>> edgeEntry : newStateEdgeLists.entrySet()) {
-      int sourceId = edgeEntry.getKey();
-      State srcState = newStateMap.get(sourceId);
-      srcState = new State(sourceId, srcState.finalState(), edgeEntry.getValue());
-      newStateMap.put(sourceId, srcState);
+    for (Entry<State, List<Edge>> edgeEntry : newStateEdgeLists.entrySet()) {
+      State oldSrcState = edgeEntry.getKey();
+      State srcState = newerStateMap.get(oldSrcState);
+
+      halt("getting crazy... lost in remapping these ids");
+      srcState = new State(  srcState.finalState(), edgeEntry.getValue());
+     // newerStateMap.put(sourceId, srcState);
     }
 
     //  Create a distinguished start node that points to each of the start nodes
-    int[] rang = rangeOfStateIds(stateSet);
     List<Edge> edges = arrayList();
     for (State s : newStartStateList)
       edges.add(constructEpsilonEdge(s));
-    State w = new State(rang[1], false, edges);
+    State w = new State(false, edges);
     return w;
   }
 
-  /**
-   * Get range of state ids in a set; returns [lowest id, 1 + highest id]
-   */
-  public static int[] rangeOfStateIds(Collection<State> states) {
-    int max_id = -1;
-    int min_id = -1;
-    for (State state : states) {
-      if (max_id < 0) {
-        max_id = state.id();
-        min_id = max_id;
-      } else {
-        min_id = Math.min(min_id, state.id());
-        max_id = Math.max(max_id, state.id());
-
-      }
-    }
-    todo("Use a code range here?");
-    int[] result = new int[2];
-    result[0] = min_id;
-    result[1] = max_id + 1;
-    return result;
-  }
+  //  /**
+  //   * Get range of state ids in a set; returns [lowest id, 1 + highest id]
+  //   */
+  //  @Deprecated
+  //  public static int[] rangeOfStateIds(Collection<State> states) {
+  //    int max_id = -1;
+  //    int min_id = -1;
+  //    for (State state : states) {
+  //      if (max_id < 0) {
+  //        max_id = state.id();
+  //        min_id = max_id;
+  //      } else {
+  //        min_id = Math.min(min_id, state.id());
+  //        max_id = Math.max(max_id, state.id());
+  //
+  //      }
+  //    }
+  //    todo("Use a code range here?");
+  //    int[] result = new int[2];
+  //    result[0] = min_id;
+  //    result[1] = max_id + 1;
+  //    return result;
+  //  }
 
   /**
    * Duplicate the NFA reachable from a state
@@ -167,24 +177,24 @@ public final class ToknUtils {
    */
   public static StatePair duplicateNFA(State startState, State endState, ToknContext context) {
 
-    Map<Integer, State> origToDupStateMap = hashMap();
+    Map<State, State> origToDupStateMap = hashMap();
 
     Set<State> oldStates = reachableStates(startState);
     checkState(oldStates.contains(endState), "end state not reachable");
 
     for (State s : oldStates) {
-      State s2 = new State(context.allocateId(), s.finalState(), null);
-      origToDupStateMap.put(s.id(), s2);
+      State s2 = new State(s.finalState(), null);
+      origToDupStateMap.put(s, s2);
     }
 
     for (State s : oldStates) {
-      State s2 = origToDupStateMap.get(s.id());
+      State s2 = origToDupStateMap.get(s);
       for (Edge edge : s.edges()) {
-        State newTargetState = origToDupStateMap.get(edge.destinationState().id());
+        State newTargetState = origToDupStateMap.get(edge.destinationState());
         s2.edges().add(new Edge(edge.codeRanges(), newTargetState));
       }
     }
-    return statePair(origToDupStateMap.get(startState.id()), origToDupStateMap.get(endState.id()));
+    return statePair(origToDupStateMap.get(startState), origToDupStateMap.get(endState));
   }
 
   private static int[] EPSILON_RANGE = { EPSILON, 1 + EPSILON };
@@ -261,9 +271,9 @@ public final class ToknUtils {
       return "MAX";
     return Integer.toString(charCode);
   }
-  
+
   public static boolean equal(CodeSet a, CodeSet b) {
-      return Arrays.equals(a.elements(),b.elements());
+    return Arrays.equals(a.elements(), b.elements());
   }
-  
+
 }

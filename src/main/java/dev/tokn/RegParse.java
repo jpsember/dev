@@ -499,9 +499,9 @@ public class RegParse {
     State nfa_end = statesp.end;
     checkArgument(!nfa_start.finalState() && !nfa_end.finalState());
 
-    nfa_end = new State(nfa_end.id(), false, nfa_end.edges());
+    nfa_end = new State( false, nfa_end.edges());
 
-    NFAToDFA builder = new NFAToDFA(nfa_start);
+    NFAToDFA builder = new NFAToDFA(mContext, nfa_start);
     builder.withFilter(false);
     State dfa_start_state = builder.nfa_to_dfa();
 
@@ -530,7 +530,7 @@ public class RegParse {
      * for an (entire) input string.
      */
 
-    State f = new State(states.size(), false, null);
+    State f = new State(  false, null);
 
     for (State x : states) {
       if (x.finalState())
@@ -553,20 +553,20 @@ public class RegParse {
 
     states.add(f);
 
-    // Build a map from the DFA state ids to new states within the NFA we're constructing
-    Map<Integer, State> new_state_map = hashMap();
+    // Build a map of old to new states for the NFA
+    Map<State, State> new_state_map = hashMap();
     for (State x : states) {
       State x_new = newState();
-      new_state_map.put(x.id(), x_new);
+      new_state_map.put(x, x_new);
     }
 
     for (State x : states) {
-      State x_new = new_state_map.get(x.id());
+      State x_new = new_state_map.get(x);
       for (Edge edge : x.edges()) {
-        x_new.edges().add(new Edge(edge.codeRanges(), new_state_map.get(edge.destinationState().id())));
+        x_new.edges().add(new Edge(edge.codeRanges(), new_state_map.get(edge.destinationState())));
       }
     }
-    return statePair(new_state_map.get(dfa_start_state.id()), new_state_map.get(f.id()));
+    return statePair(new_state_map.get(dfa_start_state), new_state_map.get(f));
     /**
      *
      * states.each do |x| x_new = new_state_map[x.id] x.edges.each do |code_set,
