@@ -6,7 +6,8 @@ import java.util.Set;
 import java.util.regex.Pattern;
 
 import js.data.IntArray;
-import js.parsing.DFA;
+import js.json.JSList;
+import js.json.JSMap;
 import js.parsing.Edge;
 import js.parsing.RegExp;
 import js.parsing.State;
@@ -26,7 +27,7 @@ public final class DFACompiler {
   //  Regex for token names preceding regular expressions
   private static Pattern TOKENNAME_EXPR = RegExp.pattern("[_A-Za-z][_A-Za-z0-9]*\\s*:\\s*.*");
 
-  public DFA parse(String script) {
+  public JSMap parse(String script) {
 
     int next_token_id = 0;
     List<TokenEntry> token_records = arrayList();
@@ -145,9 +146,103 @@ public final class DFACompiler {
 
     apply_redundant_token_filter(token_records, dfa);
 
-    throw notFinished();
+    return constructJsonDFA(token_records, dfa);
+  }
 
-    // Tokn::DFA.new(token_records.map{|x| x.name}, dfa)
+  private JSMap constructJsonDFA(List<TokenEntry> token_records, State startState) {
+
+    pr(ToknUtils.dumpStateMachine(startState, "construct JSON DFA"));
+    JSMap m = map();
+
+    m.put("version", 3.0);
+
+    JSList list = list();
+    for (TokenEntry ent : token_records) {
+      list.add(ent.name);
+    }
+    m.put("tokens", list);
+
+    List<State> reachable = ToknUtils.reachableStates(startState);
+    State finalState = null;
+
+    Map<State, Integer> stateIndexMap = hashMap();
+    List<State> orderedStates = arrayList();
+
+    int index = 0;
+    for (State s : reachable) {
+      pr("renaming:", s, "=>", index);
+      stateIndexMap.put(s, index);
+      orderedStates.add(s);
+      index++;
+      if (!s.finalState())
+        continue;
+      checkState(finalState == null, "multiple final states");
+      finalState = s;
+    }
+    checkState(stateIndexMap.get(startState) == 0, "unexpected start state index");
+    checkState(finalState != null, "no final state found");
+    int finalStateIndex = stateIndexMap.get(finalState);
+    m.put("final", finalStateIndex);
+
+    JSList states = list();
+    for (State s : orderedStates) {
+      JSList stateDesc = list();
+
+      for (Edge edge : s.edges()) {
+        int[] cr = edge.codeRanges();
+        checkArgument(cr.length >= 2);
+
+        JSList out = list();
+        for (int i = 0; i < cr.length; i+=2) {
+          int a = cr[i];
+          int b = cr[i+1];
+          
+          // Optimization:  if b==a+1, represent ...a,b,... as ...(double)a,....
+          
+          if (b == a+1)
+            out.add((double)a);
+          else {
+            out.add(a);
+            out.add(b);
+          }
+        }
+        
+        // Optimization: if resulting list has only one element, store that as a scalar
+        if (out.size() == 1)
+          stateDesc.addUnsafe(out.getUnsafe(0));
+        else
+          stateDesc.add(out);
+
+        int destStateIndex = stateIndexMap.get(edge.destinationState());
+
+        // Optimization: if destination state is the final state, omit it
+        if (destStateIndex != finalStateIndex)
+          stateDesc.add(destStateIndex);
+      }
+      states.add(stateDesc);
+    }
+    m.put("states", states);
+
+    /**
+     * <pre>
+     * 
+     * {"version":3.0,
+     * "tokens":["WS","IDENTIFIER","PREFIX","EXTENDED"]
+     *  "final":4,
+     *  "states":[
+     *       [97.0,1,   [98,123],2,     [9,11,12,14,32.0],3   ],
+     *       [[98,123],2,   35.0,5,     97.0,7,   -4.0],
+     *       [[97,123],2,   35.0,5   ],
+     *       [[9,11,12,14,32.0],3,     -2.0],
+     *       [],
+     *       [[65,91,95.0,97,123],6],
+     *       [[48,58,65,91,95.0,97,123],6,-3.0],
+     *       [[97.0,99,123],2,35.0,5,98.0,8],
+     *       [[97,123],2,35.0,5,-5.0]
+     *   ]}
+     * </pre>
+     */
+    return m;
   }
 
   /** Determine if regex accepts zero characters */
