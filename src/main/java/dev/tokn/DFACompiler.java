@@ -198,7 +198,7 @@ public final class DFACompiler {
       //  List<Edge> edges = arrayList();
       //  edges.add(ToknUtils.constructEpsilonEdge(dupfinal_state));
 
-      CodeSet cs = CodeSet.withValue(token_id_to_edge_label(tk.id));
+      CodeSet cs = CodeSet.withValue(State.tokenIdToEdgeLabel(tk.id));
       dupEnd.edges().add(new Edge(cs.elements(), dupfinal_state));
 
       // Add an e-transition from the start state to this expression's start
@@ -208,21 +208,37 @@ public final class DFACompiler {
     return start_state;
   }
 
-  /**
-   * Convert a token id (>=0) to an edge label value ( < 0)
-   */
-  private static int token_id_to_edge_label(int id) {
-    return ToknUtils.EPSILON - 1 - id;
-  }
 
   //  private static void addEdge(State source, CodeSet codeSet, State target) {
   //    Edge edge = new Edge(codeSet.elements(), target.id());
   //  }
 
-  // Determine if any tokens are redundant
+  /**
+   *  Determine if any tokens are redundant, and report an error if so
+   */
   private void apply_redundant_token_filter(List<TokenEntry> token_records, State start_state) {
 
-    //    recognized_token_id_set = Set.new
+    Set<Integer> recognized_token_id_set = treeSet();
+    
+    for (State state : ToknUtils.reachableStates(start_state)) {
+      for (Edge edge : state.edges()) {
+        if (!edge.destinationState().finalState()) continue;
+        int token_id = State.edgeLabelToTokenId(edge.codeRanges()[0]);
+        recognized_token_id_set.add(token_id);
+      }
+    }
+    
+    List<String> unrecognized = arrayList();
+    
+    int z = INIT_INDEX;
+    for (TokenEntry rec : token_records) {
+      z++;
+      checkState(z == rec.id,"index:",z,"rec id:",rec.id);
+      if (recognized_token_id_set.contains(rec.id)) continue;
+      unrecognized.add(rec.name);
+    }
+    if (nonEmpty(unrecognized))
+      badState("Redundant token(s) found:",unrecognized);
     //
     //    start_state.reachable_states.each do |state|
     //      state.edges.each do |label, dest|
@@ -243,7 +259,6 @@ public final class DFACompiler {
     //
     //    raise ParseException, "Redundant token(s) found: #{unrecognized.join(", ")}"
     //  end
-    throw notFinished();
   }
 
 }

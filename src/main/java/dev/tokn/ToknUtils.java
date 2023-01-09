@@ -13,10 +13,6 @@ import js.parsing.State;
 
 public final class ToknUtils {
 
-  /**
-   * edge label for epsilon transitions
-   */
-  public static final int EPSILON = -1;
 
   /**
    * One plus the maximum code represented
@@ -180,7 +176,7 @@ public final class ToknUtils {
     return statePair(origToDupStateMap.get(startState), origToDupStateMap.get(endState));
   }
 
-  private static int[] EPSILON_RANGE = { EPSILON, 1 + EPSILON };
+  private static int[] EPSILON_RANGE = { State.EPSILON, 1 +State. EPSILON };
 
   /**
    * Add an epsilon transition to a state
@@ -232,7 +228,7 @@ public final class ToknUtils {
 
     // Unless it corresponds to a non-confusing printable ASCII value,
     // just print its decimal equivalent
-    if (charCode == EPSILON)
+    if (charCode == State.EPSILON)
       return "(e)";
     if (charCode > ' ' && charCode < 0x7f && forbidden.indexOf(charCode) < 0)
       return "'" + Character.toString((char) charCode) + "'";

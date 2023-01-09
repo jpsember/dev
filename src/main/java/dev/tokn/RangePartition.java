@@ -4,6 +4,8 @@ import static js.base.Tools.*;
 
 import java.util.List;
 
+import js.parsing.State;
+
 import static dev.tokn.ToknUtils.*;
 
 /**
@@ -50,7 +52,7 @@ public class RangePartition {
     // We want to be able to include all the token ids as well.
     mRootNode = buildNode(CodeSet.withRange(CODEMIN, CODEMAX));
     // Add epsilon immediately, so it's always in its own subset
-    addSet(CodeSet.withValue(EPSILON));
+    addSet(CodeSet.withValue(State.EPSILON));
   }
 
   public void addSet(CodeSet codeSet) {

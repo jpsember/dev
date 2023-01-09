@@ -8,8 +8,6 @@ import static js.base.Tools.*;
 
 import java.util.Arrays;
 
-import dev.gen.AppInfo;
-
 import static dev.tokn.ToknUtils.*;
 
 public final class CodeSet {
