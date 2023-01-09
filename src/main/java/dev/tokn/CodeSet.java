@@ -5,6 +5,11 @@ import js.data.IntArray;
 import js.json.JSList;
 
 import static js.base.Tools.*;
+
+import java.util.Arrays;
+
+import dev.gen.AppInfo;
+
 import static dev.tokn.ToknUtils.*;
 
 public final class CodeSet {
@@ -223,7 +228,6 @@ public final class CodeSet {
     return false;
   }
 
-  @Deprecated
   public boolean contains(int val) {
     return contains(mElements, val);
   }
@@ -320,4 +324,50 @@ public final class CodeSet {
   public boolean isEmpty() {
     return mElements.length == 0;
   }
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  @Override
+  public boolean equals(Object object) {
+    if (this == object)
+      return true;
+    if (object == null || !(object instanceof CodeSet))
+      return false;
+    CodeSet other = (CodeSet) object;
+    if (other.hashCode() != hashCode())
+      return false;
+    
+    return Arrays.equals(mElements,  other.mElements);
+  }
+
+  @Override
+  public int hashCode() {
+    if (m__hashcode == 0) {
+      m__hashcode= 1 + Arrays.hashCode(mElements);
+    }
+    return m__hashcode;
+  }
+  
+  private int m__hashcode;
 }

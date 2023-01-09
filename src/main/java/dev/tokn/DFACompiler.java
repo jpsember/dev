@@ -108,7 +108,7 @@ public final class DFACompiler {
       String expr = line.substring(pos + 1);
       pr("============== parsing regex:", tokenName);
 
-      RegParse rex = new RegParse(  expr, tokenNameMap, line_number);
+      RegParse rex = new RegParse(expr, tokenNameMap, line_number);
 
       // Give it the next available token id, if it's not an anonymous token; else -1
 
@@ -133,9 +133,9 @@ public final class DFACompiler {
 
       token_records.add(entry);
     }
-    State combined = combine_token_nfas(  token_records);
+    State combined = combine_token_nfas(token_records);
 
-    NFAToDFA builder = new NFAToDFA(  combined);
+    NFAToDFA builder = new NFAToDFA(combined);
     State dfa = builder.nfa_to_dfa();
 
     apply_redundant_token_filter(token_records, dfa);
@@ -158,12 +158,13 @@ public final class DFACompiler {
       if (state == end_state)
         return true;
 
-      if (todo("refactor this code now that id is no longer there"))return false;
-//      for (Edge edge : state.edges()) {
-//        if (CodeSet.contains(edge.codeRanges(), edge.destinationState().id())) {
-//          push(state_stack, edge.destinationState());
-//        }
-//      }
+      if (todo("refactor this code now that id is no longer there"))
+        return false;
+      //      for (Edge edge : state.edges()) {
+      //        if (CodeSet.contains(edge.codeRanges(), edge.destinationState().id())) {
+      //          push(state_stack, edge.destinationState());
+      //        }
+      //      }
     }
     return false;
   }
@@ -175,7 +176,7 @@ public final class DFACompiler {
    * 
    * @param context
    */
-  private State combine_token_nfas(  List<TokenEntry> token_records) {
+  private State combine_token_nfas(List<TokenEntry> token_records) {
 
     // Create a new distinguished start state
     //
@@ -183,7 +184,7 @@ public final class DFACompiler {
     for (TokenEntry tk : token_records) {
       RegParse regParse = tk.reg_ex;
 
-      StatePair newStates = ToknUtils.duplicateNFA(regParse.startState(), regParse.endState() );
+      StatePair newStates = ToknUtils.duplicateNFA(regParse.startState(), regParse.endState());
 
       State dupStart = newStates.start;
 
@@ -192,7 +193,7 @@ public final class DFACompiler {
       // labelled with the token id (actually, a transformed token id to distinguish
       // it from character codes)
       State dupEnd = newStates.end;
-      State dupfinal_state =new State(true);
+      State dupfinal_state = new State(true);
 
       //  List<Edge> edges = arrayList();
       //  edges.add(ToknUtils.constructEpsilonEdge(dupfinal_state));
@@ -219,9 +220,7 @@ public final class DFACompiler {
   //  }
 
   // Determine if any tokens are redundant
-  private void
-
-      apply_redundant_token_filter(List<TokenEntry> token_records, State start_state) {
+  private void apply_redundant_token_filter(List<TokenEntry> token_records, State start_state) {
 
     //    recognized_token_id_set = Set.new
     //

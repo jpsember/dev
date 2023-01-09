@@ -5,7 +5,6 @@ import static js.base.Tools.*;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 
 import js.base.BasePrinter;
@@ -73,7 +72,7 @@ public final class ToknUtils {
    */
   public static State reverseNFA(State startState) {
 
-    final boolean db = true;
+    final boolean db = false;
     if (db) {
       pr(dumpStateMachine(startState, "reverseNFA:"));
     }
@@ -84,27 +83,12 @@ public final class ToknUtils {
     List<State> newFinalStateList = arrayList();
 
     StateRenamer newStateMap = new StateRenamer();
-//    StateRenamer newerStateMap = new StateRenamer();
 
     List<State> stateSet = reachableStates(startState);
     if (db)
       pr("reachable states from", startState, INDENT, State.toString(stateSet));
 
     for (State s : stateSet) {
-
-      if (false && db)
-        pr("processing state:", s);
-
-      //      for (Edge edge : s.edges()) {
-      //        Edge rw = new Edge(edge.codeRanges(),s);
-      //        
-      //        RevWork rw = new RevWork();
-      //        rw.source = edge.destinationState();
-      //        rw.dest = s;
-      //        rw.labelSet = edge.codeRanges();
-      //        edgeList.add(rw);
-      //      }
-
       State newState = newStateMap.put(s, new State(s == startState));
       if (newState.finalState())
         newFinalStateList.add(newState);
@@ -124,36 +108,24 @@ public final class ToknUtils {
       }
     }
 
-    //    
-    //    for (RevWork w : edgeList) {
-    //      State srcState = newStateMap.get(w.source);
-    //      State destState = newStateMap.get(w.dest);
-    //
-    //      List<Edge> edges = newStateEdgeLists.get(srcState);
-    //      if (edges == null) {
-    //        edges = arrayList();
-    //        //   newStateEdgeLists.put(srcState.id(), edges);
-    //      }
-    //      edges.add(new Edge(w.labelSet, destState));
-    //    }
-
     for (State oldS : stateSet) {
       State newState = newStateMap.get(oldS);
       newState.setEdges(em.edgesForState(newState));
     }
 
     //  Create a distinguished start node that points to each of the start nodes
+    
     List<Edge> edges = arrayList();
     for (State s : newStartStateList)
       edges.add(constructEpsilonEdge(s));
-    State w = new State(false, edges);
+    State newStartState = new State(false, edges);
 
     if (db) {
-      pr("new start state:", w);
-      pr(dumpStateMachine(w, "Reversed:"));
+      pr("new start state:", newStartState);
+      pr(dumpStateMachine(newStartState, "Reversed:"));
     }
 
-    return w;
+    return newStartState;
   }
 
   //  /**

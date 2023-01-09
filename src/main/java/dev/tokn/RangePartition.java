@@ -31,17 +31,14 @@ public class RangePartition {
    * A node within a RangePartition tree
    */
   private static class RPNode {
-    public RPNode(int id, CodeSet codeSet) {
-      this.id = id;
+    public RPNode(  CodeSet codeSet) {
       this.codeSet = codeSet;
     }
 
     CodeSet codeSet;
     List<RPNode> children = arrayList();
-    int id;
   }
 
-  private int mNextNodeId;
   private boolean mPrepared;
   private RPNode mRootNode;
   private List<CodeSet> mSetsToAdd;
@@ -151,9 +148,7 @@ public class RangePartition {
 
   //
   private RPNode buildNode(CodeSet codeSet) {
-    int id = mNextNodeId;
-    mNextNodeId++;
-    return new RPNode(id, codeSet);
+    return new RPNode(  codeSet);
   }
 
   //
