@@ -150,7 +150,7 @@ public final class CodeSet {
       badArg("odd number of elements:", elem);
     }
     mElements = elem;
-    mCachedStringRep = null;
+    m__hashcode = 0;
   }
 
   public void setTo(CodeSet source) {
@@ -306,14 +306,10 @@ public final class CodeSet {
 
   @Override
   public String toString() {
-    if (mCachedStringRep == null || alert("always recalc")) {
-      mCachedStringRep = ToknUtils.dumpCodeRange(mElements);
-    }
-    return mCachedStringRep;
+    return ToknUtils.dumpCodeRange(mElements);
   }
 
   private int[] mElements = DataUtil.EMPTY_INT_ARRAY;
-  private String mCachedStringRep;
 
   public int[] elements() {
     return mElements;
@@ -322,30 +318,7 @@ public final class CodeSet {
   public boolean isEmpty() {
     return mElements.length == 0;
   }
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
+
   @Override
   public boolean equals(Object object) {
     if (this == object)
@@ -355,17 +328,17 @@ public final class CodeSet {
     CodeSet other = (CodeSet) object;
     if (other.hashCode() != hashCode())
       return false;
-    
-    return Arrays.equals(mElements,  other.mElements);
+
+    return Arrays.equals(mElements, other.mElements);
   }
 
   @Override
   public int hashCode() {
     if (m__hashcode == 0) {
-      m__hashcode= 1 + Arrays.hashCode(mElements);
+      m__hashcode = 1 + Arrays.hashCode(mElements);
     }
     return m__hashcode;
   }
-  
+
   private int m__hashcode;
 }

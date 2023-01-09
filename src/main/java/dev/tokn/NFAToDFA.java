@@ -25,33 +25,18 @@ import java.util.Set;
  *
  */
 public class NFAToDFA {
-  public NFAToDFA(State start_state) {
-    todo("pass start state to nfa_to_dfa function, avoid lifetime issues with this class");
-    mStartState = start_state;
-    mWithFilter = true;
+
+  public NFAToDFA withFilter(boolean f) {
+    mWithFilter = f;
+    return this;
   }
 
-  public void withFilter(boolean f) {
-    mWithFilter = false;
-  }
-
-  private State mStartState;
-  private boolean mWithFilter;
-
-  //    attr_reader :start_state
-  //    attr_accessor :with_filter
-  //    attr_accessor :generate_pdf
-  //
-  //    def initialize(start_state)
-  //      @start_state = start_state
-  //      @with_filter = true
-  //      @generate_pdf = false
-  //    end
-  //
   /**
    * Convert an NFA to a DFA; return the new start state
    */
-  public State nfa_to_dfa() {
+  public State nfa_to_dfa(State start_state) {
+    checkState(mStartState == null, "already used");
+    mStartState = start_state;
 
     partition_edges();
     minimize();
@@ -76,12 +61,24 @@ public class NFAToDFA {
     //
 
     pr("reversing #1");
+    //pr(ToknUtils.dumpStateMachine(mStartState, "before reverse #1"));
     mStartState = ToknUtils.reverseNFA(mStartState);
+    pr(ToknUtils.dumpStateMachine(mStartState, "after reverse #1"));
+
     nfa_to_dfa_aux();
+
     pr("reversing #2");
     mStartState = ToknUtils.reverseNFA(mStartState);
+    pr(ToknUtils.dumpStateMachine(mStartState, "after reverse #2"));
     nfa_to_dfa_aux();
     normalizeStates(mStartState);
+  }
+
+  private static CodeSet constructKeyForStateCollection(Collection<State> states) {
+    CodeSet keySet = new CodeSet();
+    for (State s : states)
+      keySet.add(s.debugId());
+    return keySet;
   }
 
   /**
@@ -89,21 +86,22 @@ public class NFAToDFA {
    */
   private void nfa_to_dfa_aux() {
 
-    //      @nextId = 0
-    //
-    // Build a map of nfa state ids => nfa states
-    mNFAStateMap = hashMap();
+    mNFAStateSetToDFAStateMap = hashMap();
 
-    //      nfas = start_state.reachable_states
-    //      nfas.each {|s| @nfaStateMap[s.id] = s}
-    //
+    if (true) {
+      for (State state : ToknUtils.reachableStates(mStartState)) {
+        List<State> list = arrayList();
+        list.add(state);
+        CodeSet keySet = constructKeyForStateCollection(list);
+        mNFAStateSetToDFAStateMap.put(keySet, state);
+        pr("storing in NFA state map, key:", keySet, "state:", state);
+      }
+    }
 
     // Initialize a map of nfa state lists, keyed by dfa states
     //
     // TODO: rename later, as this is not a state 'id' list
     sorted_nfa_state_id_lists = hashMap();
-
-    //@sorted_nfa_state_id_lists = []
 
     Set<State> iset = hashSet();
     iset.add(mStartState);
@@ -111,31 +109,38 @@ public class NFAToDFA {
 
     State.bumpDebugIds();
 
-    //
-    //      new_start_state,_ = create_dfa_state_if_necessary(states_to_sorted_ids(iset))
     State new_start_state = create_dfa_state_if_necessary(iset);
 
     List<State> unmarked = arrayList();
     unmarked.add(new_start_state);
 
+    pr("nfa_to_dfa loop start");
     while (nonEmpty(unmarked)) {
       State dfaState = pop(unmarked);
+      pr("unmarked state:", dfaState);
 
       Collection<State> nfaIds = sorted_nfa_state_id_lists.get(dfaState);
-      checkState(nfaIds != null);
+      pr("nfaIds:", nfaIds);
+
+      if (nfaIds == null)
+        badState("dfaState had no entry in sorted_nfa_state_id_lists:", dfaState);
 
       // Map of CodeSet => set of NFA states
       Map<CodeSet, Set<State>> moveMap = hashMap();
 
-      //        # map of CodeSet => set of NFA states
-      //        moveMap = {}
-      //
       for (State nfaState : nfaIds) {
-        for (Edge nfaEdge : nfaState.edges()) {
-          CodeSet codeSet = CodeSet.with(nfaEdge.codeRanges());
-          if (codeSet.contains(State.EPSILON))
-            continue;
 
+        pr("examining nfa state:", nfaState.toString(true));
+
+        for (Edge nfaEdge : nfaState.edges()) {
+          pr("edge:", nfaEdge);
+          CodeSet codeSet = CodeSet.with(nfaEdge.codeRanges());
+
+          if (codeSet.contains(State.EPSILON)) {
+            continue;
+          }
+
+          pr("looking in moveMap for key:", codeSet);
           Set<State> nfaStates = moveMap.get(codeSet);
           if (nfaStates == null) {
             nfaStates = hashSet();
@@ -143,22 +148,6 @@ public class NFAToDFA {
           }
           nfaStates.add(nfaEdge.destinationState());
         }
-        //        nfaIds.each do |nfaId|
-        //          nfaState = @nfaStateMap[nfaId]
-        //          nfaState.edges.each do |lbl,dest|
-        //            if lbl.elements[0] == EPSILON
-        //              next
-        //            end
-        //
-        //            nfaStates = moveMap[lbl]
-        //            if nfaStates.nil?
-        //              nfaStates = Set.new
-        //              moveMap[lbl] = nfaStates
-        //            end
-        //            nfaStates.add(dest)
-        //          end
-        //        end
-        //
       }
 
       for (Entry<CodeSet, Set<State>> moveMapEntry : moveMap.entrySet()) {
@@ -173,36 +162,28 @@ public class NFAToDFA {
       }
     }
     mStartState = new_start_state;
-    //        moveMap.each_pair do |charRange,nfaStates|
-    //          # May be better to test if already in set before calc closure; or simply has closure
-    //          eps_closure(nfaStates)
-    //          dfaDestState, isNew = create_dfa_state_if_necessary(states_to_sorted_ids(nfaStates))
-    //          if isNew
-    //            unmarked.push(dfaDestState)
-    //          end
-    //          dfaState.addEdge(charRange, dfaDestState)
-    //        end
-    //
-    //      end
-    //
-    //      @start_state = new_start_state
-    //    end
   }
 
-  // Modify edges so each is labelled with a disjoint subset
-  //  of characters.  See the notes at the start of this class,
-  //  as well as RangePartition.rb.
-  //  
+  /**
+   * Modify edges so each is labelled with a disjoint subset of characters.
+   */
   private void partition_edges() {
+    final boolean db = false && alert("db is on");
+    if (db)
+      pr("partition_edges");
     RangePartition par = new RangePartition();
+
     List<State> stateSet = ToknUtils.reachableStates(mStartState);
+    if (db)
+      pr("reachable states:", INDENT, stateSet);
+
     for (State s : stateSet) {
       for (Edge edge : s.edges()) {
         // TODO: unnecessary wrapping int[] within CodeSet
         par.addSet(CodeSet.with(edge.codeRanges()));
       }
     }
-    par.prepare();
+
     for (State s : stateSet) {
       List<Edge> newEdges = arrayList();
       for (Edge edge : s.edges()) {
@@ -214,51 +195,26 @@ public class NFAToDFA {
       }
       s.edges().clear();
       s.edges().addAll(newEdges);
+      if (db)
+        pr("partition edges, state now:", INDENT, s.toString(true));
     }
-    //
-    //      par.prepare
-    //
-    //      stateSet.each do |s|
-    //        newEdges = []
-    //        s.edges.each do |lbl, dest|
-    //          newLbls = par.apply(lbl)
-    //          newLbls.each {|x| newEdges.push([x, dest]) }
-    //        end
-    //        s.clearEdges()
-    //
-    //        newEdges.each do |lbl,dest|
-    //          s.addEdge(lbl,dest)
-    //        end
-    //      end
-    //
-    //    end
-    //
-  }
-
-  private static String keyForInts(List<Integer> ints) {
-    StringBuilder sb = new StringBuilder();
-    for (Integer k : ints) {
-      sb.append(' ');
-      sb.append(k);
-    }
-    return sb.toString().trim();
   }
 
   /**
    * Determine if a DFA state exists for a set of NFA states, and add one if
    * not. Sets mDFAStateCreatedFlag true iff a new state was created
    *
-   * @return DFA state
+   * @return DFA state; also, mDFAStateCreatedFlag will be set iff a new state
+   *         was created
    */
   private State create_dfa_state_if_necessary(Collection<State> stateSet) {
     mDFAStateCreatedFlag = false;
-    List<Integer> idList = arrayList();
-    for (State s : stateSet)
-      idList.add(s.debugId());
-    idList.sort(null);
-    String key = keyForInts(idList);
 
-    State newState = mNFAStateMap.get(key);
+    CodeSet keySet = constructKeyForStateCollection(stateSet);
+
+    pr("create_dfa_state_if_necessary for:", keySet);
+
+    State newState = mNFAStateSetToDFAStateMap.get(keySet);
     if (newState == null) {
       mDFAStateCreatedFlag = true;
       newState = new State();
@@ -268,39 +224,14 @@ public class NFAToDFA {
           newState.setFinal(true);
           break;
         }
-      mNFAStateMap.put(key, newState);
+      mNFAStateSetToDFAStateMap.put(keySet, newState);
       sorted_nfa_state_id_lists.put(newState, stateSet);
-      pr("created DFA state", newState, "for set of NFA ids:", key);
+      pr("created DFA state", newState, "for set of NFA ids:", keySet);
     }
     return newState;
   }
 
-  //    # for the set
-  //    #
-  //    # @param sorted_nfa_state_id_list a sorted array of NFA state ids
-  //    # @return a pair [DFA State,
-  //    #                 created flag (boolean): true if this did not already exist]
-  //    #
-  //    def create_dfa_state_if_necessary(sorted_nfa_state_id_list)
-  //      newState = @nfaStateMap[sorted_nfa_state_id_list]
-  //      isNewState = newState.nil?
-  //      if isNewState
-  //        newState = State.new(@nextId)
-  //
-  //        # Determine if any of the NFA states were final states
-  //        newState.final_state = sorted_nfa_state_id_list.any?{|id| @nfaStateMap[id].final_state}
-  //
-  //        @nextId += 1
-  //        @nfaStateMap[sorted_nfa_state_id_list] = newState
-  //        @sorted_nfa_state_id_lists.push(sorted_nfa_state_id_list)
-  //      end
-  //      return [newState,isNewState]
-  //    end
-  //
-  //    def states_to_sorted_ids(s)
-  //      s.to_a.map {|x| x.id}.sort
-  //    end
-  //
+  private boolean mDFAStateCreatedFlag;
 
   /**
    * Calculate the epsilon closure of a set of NFA states
@@ -312,7 +243,8 @@ public class NFAToDFA {
       State s = pop(stk);
       for (Edge edge : s.edges()) {
         if (CodeSet.contains(edge.codeRanges(), State.EPSILON)) {
-          push(stk, edge.destinationState());
+          if (stateSet.add(edge.destinationState()))
+            push(stk, edge.destinationState());
         }
       }
     }
@@ -329,7 +261,7 @@ public class NFAToDFA {
    * 
    * </pre>
    */
-  public static void normalizeStates(State startState) {
+  private static void normalizeStates(State startState) {
     List<State> reachable = ToknUtils.reachableStates(startState);
     for (State s : reachable) {
       normalize(s);
@@ -345,7 +277,7 @@ public class NFAToDFA {
     *  [] delete edges that have empty labels
    * </pre>
    */
-  public static void normalize(State state) {
+  private static void normalize(State state) {
     List<Edge> edgeList = arrayList();
     edgeList.addAll(state.edges());
     edgeList
@@ -378,7 +310,14 @@ public class NFAToDFA {
     state.setEdges(new_edges);
   }
 
-  private Map<String, State> mNFAStateMap;
+  private boolean mWithFilter = true;
+
+  private State mStartState;
+
+  // A map of NFA id sets to NFA states.  
+  // Each NFA id set is represented by a CodeSet, since they support equals+hashcode methods
+  //
+  private Map<CodeSet, State> mNFAStateSetToDFAStateMap;
   private Map<State, Collection<State>> sorted_nfa_state_id_lists;
-  private boolean mDFAStateCreatedFlag;
+
 }

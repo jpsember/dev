@@ -3,6 +3,7 @@ package dev.tokn;
 import static js.base.Tools.*;
 
 import java.util.List;
+import java.util.Set;
 
 import js.parsing.State;
 
@@ -33,7 +34,7 @@ public class RangePartition {
    * A node within a RangePartition tree
    */
   private static class RPNode {
-    public RPNode(  CodeSet codeSet) {
+    public RPNode(CodeSet codeSet) {
       this.codeSet = codeSet;
     }
 
@@ -41,12 +42,9 @@ public class RangePartition {
     List<RPNode> children = arrayList();
   }
 
-  private boolean mPrepared;
-  private RPNode mRootNode;
-  private List<CodeSet> mSetsToAdd;
-
   public RangePartition() {
-    mSetsToAdd = arrayList();
+    //mSetsToAdd = arrayList();
+    mUniqueCodeSets = hashSet();
 
     //  Make the root node hold the largest possible CodeSet. 
     // We want to be able to include all the token ids as well.
@@ -57,56 +55,39 @@ public class RangePartition {
 
   public void addSet(CodeSet codeSet) {
     checkState(!mPrepared);
-
-    // If set already exists, omit
-    for (CodeSet s : mSetsToAdd) {
-      if (equal(s, codeSet))
-        return;
-    }
-
-    push(mSetsToAdd, codeSet);
+    mUniqueCodeSets.add(codeSet);
   }
 
-  //
-  //    def initialize()
-  //      # We will build a tree, where each node has a CodeSet
-  //      # associated with it, and the child nodes (if present)
-  //      # partition this CodeSet into smaller, nonempty sets.
-  //
-  //      # A tree is represented by a node, where each node is a pair [x,y],
-  //      # with x the node's CodeSet, and y a list of the node's children.
-  //
-  //      @nextNodeId = 0
-  //      @prepared = false
-  //
-  //      # Make the root node hold the largest possible CodeSet.
-  //      # We want to be able to include all the token ids as well.
-  //
-  //      @rootNode = buildNode(CodeSet.new(CODEMIN,CODEMAX))
-  //
-  //      @setsToAdd = Set.new
-  //
-  //      # Add epsilon immediately, so it's always in its own subset
-  //      addSet(CodeSet.new(EPSILON))
-  //    end
-  //
+  private void prepare() {
 
-  //
-  public void prepare() {
+    final boolean db = false && alert("db in effect");
+
     checkState(!mPrepared);
+
     // Construct partition from previously added sets
 
-    //
-    //      list = @setsToAdd.to_a
-    //
+    List<CodeSet> setsList = arrayList();
+    setsList.addAll(mUniqueCodeSets);
+
     // Sort set by cardinality: probably get a more balanced tree
     // if larger sets are processed first
-    mSetsToAdd.sort((a, b) -> Integer.compare(b.elements().length, a.elements().length));
+    setsList.sort((a, b) -> Integer.compare(b.elements().length, a.elements().length));
 
-    for (CodeSet s : mSetsToAdd) {
+    for (CodeSet s : setsList)
       addSetAux(s, mRootNode);
-    }
+
     mPrepared = true;
+
+    if (db) {
+      pr("RangePartition prepared; tree:");
+      dump(mRootNode, 0);
+    }
+  }
+
+  private void dump(RPNode node, int indent) {
+    pr(TAB(indent * 4), ToknUtils.dumpCodeRange(node.codeSet.elements()));
+    for (RPNode c : node.children)
+      dump(c, indent + 1);
   }
 
   /**
@@ -119,10 +100,10 @@ public class RangePartition {
    *         necessary)
    */
   public List<CodeSet> apply(CodeSet s) {
-    checkState(mPrepared);
+    if (!mPrepared)
+      prepare();
     List<CodeSet> list = arrayList();
-    CodeSet s2 = s.dup(); // Not sure this is necessary
-    applyAux(mRootNode, s2, list);
+    applyAux(mRootNode, s.dup(), list);
 
     // Sort the list of subsets by their first elements
     list.sort((a, b) -> Integer.compare(a.elements()[0], b.elements()[0]));
@@ -144,26 +125,12 @@ public class RangePartition {
         if (s.isEmpty())
           break;
       }
-
     }
   }
 
-  //
   private RPNode buildNode(CodeSet codeSet) {
-    return new RPNode(  codeSet);
+    return new RPNode(codeSet);
   }
-
-  //
-  //    def buildNodeList(list, root = nil)
-  //      if not root
-  //        root = @rootNode
-  //      end
-  //      list.push(root)
-  //      root.children.each do |x|
-  //        buildNodeList(list, x)
-  //      end
-  //    end
-  //
 
   /**
    * Add a set to the tree, extending the tree as necessary to maintain a
@@ -188,11 +155,9 @@ public class RangePartition {
       return;
 
     if (n.children.isEmpty()) {
-      //    if n.children.empty?
       CodeSet x = n.codeSet.difference(s);
       push(n.children, buildNode(x));
       push(n.children, buildNode(s));
-
     } else {
       for (RPNode m : n.children) {
         CodeSet t = m.codeSet.intersect(s);
@@ -202,5 +167,9 @@ public class RangePartition {
       }
     }
   }
+
+  private boolean mPrepared;
+  private RPNode mRootNode;
+  private Set<CodeSet> mUniqueCodeSets;
 
 }

@@ -13,7 +13,6 @@ import js.parsing.State;
 
 public final class ToknUtils {
 
-
   /**
    * One plus the maximum code represented
    */
@@ -110,7 +109,7 @@ public final class ToknUtils {
     }
 
     //  Create a distinguished start node that points to each of the start nodes
-    
+
     List<Edge> edges = arrayList();
     for (State s : newStartStateList)
       edges.add(constructEpsilonEdge(s));
@@ -176,7 +175,7 @@ public final class ToknUtils {
     return statePair(origToDupStateMap.get(startState), origToDupStateMap.get(endState));
   }
 
-  private static int[] EPSILON_RANGE = { State.EPSILON, 1 +State. EPSILON };
+  private static int[] EPSILON_RANGE = { State.EPSILON, 1 + State.EPSILON };
 
   /**
    * Add an epsilon transition to a state
@@ -201,22 +200,23 @@ public final class ToknUtils {
   public static String dumpCodeRange(int[] elements) {
     checkArgument((elements.length & 1) == 0);
 
-    StringBuilder s = new StringBuilder();
+    StringBuilder sb = new StringBuilder("{");
     int i = 0;
     while (i < elements.length) {
-      if (s.length() > 0)
-        s.append(' ');
+      if (i > 0)
+        sb.append(' ');
 
       int lower = elements[i];
       int upper = elements[i + 1];
-      s.append(element_to_s(lower));
+      sb.append(element_to_s(lower));
       if (upper != 1 + lower) {
-        s.append("..");
-        s.append(element_to_s(upper - 1));
+        sb.append("..");
+        sb.append(element_to_s(upper - 1));
       }
       i += 2;
     }
-    return s.toString();
+    sb.append('}');
+    return sb.toString();
   }
 
   /**
@@ -247,7 +247,10 @@ public final class ToknUtils {
       sb.append(BasePrinter.toString(title));
       sb.append('\n');
     }
-    sb.append("=======================================================\n");
+
+    // Print special spaces to avoid printer swallowing blank lines
+    sb.append("\u00a0\n\u00a0\n\u00a0\n");
+    sb.append("====== State Machine ==================================\n");
     List<State> reachableStates = reachableStates(initialState);
     for (State s : reachableStates) {
       sb.append(toString(s, true));
@@ -271,6 +274,18 @@ public final class ToknUtils {
       }
     }
     return sb.toString();
+  }
+
+  private static String toString(Edge edge) {
+    StringBuilder sb = new StringBuilder();
+    sb.append(dumpCodeRange(edge.codeRanges()));
+    sb.append(" => ");
+    sb.append(edge.destinationState().debugId());
+    return sb.toString();
+  }
+
+  static {
+    BasePrinter.registerClassHandler(Edge.class, (x, p) -> p.append(toString((Edge) x)));
   }
 
 }

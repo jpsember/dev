@@ -132,11 +132,16 @@ public final class DFACompiler {
         throw badArg("Zero-length tokens accepted:", line_number, line);
 
       token_records.add(entry);
+
+      pr(ToknUtils.dumpStateMachine(rex.startState(), "regex for", tokenName));
+
     }
     State combined = combine_token_nfas(token_records);
+    pr(ToknUtils.dumpStateMachine(combined, "combined regex state machines"));
 
-    NFAToDFA builder = new NFAToDFA(combined);
-    State dfa = builder.nfa_to_dfa();
+    NFAToDFA builder = new NFAToDFA();
+    State dfa = builder.nfa_to_dfa(combined);
+    pr(ToknUtils.dumpStateMachine(dfa, "nfa to dfa"));
 
     apply_redundant_token_filter(token_records, dfa);
 
@@ -208,37 +213,41 @@ public final class DFACompiler {
     return start_state;
   }
 
-
   //  private static void addEdge(State source, CodeSet codeSet, State target) {
   //    Edge edge = new Edge(codeSet.elements(), target.id());
   //  }
 
   /**
-   *  Determine if any tokens are redundant, and report an error if so
+   * Determine if any tokens are redundant, and report an error if so
    */
   private void apply_redundant_token_filter(List<TokenEntry> token_records, State start_state) {
 
     Set<Integer> recognized_token_id_set = treeSet();
-    
+
     for (State state : ToknUtils.reachableStates(start_state)) {
       for (Edge edge : state.edges()) {
-        if (!edge.destinationState().finalState()) continue;
+        if (!edge.destinationState().finalState())
+          continue;
         int token_id = State.edgeLabelToTokenId(edge.codeRanges()[0]);
         recognized_token_id_set.add(token_id);
       }
     }
-    
+
     List<String> unrecognized = arrayList();
-    
+
     int z = INIT_INDEX;
     for (TokenEntry rec : token_records) {
       z++;
-      checkState(z == rec.id,"index:",z,"rec id:",rec.id);
-      if (recognized_token_id_set.contains(rec.id)) continue;
+      checkState(z == rec.id, "index:", z, "rec id:", rec.id);
+      if (recognized_token_id_set.contains(rec.id))
+        continue;
       unrecognized.add(rec.name);
     }
+
+    pr(ToknUtils.dumpStateMachine(start_state, "apply_redundant_token_filter"));
+
     if (nonEmpty(unrecognized))
-      badState("Redundant token(s) found:",unrecognized);
+      badState("Redundant token(s) found:", unrecognized);
     //
     //    start_state.reachable_states.each do |state|
     //      state.edges.each do |label, dest|

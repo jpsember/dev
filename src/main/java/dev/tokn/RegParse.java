@@ -100,8 +100,7 @@ public class RegParse {
    *          ids) to be consulted if a curly brace expression appears in the
    *          script
    */
-  public RegParse(  String script, Map<String, TokenEntry> tokenDefMap,
-      int orig_line_number) {
+  public RegParse(String script, Map<String, TokenEntry> tokenDefMap, int orig_line_number) {
     mOrigScript = script;
     mScript = filter_ws(script);
     mTokenDefMap = tokenDefMap;
@@ -498,11 +497,11 @@ public class RegParse {
     State nfa_end = statesp.end;
     checkArgument(!nfa_start.finalState() && !nfa_end.finalState());
 
-    nfa_end = new State( false, nfa_end.edges());
+    nfa_end = new State(false, nfa_end.edges());
 
-    NFAToDFA builder = new NFAToDFA(  nfa_start);
+    NFAToDFA builder = new NFAToDFA();
     builder.withFilter(false);
-    State dfa_start_state = builder.nfa_to_dfa();
+    State dfa_start_state = builder.nfa_to_dfa(nfa_start);
 
     List<State> states = ToknUtils.reachableStates(dfa_start_state);
 
@@ -529,7 +528,7 @@ public class RegParse {
      * for an (entire) input string.
      */
 
-    State f = new State(  false, null);
+    State f = new State(false, null);
 
     for (State x : states) {
       if (x.finalState())
