@@ -104,7 +104,6 @@ public class CompileTest extends MyTestCase {
 
   @Test
   public void partition() {
-    rv();
     State s = new State(false);
     State a = new State();
     State b = new State();

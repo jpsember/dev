@@ -246,29 +246,27 @@ public final class ToknUtils {
    * Modify a state machine's edges so each is labelled with a disjoint subset
    * of characters.
    */
-  public static State partitionEdges(State mStartState) {
+  public static State partitionEdges(State startState) {
     RangePartition par = new RangePartition();
 
-    List<State> stateSet = ToknUtils.reachableStates(mStartState);
+    StateRenamer ren = new StateRenamer();
+    ren.constructNewVersions(startState);
 
-    for (State s : stateSet) {
+    for (State s : ren.oldStates()) {
       for (Edge edge : s.edges())
         par.addSet(CodeSet.with(edge.codeRanges()));
     }
 
-    for (State s : stateSet) {
-      List<Edge> newEdges = arrayList();
+    for (State s : ren.oldStates()) {
+      State sNew = ren.get(s);
       for (Edge edge : s.edges()) {
         List<CodeSet> newLbls = par.apply(CodeSet.with(edge.codeRanges()));
         for (CodeSet x : newLbls) {
-          push(newEdges, ToknUtils.newEdge(s, x.elements(), edge.destinationState()));
+          addEdge(sNew, x, ren.get(edge.destinationState()));
         }
       }
-      s.edges().clear();
-      s.edges().addAll(newEdges);
     }
-    todo("return a new set of states");
-    return mStartState;
+    return ren.get(startState);
   }
 
   private static String toString(Edge edge) {
