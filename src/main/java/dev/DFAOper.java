@@ -92,7 +92,7 @@ public class DFAOper extends AppOper {
     assertExt(targetFile, OBJECT_EXT);
 
     DFACompiler compiler = new DFACompiler();
-    todo("have DFACompiler support verbose, and set according to app");
+    compiler.setVerbose(verbose());
     JSMap jsonMap = compiler.parse(Files.readString(sourceFile));
     String str = jsonMap.toString();
     files().writeIfChanged(targetFile, str);

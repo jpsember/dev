@@ -5,6 +5,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
 
+import js.base.BaseObject;
 import js.data.IntArray;
 import js.json.JSList;
 import js.json.JSMap;
@@ -14,9 +15,7 @@ import js.parsing.State;
 
 import static js.base.Tools.*;
 
-public final class DFACompiler {
-
-  private static final boolean db = false && alert("db is on");
+public final class DFACompiler extends BaseObject {
 
   public JSMap parse(String script) {
 
@@ -98,8 +97,7 @@ public final class DFACompiler {
       String tokenName = line.substring(0, pos).trim();
 
       String expr = line.substring(pos + 1);
-      if (db)
-        pr("============== parsing regex:", tokenName);
+      log("parsing regex:", tokenName);
 
       RegParse rex = new RegParse();
       rex.parse(expr, tokenNameMap, line_number);
@@ -126,17 +124,17 @@ public final class DFACompiler {
         throw badArg("Zero-length tokens accepted:", line_number, line);
 
       token_records.add(entry);
-      if (db)
-        pr(ToknUtils.dumpStateMachine(rex.startState(), "regex for", tokenName));
+      if (verbose())
+        log(ToknUtils.dumpStateMachine(rex.startState(), "regex for", tokenName));
     }
     State combined = combineNFAs(token_records);
-    if (db)
-      pr(ToknUtils.dumpStateMachine(combined, "combined regex state machines"));
+    if (verbose())
+      log(ToknUtils.dumpStateMachine(combined, "combined regex state machines"));
 
     NFAToDFA builder = new NFAToDFA();
     State dfa = builder.nfa_to_dfa(combined);
-    if (db)
-      pr(ToknUtils.dumpStateMachine(dfa, "nfa to dfa"));
+    if (verbose())
+      log(ToknUtils.dumpStateMachine(dfa, "nfa to dfa"));
 
     applyRedundantTokenFilter(token_records, dfa);
 
@@ -152,9 +150,8 @@ public final class DFACompiler {
   private static Pattern TOKENNAME_EXPR = RegExp.pattern("[_A-Za-z][_A-Za-z0-9]*\\s*:\\s*.*");
 
   private JSMap constructJsonDFA(List<TokenEntry> token_records, State startState) {
-
-    if (db)
-      pr(ToknUtils.dumpStateMachine(startState, "construct JSON DFA"));
+    if (verbose())
+      log(ToknUtils.dumpStateMachine(startState, "construct JSON DFA"));
     JSMap m = map();
 
     m.put("version", 3.0);
@@ -312,9 +309,6 @@ public final class DFACompiler {
         continue;
       unrecognized.add(rec.name);
     }
-
-    if (db)
-      pr(ToknUtils.dumpStateMachine(start_state, "apply_redundant_token_filter"));
 
     if (nonEmpty(unrecognized))
       badState("Redundant token(s) found:", unrecognized);

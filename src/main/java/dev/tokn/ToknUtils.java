@@ -233,14 +233,13 @@ public final class ToknUtils {
 
   public static String dumpStateMachine(State initialState, Object... title) {
     StringBuilder sb = new StringBuilder();
+    sb.append("====== State Machine");
     if (title.length != 0) {
+      sb.append(" : ");
       sb.append(BasePrinter.toString(title));
-      sb.append('\n');
     }
+    sb.append('\n');
 
-    // Print special spaces to avoid printer swallowing blank lines
-    sb.append("\u00a0\n\u00a0\n\u00a0\n");
-    sb.append("====== State Machine ==================================\n");
     List<State> reachableStates = reachableStates(initialState);
     for (State s : reachableStates) {
       sb.append(toString(s, true));
