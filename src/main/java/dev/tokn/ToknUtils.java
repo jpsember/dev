@@ -13,6 +13,15 @@ import js.parsing.State;
 
 public final class ToknUtils {
 
+  @Deprecated // Create an 'add edge' utility method
+  public static BigEdge newEdge(State sourceState, int[] codeSet, State destinationState) {
+    return new BigEdge(sourceState, codeSet, destinationState);
+  }
+
+  public static void addEdge(State sourceState, int[] codeSet, State destinationState) {
+   sourceState.edges().add( new BigEdge(sourceState, codeSet, destinationState));
+  }
+
   /**
    * Build set of states reachable from this state
    */
@@ -100,11 +109,9 @@ public final class ToknUtils {
 
     //  Create a distinguished start node that points to each of the start nodes
 
-    List<Edge> edges = arrayList();
+    State newStartState = new State(); //false, edges);
     for (State s : newStartStateList)
-      edges.add(constructEpsilonEdge(s));
-    State newStartState = new State(false, edges);
-
+      newStartState.edges().add(constructEpsilonEdge(newStartState, s));
     if (db) {
       pr("new start state:", newStartState);
       pr(dumpStateMachine(newStartState, "Reversed:"));
@@ -159,7 +166,7 @@ public final class ToknUtils {
       State s2 = origToDupStateMap.get(s);
       for (Edge edge : s.edges()) {
         State newTargetState = origToDupStateMap.get(edge.destinationState());
-        s2.edges().add(new Edge(edge.codeRanges(), newTargetState));
+        s2.edges().add(newEdge(s2, edge.codeRanges(), newTargetState));
       }
     }
     return statePair(origToDupStateMap.get(startState), origToDupStateMap.get(endState));
@@ -171,11 +178,11 @@ public final class ToknUtils {
    * Add an epsilon transition to a state
    */
   public static void addEps(State source, State target) {
-    source.edges().add(new Edge(EPSILON_RANGE, target));
+    source.edges().add(newEdge(source, EPSILON_RANGE, target));
   }
 
-  public static Edge constructEpsilonEdge(State target) {
-    return new Edge(EPSILON_RANGE, target);
+  public static Edge constructEpsilonEdge(State source, State target) {
+    return newEdge(source, EPSILON_RANGE, target);
   }
 
   public static StatePair statePair(State start, State end) {

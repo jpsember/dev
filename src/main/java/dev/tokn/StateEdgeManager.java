@@ -12,8 +12,8 @@ import js.parsing.State;
  * For modifying edges of a state machine, while still treating states as
  * immutable
  */
+@Deprecated // probably can be removed?
 public class StateEdgeManager {
-
 
   public List<Edge> edgesForState(State state) {
     List<Edge> edges = mEdgeLists.get(state);
@@ -26,18 +26,9 @@ public class StateEdgeManager {
 
   public void addEdge(State sourceState, int[] codeRanges, State targetState) {
     List<Edge> edges = edgesForState(sourceState);
-    edges.add(new Edge(codeRanges, targetState));
+    edges.add(ToknUtils.newEdge(sourceState, codeRanges, targetState));
   }
 
-//  /**
-//   * Construct a new version of a state, using the new edges
-//   */
-//  public State constructState(State newState) {
-//    List<Edge> edges = edgesForState(newState);
-//    return new State(newState.finalState(), edges);
-//  }
-
   private Map<State, List<Edge>> mEdgeLists = hashMap();
-
 
 }

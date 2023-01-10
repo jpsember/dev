@@ -17,15 +17,8 @@ import static js.base.Tools.*;
 
 public final class DFACompiler extends BaseObject {
 
-  public JSMap parse(String script) {
+  private void parseLines(String script) {
 
-    int next_token_id = 0;
-    List<TokenEntry> token_records = arrayList();
-
-    // Maps token name to token entry
-    Map<String, TokenEntry> tokenNameMap = hashMap();
-
-    List<String> script_lines = split(script, '\n');
     mOriginalLineNumbers = IntArray.newBuilder();
 
     // Join lines that have been ended with '\' to their following lines;
@@ -38,7 +31,7 @@ public final class DFACompiler extends BaseObject {
 
     int originalLineNumber = 0;
 
-    for (String line : script_lines) {
+    for (String line : split(script, '\n')) {
       originalLineNumber++;
 
       int trailing_backslash_count = 0;
@@ -71,6 +64,20 @@ public final class DFACompiler extends BaseObject {
 
     if (accum != null)
       badArg("Incomplete final line:", INDENT, script);
+  }
+
+  public JSMap parse(String script) {
+
+    // To try make output deterministic?
+    State.resetDebugIds();
+
+    int next_token_id = 0;
+    List<TokenEntry> token_records = arrayList();
+
+    // Maps token name to token entry
+    Map<String, TokenEntry> tokenNameMap = hashMap();
+
+    parseLines(script);
 
     // Now that we've stitched together lines where there were trailing \ characters,
     // process each line as a complete token definition
@@ -271,11 +278,8 @@ public final class DFACompiler extends BaseObject {
       State dupEnd = newStates.end;
       State dupfinal_state = new State(true);
 
-      //  List<Edge> edges = arrayList();
-      //  edges.add(ToknUtils.constructEpsilonEdge(dupfinal_state));
-
       CodeSet cs = CodeSet.withValue(State.tokenIdToEdgeLabel(tk.id));
-      dupEnd.edges().add(new Edge(cs.elements(), dupfinal_state));
+      ToknUtils.addEdge(dupEnd, cs.elements(), dupfinal_state);
 
       // Add an e-transition from the start state to this expression's start
 

@@ -25,7 +25,7 @@ import java.util.Set;
  * details.
  *
  */
-public class NFAToDFA extends BaseObject{
+public class NFAToDFA extends BaseObject {
 
   /**
    * Convert an NFA to a DFA; return the new start state
@@ -51,7 +51,7 @@ public class NFAToDFA extends BaseObject{
     log("reversing #1");
     mStartState = ToknUtils.reverseNFA(mStartState);
     if (verbose())
-     log(ToknUtils.dumpStateMachine(mStartState, "after reverse #1"));
+      log(ToknUtils.dumpStateMachine(mStartState, "after reverse #1"));
 
     nfa_to_dfa_aux();
 
@@ -139,7 +139,7 @@ public class NFAToDFA extends BaseObject{
         State dfaDestState = create_dfa_state_if_necessary(nfaStates);
         if (mDFAStateCreatedFlag)
           unmarked.add(dfaDestState);
-        dfaState.edges().add(new Edge(codeSet.elements(), dfaDestState));
+        ToknUtils.addEdge(dfaState, codeSet.elements(), dfaDestState);
       }
     }
     mStartState = new_start_state;
@@ -170,7 +170,7 @@ public class NFAToDFA extends BaseObject{
       for (Edge edge : s.edges()) {
         List<CodeSet> newLbls = par.apply(CodeSet.with(edge.codeRanges()));
         for (CodeSet x : newLbls) {
-          push(newEdges, new Edge(x.elements(), edge.destinationState()));
+          push(newEdges, ToknUtils.newEdge(s, x.elements(), edge.destinationState()));
         }
 
       }
@@ -274,7 +274,7 @@ public class NFAToDFA extends BaseObject{
         prev_label.addSet(label);
       else {
         if (prev_dest != null) {
-          new_edges.add(new Edge(prev_label.elements(), prev_dest));
+          new_edges.add(ToknUtils.newEdge(state, prev_label.elements(), prev_dest));
         }
         // Must start a fresh copy!  Don't want to modify the original label.
         prev_label = CodeSet.with(label);

@@ -304,7 +304,7 @@ public class RegParse {
       abort("Empty character range");
     State sA = new State();
     State sB = new State();
-    sA.edges().add(new Edge(rs.elements(), sB));
+    ToknUtils.addEdge(sA, rs.elements(), sB);
     return statePair(sA, sB);
   }
 
@@ -372,7 +372,7 @@ public class RegParse {
       // labelled with this code set
       State sA = new State();
       State sB = new State();
-      sA.edges().add(new Edge(code_set.elements(), sB));
+      ToknUtils.addEdge(sA, code_set.elements(), sB);
       e1 = statePair(sA, sB);
     }
       break;
@@ -509,7 +509,7 @@ public class RegParse {
         codeset = codeset.difference(CodeSet.with(e.codeRanges()));
       }
       if (codeset.elements().length != 0) {
-        x.edges().add(new Edge(codeset.elements(), f));
+        ToknUtils.addEdge(x, codeset.elements(), f);
       }
       ToknUtils.addEps(x, f);
     }
