@@ -48,7 +48,7 @@ public class RangePartition {
 
     //  Make the root node hold the largest possible CodeSet. 
     // We want to be able to include all the token ids as well.
-    mRootNode = buildNode(CodeSet.withRange(CODEMIN, CODEMAX));
+    mRootNode = buildNode(CodeSet.withRange(State.CODEMIN, State.CODEMAX));
     // Add epsilon immediately, so it's always in its own subset
     addSet(CodeSet.withValue(State.EPSILON));
   }

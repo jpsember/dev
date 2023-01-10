@@ -14,16 +14,6 @@ import js.parsing.State;
 public final class ToknUtils {
 
   /**
-   * One plus the maximum code represented
-   */
-  public static final int CODEMAX = 0x110000;
-
-  /**
-   * Minimum code possible (e.g., indicating a token id)
-   */
-  public static final int CODEMIN = -10000;
-
-  /**
    * Build set of states reachable from this state
    */
   public static List<State> reachableStates(State sourceState) {
@@ -232,7 +222,7 @@ public final class ToknUtils {
       return "(e)";
     if (charCode > ' ' && charCode < 0x7f && forbidden.indexOf(charCode) < 0)
       return "'" + Character.toString((char) charCode) + "'";
-    if (charCode == CODEMAX - 1)
+    if (charCode == State.CODEMAX - 1)
       return "MAX";
     return Integer.toString(charCode);
   }

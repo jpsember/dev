@@ -303,7 +303,7 @@ public class RegParse {
 
     }
     if (negated && !had_initial_set) {
-      rs = rs.negate(0, CODEMAX);
+      rs = rs.negate(0, State.CODEMAX);
     }
     if (rs.elements().length == 0)
       abort("Empty character range");
@@ -525,7 +525,8 @@ public class RegParse {
         // x.finalState(false);
         continue;
       }
-      CodeSet codeset = CodeSet.withRange(0, CODEMAX);
+      //todo("should this be CODEMIN, or 0?");
+      CodeSet codeset = CodeSet.withRange(State.CODEMIN, State.CODEMAX);
       for (Edge e : x.edges()) {
         codeset = codeset.difference(CodeSet.with(e.codeRanges()));
       }

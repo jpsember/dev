@@ -3,12 +3,11 @@ package dev.tokn;
 import js.data.DataUtil;
 import js.data.IntArray;
 import js.json.JSList;
+import js.parsing.State;
 
 import static js.base.Tools.*;
 
 import java.util.Arrays;
-
-import static dev.tokn.ToknUtils.*;
 
 public final class CodeSet {
 
@@ -241,7 +240,7 @@ public final class CodeSet {
       if (b == a + 1) {
         z.add(a);
       } else {
-        if (b == CODEMAX)
+        if (b == State.CODEMAX)
           b = 0;
         z.add(a);
         z.add(b);
