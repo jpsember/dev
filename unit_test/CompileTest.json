@@ -1,6 +1,7 @@
-{      "alpha" : 7270,
-     "complex" : 3256,
-    "complex1" : 7176,
-  "identifier" : 9867,
-      "simple" : 8275
+{             "alpha" : 7270,
+            "complex" : 3256,
+           "complex1" : 7176,
+         "identifier" : 9867,
+  "printStateMachine" : 8376,
+             "simple" : 8275
 }

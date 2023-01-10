@@ -28,13 +28,16 @@ import static js.base.Tools.*;
 
 import org.junit.Test;
 
+import dev.tokn.CodeSet;
 import dev.tokn.DFACompiler;
 import js.file.FileException;
 import js.file.Files;
 import js.json.JSMap;
 import js.parsing.DFA;
 import js.parsing.Scanner;
+import js.parsing.State;
 import js.testutil.MyTestCase;
+import static dev.tokn.ToknUtils.*;
 
 public class CompileTest extends MyTestCase {
 
@@ -61,6 +64,24 @@ public class CompileTest extends MyTestCase {
   @Test
   public void alpha() {
     proc(" if if  ifif  ");
+  }
+
+  @Test
+  public void printStateMachine() {
+    State s = new State(false);
+    State a = new State();
+    State b = new State();
+    State f = new State(true);
+
+    addEdge(s, cs('X'), a);
+    addEdge(s, cs('Y'), b);
+    addEdge(a, cs('Z'), f);
+    addEdge(b, cs('W'), f);
+    assertMessage(dumpStateMachine(s, name()));
+  }
+
+  private static CodeSet cs(char value) {
+    return CodeSet.withValue(value);
   }
 
   private String testName() {

@@ -19,7 +19,11 @@ public final class ToknUtils {
   }
 
   public static void addEdge(State sourceState, int[] codeSet, State destinationState) {
-   sourceState.edges().add( new BigEdge(sourceState, codeSet, destinationState));
+    sourceState.edges().add(new BigEdge(sourceState, codeSet, destinationState));
+  }
+
+  public static void addEdge(State sourceState, CodeSet codeSet, State destinationState) {
+    addEdge(sourceState, codeSet.elements(), destinationState);
   }
 
   /**
@@ -248,6 +252,7 @@ public final class ToknUtils {
     sb.append('\n');
 
     List<State> reachableStates = reachableStates(initialState);
+    reachableStates.sort(null);
     for (State s : reachableStates) {
       sb.append(toString(s, true));
     }
