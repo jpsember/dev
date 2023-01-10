@@ -34,7 +34,7 @@ public class NFAToDFA extends BaseObject {
     checkState(mStartState == null, "already used");
     mStartState = start_state;
 
-    partition_edges();
+    mStartState = ToknUtils.partitionEdges(mStartState);
     minimize();
     return mStartState;
   }
@@ -143,42 +143,6 @@ public class NFAToDFA extends BaseObject {
       }
     }
     mStartState = new_start_state;
-  }
-
-  /**
-   * Modify edges so each is labelled with a disjoint subset of characters.
-   */
-  private void partition_edges() {
-    final boolean db = false && alert("db is on");
-    if (db)
-      pr("partition_edges");
-    RangePartition par = new RangePartition();
-
-    List<State> stateSet = ToknUtils.reachableStates(mStartState);
-    if (db)
-      pr("reachable states:", INDENT, stateSet);
-
-    for (State s : stateSet) {
-      for (Edge edge : s.edges()) {
-        // TODO: unnecessary wrapping int[] within CodeSet
-        par.addSet(CodeSet.with(edge.codeRanges()));
-      }
-    }
-
-    for (State s : stateSet) {
-      List<Edge> newEdges = arrayList();
-      for (Edge edge : s.edges()) {
-        List<CodeSet> newLbls = par.apply(CodeSet.with(edge.codeRanges()));
-        for (CodeSet x : newLbls) {
-          push(newEdges, ToknUtils.newEdge(s, x.elements(), edge.destinationState()));
-        }
-
-      }
-      s.edges().clear();
-      s.edges().addAll(newEdges);
-      if (db)
-        pr("partition edges, state now:", INDENT, s.toString(true));
-    }
   }
 
   /**

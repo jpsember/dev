@@ -50,10 +50,10 @@ public class RangePartition {
     // We want to be able to include all the token ids as well.
     mRootNode = buildNode(CodeSet.withRange(State.CODEMIN, State.CODEMAX));
     // Add epsilon immediately, so it's always in its own subset
-    addSet(CodeSet.withValue(State.EPSILON));
+    addSet(CodeSet.withValue(State.EPSILON) );
   }
 
-  public void addSet(CodeSet codeSet) {
+  public void addSet(CodeSet  codeSet) {
     checkState(!mPrepared);
     mUniqueCodeSets.add(codeSet);
   }

@@ -35,6 +35,7 @@ import js.file.FileException;
 import js.file.Files;
 import js.json.JSMap;
 import js.parsing.DFA;
+import js.parsing.RegExp;
 import js.parsing.Scanner;
 import js.parsing.State;
 import js.testutil.MyTestCase;
@@ -101,6 +102,25 @@ public class CompileTest extends MyTestCase {
     assertSb();
   }
 
+  @Test
+  public void partition() {
+    rv();
+    State s = new State(false);
+    State a = new State();
+    State b = new State();
+    State f = new State(true);
+
+    addEdge(s, cs("abcdefgh"), a);
+    addEdge(s, cs("cde"), b);
+    addEdge(a, cs("uvwx"), f);
+    addEdge(b, cs("wxyz"), f);
+
+    dump(s, "input");
+    State s2 = partitionEdges(s);
+    dump(s2, "partitioned");
+    assertSb();
+  }
+
   private void dump(State state, Object... messages) {
     String message;
     if (messages.length == 0)
@@ -124,6 +144,16 @@ public class CompileTest extends MyTestCase {
 
   private static CodeSet cs(char value) {
     return CodeSet.withValue(value);
+  }
+
+  private static CodeSet cs(String expr) {
+    checkArgument(RegExp.patternMatchesString("\\w*", expr));
+    CodeSet cs = new CodeSet();
+    for (int i = 0; i < expr.length(); i++) {
+      char c = expr.charAt(i);
+      cs.add(c);
+    }
+    return cs;
   }
 
   private String testName() {
