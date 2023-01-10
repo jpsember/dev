@@ -2,17 +2,17 @@ package dev.tokn;
 
 import js.data.DataUtil;
 import js.data.IntArray;
-import js.json.JSList;
-import js.parsing.State;
 
 import static js.base.Tools.*;
 
 import java.util.Arrays;
 
+/**
+ * A wrapper for the int[] array 'code ranges' used in the Edge class
+ */
 public final class CodeSet {
 
   public static CodeSet withValue(int value) {
-    todo("This class can be reduced to an int array (or a 'range') for simplicity");
     CodeSet c = new CodeSet();
     c.add(value);
     return c;
@@ -53,7 +53,6 @@ public final class CodeSet {
 
   /**
    * Add every value from another CodeSet to this one
-   * 
    */
   public void addSet(int[] sa) {
     for (int i = 0; i < sa.length; i += 2) {
@@ -63,7 +62,6 @@ public final class CodeSet {
 
   /**
    * Add every value from another CodeSet to this one
-   * 
    */
   public void addSet(CodeSet s) {
     addSet(s.elements());
@@ -104,18 +102,10 @@ public final class CodeSet {
     withElem(new_elements.build().array());
   }
 
-  private int elem(int index) {
-    return mElements[index];
-  }
-
-  private int elem(int index, int defaultValue) {
-    if (index >= mElements.length)
-      return defaultValue;
-    return elem(index);
-  }
-
   /**
    * Remove a contiguous range of values from the set
+   * 
+   * (note: not used at present)
    */
   public void remove(int lower, int upper) {
     checkArgument(lower < upper);
@@ -142,18 +132,6 @@ public final class CodeSet {
     }
 
     withElem(new_elements.build().array());
-  }
-
-  private void withElem(int[] elem) {
-    if ((elem.length & 1) != 0) {
-      badArg("odd number of elements:", elem);
-    }
-    mElements = elem;
-    m__hashcode = 0;
-  }
-
-  public void setTo(CodeSet source) {
-    withElem(source.mElements);
   }
 
   /**
@@ -204,14 +182,6 @@ public final class CodeSet {
     return ret;
   }
 
-  private static int last(IntArray.Builder ia) {
-    return ia.get(ia.size() - 1);
-  }
-
-  private static void pop(IntArray.Builder ia) {
-    ia.remove(ia.size() - 1);
-  }
-
   public static boolean contains(int[] rangePairs, int val) {
     int i = 0;
     int[] e = rangePairs;
@@ -229,26 +199,38 @@ public final class CodeSet {
     return contains(mElements, val);
   }
 
-  /**
-   * Get JSON respresentation, which could be a list, or a scalar value
-   */
-  public Object toJson() {
-    IntArray.Builder z = IntArray.newBuilder();
-    for (int index = 0; index < mElements.length; index += 2) {
-      int a = mElements[index];
-      int b = mElements[index + 1];
-      if (b == a + 1) {
-        z.add(a);
-      } else {
-        if (b == State.CODEMAX)
-          b = 0;
-        z.add(a);
-        z.add(b);
-      }
+  @Override
+  public String toString() {
+    return ToknUtils.dumpCodeRange(mElements);
+  }
+
+  public int[] elements() {
+    return mElements;
+  }
+
+  public boolean isEmpty() {
+    return mElements.length == 0;
+  }
+
+  @Override
+  public boolean equals(Object object) {
+    if (this == object)
+      return true;
+    if (object == null || !(object instanceof CodeSet))
+      return false;
+    CodeSet other = (CodeSet) object;
+    if (other.hashCode() != hashCode())
+      return false;
+
+    return Arrays.equals(mElements, other.mElements);
+  }
+
+  @Override
+  public int hashCode() {
+    if (m__hashcode == 0) {
+      m__hashcode = 1 + Arrays.hashCode(mElements);
     }
-    if (z.size() == 1)
-      return z.get(0);
-    return JSList.with(z.array());
+    return m__hashcode;
   }
 
   /**
@@ -303,41 +285,32 @@ public final class CodeSet {
     return ret;
   }
 
-  @Override
-  public String toString() {
-    return ToknUtils.dumpCodeRange(mElements);
+  private int elem(int index) {
+    return mElements[index];
+  }
+
+  private int elem(int index, int defaultValue) {
+    if (index >= mElements.length)
+      return defaultValue;
+    return elem(index);
+  }
+
+  private void withElem(int[] elem) {
+    if ((elem.length & 1) != 0) {
+      badArg("odd number of elements:", elem);
+    }
+    mElements = elem;
+    m__hashcode = 0;
+  }
+
+  private static int last(IntArray.Builder ia) {
+    return ia.get(ia.size() - 1);
+  }
+
+  private static void pop(IntArray.Builder ia) {
+    ia.remove(ia.size() - 1);
   }
 
   private int[] mElements = DataUtil.EMPTY_INT_ARRAY;
-
-  public int[] elements() {
-    return mElements;
-  }
-
-  public boolean isEmpty() {
-    return mElements.length == 0;
-  }
-
-  @Override
-  public boolean equals(Object object) {
-    if (this == object)
-      return true;
-    if (object == null || !(object instanceof CodeSet))
-      return false;
-    CodeSet other = (CodeSet) object;
-    if (other.hashCode() != hashCode())
-      return false;
-
-    return Arrays.equals(mElements, other.mElements);
-  }
-
-  @Override
-  public int hashCode() {
-    if (m__hashcode == 0) {
-      m__hashcode = 1 + Arrays.hashCode(mElements);
-    }
-    return m__hashcode;
-  }
-
   private int m__hashcode;
 }

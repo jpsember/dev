@@ -1,5 +1,6 @@
 package dev.tokn;
 
+import js.base.BaseObject;
 import js.parsing.Edge;
 import js.parsing.State;
 import static js.base.Tools.*;
@@ -24,14 +25,7 @@ import java.util.Set;
  * details.
  *
  */
-public class NFAToDFA {
-
-  private static final boolean db = false && alert("db is on");
-
-  public NFAToDFA withFilter(boolean f) {
-    mWithFilter = f;
-    return this;
-  }
+public class NFAToDFA extends BaseObject{
 
   /**
    * Convert an NFA to a DFA; return the new start state
@@ -42,14 +36,6 @@ public class NFAToDFA {
 
     partition_edges();
     minimize();
-    if (mWithFilter && !alert("skipping any filtering, as I suspect it doesn't do much")) {
-      Filter filter = new Filter(mStartState);
-      filter.apply();
-      if (filter.modified()) {
-        //  Re-minimize the dfa, since it's been modified by the filter
-        minimize();
-      }
-    }
     return mStartState;
   }
 
@@ -62,19 +48,18 @@ public class NFAToDFA {
     // Apparently this  produces a minimal DFA.
     //
 
-    if (db)
-      pr("reversing #1");
+    log("reversing #1");
     mStartState = ToknUtils.reverseNFA(mStartState);
-    if (db)
-      pr(ToknUtils.dumpStateMachine(mStartState, "after reverse #1"));
+    if (verbose())
+     log(ToknUtils.dumpStateMachine(mStartState, "after reverse #1"));
 
     nfa_to_dfa_aux();
 
-    if (db)
-      pr("reversing #2");
+    if (verbose())
+      log("reversing #2");
     mStartState = ToknUtils.reverseNFA(mStartState);
-    if (db)
-      pr(ToknUtils.dumpStateMachine(mStartState, "after reverse #2"));
+    if (verbose())
+      log(ToknUtils.dumpStateMachine(mStartState, "after reverse #2"));
     nfa_to_dfa_aux();
     normalizeStates(mStartState);
   }
@@ -302,8 +287,6 @@ public class NFAToDFA {
 
     state.setEdges(new_edges);
   }
-
-  private boolean mWithFilter = true;
 
   private State mStartState;
 

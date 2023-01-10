@@ -132,6 +132,7 @@ public final class DFACompiler extends BaseObject {
       log(ToknUtils.dumpStateMachine(combined, "combined regex state machines"));
 
     NFAToDFA builder = new NFAToDFA();
+    builder.setVerbose(verbose());
     State dfa = builder.nfa_to_dfa(combined);
     if (verbose())
       log(ToknUtils.dumpStateMachine(dfa, "nfa to dfa"));

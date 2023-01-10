@@ -140,8 +140,6 @@ public class RegParse {
    * current location within the string
    */
   private RuntimeException abort(Object... msgs) {
-    // Assume we've already read the problem character
-    // TODO Test this code
     int i = mCursor - 1 - mCharBuffer.length();
     StringBuilder s = new StringBuilder();
     if (i > 4)
@@ -200,8 +198,6 @@ public class RegParse {
   }
 
   private CodeSet parse_code_set(boolean within_bracket_expr) {
-
-    //pr("parse_code_set:",debPeek());
     int val;
     char c;
 
@@ -451,19 +447,6 @@ public class RegParse {
     return start_end_states;
   }
 
-  //
-  //  def peek(position)
-  //      while @char_buffer.length <= position
-  //        ch = nil
-  //        if @cursor < @script.size
-  //          ch = @script[@cursor]
-  //          @cursor += 1
-  //        end
-  //        @char_buffer << ch
-  //      end
-  //      @char_buffer[position]
-  //    end
-  //
   private boolean read_if(char expChar) {
     boolean found = (peek(0) == expChar);
     if (found)
@@ -483,7 +466,6 @@ public class RegParse {
     nfa_end = new State(false, nfa_end.edges());
 
     NFAToDFA builder = new NFAToDFA();
-    builder.withFilter(false);
     State dfa_start_state = builder.nfa_to_dfa(nfa_start);
 
     List<State> states = ToknUtils.reachableStates(dfa_start_state);
@@ -531,7 +513,6 @@ public class RegParse {
       }
       ToknUtils.addEps(x, f);
     }
-    // f.finalState(true);
 
     states.add(f);
 
@@ -549,55 +530,8 @@ public class RegParse {
       }
     }
     return statePair(new_state_map.get(dfa_start_state), new_state_map.get(f));
-    /**
-     *
-     * states.each do |x| x_new = new_state_map[x.id] x.edges.each do |code_set,
-     * dest_state| x_new.addEdge(code_set, new_state_map[dest_state.id]) end end
-     * 
-     * new_start = new_state_map[dfa_start_state.id] new_end =
-     * new_state_map[f.id]
-     * 
-     * @param position
-     * @return
-     */
-
-    /*
-     * <pre>
-     * 
-     * 
-     * states.add(f)
-     * 
-     * # Build a map from the DFA state ids to new states within the NFA we're
-     * constructing # new_state_map = {} states.each do |x| x_new = newState
-     * new_state_map[x.id] = x_new puts "...mapping #{x.id} --> #{x_new.id}" if
-     * v end
-     * 
-     * states.each do |x| x_new = new_state_map[x.id] x.edges.each do |code_set,
-     * dest_state| x_new.addEdge(code_set, new_state_map[dest_state.id]) end end
-     * 
-     * new_start = new_state_map[dfa_start_state.id] new_end =
-     * new_state_map[f.id]
-     * 
-     * if v puts "returning new start #{new_start.id}, end #{new_end.id}" puts
-     * new_start.describe_state_machine end
-     * 
-     * [new_start,new_end] end
-     * 
-     * </pre>
-     */
-
   }
 
-  //    end
-
-  /**
-   * code_set = parse_code_set(true) if read_if('-') u = code_set.single_value v
-   * = parse_code_set(true).single_value if v < u abort "Illegal range" end
-   * code_set = CodeSet.new(u,v+1) end code_set
-   * 
-   * @param position
-   * @return
-   */
   private CodeSet parseSET() {
     CodeSet code_set = parse_code_set(true);
     if (read_if('-')) {
