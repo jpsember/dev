@@ -29,6 +29,7 @@ import static js.base.Tools.*;
 import org.junit.Test;
 
 import dev.tokn.DFACompiler;
+import js.file.FileException;
 import js.file.Files;
 import js.json.JSMap;
 import js.parsing.DFA;
@@ -46,10 +47,62 @@ public class CompileTest extends MyTestCase {
   public void complex() {
     proc("// comment\n1234\n  'hello'  ");
   }
-  
+
+  @Test
+  public void complex1() {
+    proc();
+  }
+
+  @Test
+  public void identifier() {
+    proc("  alpha123 123 123alpha123");
+  }
+
+  @Test
+  public void alpha() {
+    proc(" if if  ifif  ");
+  }
+
+  private String testName() {
+    parseName();
+    return mTestName;
+  }
+
+  private int testVersion() {
+    parseName();
+    return mVersion;
+  }
+
+  private void parseName() {
+    // If unit test name is xxxx123, extract the suffix 123 as the version for the input
+    if (mTestName == null) {
+      String nm = name();
+      String testName = nm;
+      int j = nm.length();
+      while (true) {
+        char c = nm.charAt(j - 1);
+        if (!(c >= '0' && c <= '9'))
+          break;
+        j--;
+      }
+      if (j < nm.length()) {
+        mVersion = Integer.parseInt(nm.substring(j));
+        testName = nm.substring(0, j);
+      }
+      mTestName = testName;
+    }
+  }
+
+  private String mTestName;
+  private int mVersion = -1;
+
+  private void proc() {
+    proc(null);
+  }
+
   private void proc(String sampleText) {
-    String testName = name();
-    String resourceName = testName + ".txt";
+
+    String resourceName = testName() + ".rxp";
     mScript = Files.readString(this.getClass(), resourceName);
 
     DFACompiler c = new DFACompiler();
@@ -57,6 +110,19 @@ public class CompileTest extends MyTestCase {
 
     pr(mDFAJson);
     files().writeString(generatedFile("dfa.json"), mDFAJson.prettyPrint());
+
+    if (sampleText == null) {
+      // If there's a sample text file, read it
+      String filename = testName() + ".txt";
+      if (testVersion() >= 0)
+        filename = testName() + testVersion() + ".txt";
+      try {
+        sampleText = Files.readString(this.getClass(), filename);
+      } catch (FileException e) {
+      }
+      if (sampleText == null && testVersion() >= 0)
+        badArg("missing sample text file:", filename);
+    }
 
     if (sampleText != null) {
       StringBuilder sb = new StringBuilder();
@@ -68,7 +134,9 @@ public class CompileTest extends MyTestCase {
         sb.append(s.read());
         sb.append('\n');
       }
-      files().writeString(generatedFile("tokens.txt"), sb.toString());
+      String result = sb.toString();
+      log("Parsed tokens:", INDENT, result);
+      files().writeString(generatedFile("tokens.txt"), result);
     }
 
     assertGenerated();

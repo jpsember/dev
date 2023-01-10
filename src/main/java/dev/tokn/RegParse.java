@@ -273,7 +273,6 @@ public class RegParse {
     StatePair sp = parseE();
     mStartState = sp.start;
     mEndState = sp.end;
-
   }
 
   private StatePair parseBRACKETEXPR() {
@@ -310,9 +309,6 @@ public class RegParse {
       abort("Empty character range");
     State sA = new State();
     State sB = new State();
-    pr("sA edges:", sA.edges());
-    pr("rs.elements:", rs.elements());
-    pr("sB:", sB);
     sA.edges().add(new Edge(rs.elements(), sB));
     return statePair(sA, sB);
   }
@@ -430,7 +426,7 @@ public class RegParse {
     char p = peek(0);
     if (p != 0 && !charWithin(p, "|)")) {
       StatePair e2 = parseJ();
-      ToknUtils.addEps(e2.end, e2.start);
+      ToknUtils.addEps(e1.end, e2.start);
       e1 = statePair(e1.start, e2.end);
     }
     return e1;

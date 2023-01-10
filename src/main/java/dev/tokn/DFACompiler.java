@@ -135,7 +135,6 @@ public final class DFACompiler {
       token_records.add(entry);
 
       pr(ToknUtils.dumpStateMachine(rex.startState(), "regex for", tokenName));
-
     }
     State combined = combine_token_nfas(token_records);
     pr(ToknUtils.dumpStateMachine(combined, "combined regex state machines"));
@@ -188,7 +187,9 @@ public final class DFACompiler {
     for (State s : orderedStates) {
       JSList stateDesc = list();
 
+      int edgeIndex = INIT_INDEX;
       for (Edge edge : s.edges()) {
+        edgeIndex++;
         int[] cr = edge.codeRanges();
         checkArgument(cr.length >= 2);
 
@@ -215,8 +216,9 @@ public final class DFACompiler {
 
         int destStateIndex = stateIndexMap.get(edge.destinationState());
 
-        // Optimization: if destination state is the final state, omit it
-        if (destStateIndex != finalStateIndex)
+        // Optimization: if last edge, and destination state is the final state, omit it
+        if (edgeIndex == s.edges().size()-1 && destStateIndex == finalStateIndex)continue;
+        
           stateDesc.add(destStateIndex);
       }
       states.add(stateDesc);
