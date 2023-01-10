@@ -15,8 +15,8 @@ import static dev.tokn.ToknUtils.*;
 
 /**
  * <pre>
- * 
- *  Parses a single regular expression from a string.
+   
+    Parses a single regular expression from a string.
     Produces an NFA with distinguished start and end states
     (none of these states are marked as final states)
    
@@ -25,60 +25,77 @@ import static dev.tokn.ToknUtils.*;
     aid readability.  To represent a space, the \s escape sequence must be used.
     See the file 'sampletokens.txt' for some examples.
    
-  #   Expressions have one of these types:
-  #
-  #   E : base class
-  #   J : a Join expression, formed by concatenating one or more together
-  #   Q : a Quantified expression; followed optionally by '*', '+', or '?'
-  #   P : a Parenthesized expression, which is optionally surrounded with (), {}, []
-  #
-  #   E -> J '|' E
-  #      | J
-  #
-  #   J -> Q J
-  #      | Q
-  #
-  #   Q -> P '*'
-  #      | P '+'
-  #      | P '?'
-  #      | P
-  #
-  #   P -> '(' E ')'
-  #      | '{' TOKENNAME '}'
-  #      | '$' TOKENNAME
-  #      | '^' P
-  #      | BRACKETEXPR
-  #      | CODE_SET
-  #
-  #   BRACKETEXPR -> '[' SET_OPTNEG ']'
-  #
-  #   SET_OPTNEG -> SET+
-  #      |  SET* '^' SET+
-  #
-  #   SET -> CODE_SET
-  #      | CODE_SET '-' CODE_SET
-  #
-  #   CODE_SET ->
-  #         a |  b |  c  ...   any printable except {,},[, etc.
-  #      |  \xhh                  hex value from 00...ff
-  #      |  \0xhh                 hex value from 00...ff
-  #      |  \ u hhhh                hex value from 0000...ffff (e.g., unicode)
-  #      |  \f | \n | \r | \t     formfeed, linefeed, return, tab
-  #      |  \s                    a space (' ')
-  #      |  \d                    digit
-  #      |  \w                    word character
-  #      |  \*                    where * is some other non-alphabetic
-  #                                character that needs to be escaped
-  #
-  # The parser performs recursive descent parsing;
-  # each method returns an NFA represented by
-  # a pair of states: the start and end states.
-  #
+   Expressions have one of these types:
+
+   E : base class
+   J : a Join expression, formed by concatenating one or more together
+   Q : a Quantified expression; followed optionally by '*', '+', or '?'
+   P : a Parenthesized expression, which is optionally surrounded with (), {}, []
+
+   E -> J '|' E
+      | J
+
+   J -> Q J
+      | Q
+
+   Q -> P '*'
+      | P '+'
+      | P '?'
+      | P
+
+   P -> '(' E ')'
+      | '{' TOKENNAME '}'
+      | '$' TOKENNAME
+      | '^' P
+      | BRACKETEXPR
+      | CODE_SET
+
+   BRACKETEXPR -> '[' SET_OPTNEG ']'
+
+   SET_OPTNEG -> SET+
+      |  SET* '^' SET+
+
+   SET -> CODE_SET
+      | CODE_SET '-' CODE_SET
+
+   CODE_SET ->
+         a |  b |  c  ...   any printable except {,},[, etc.
+      |  \xhh                  hex value from 00...ff
+      |  \0xhh                 hex value from 00...ff
+      |  \ u hhhh                hex value from 0000...ffff (e.g., unicode)
+      |  \f | \n | \r | \t     formfeed, linefeed, return, tab
+      |  \s                    a space (' ')
+      |  \d                    digit
+      |  \w                    word character
+      |  \*                    where * is some other non-alphabetic
+                                character that needs to be escaped
+
+ The parser performs recursive descent parsing;
+ each method returns an NFA represented by
+ a pair of states: the start and end states.
+ * 
  * </pre>
- *
  */
 
 public class RegParse {
+
+  /**
+   * Parse a regular expression
+   * 
+   * @param script
+   *          script to parse
+   * @param tokenDefMap
+   *          a map of previously parsed regular expressions (mapping names to
+   *          ids) to be consulted if a curly brace expression appears in the
+   *          script
+   */
+  public void parse(String script, Map<String, TokenEntry> tokenDefMap, int orig_line_number) {
+    mOrigScript = script;
+    mScript = filter_ws(script);
+    mTokenDefMap = tokenDefMap;
+    mOrigLineNumber = orig_line_number;
+    parseScript();
+  }
 
   public State startState() {
     checkNotNull(mStartState);
@@ -88,24 +105,6 @@ public class RegParse {
   public State endState() {
     checkNotNull(mEndState);
     return mEndState;
-  }
-
-  /**
-   * Construct a parser and perform the parsing
-   * 
-   * @param script
-   *          script to parse
-   * @param tokenDefMap
-   *          a map of previously parsed regular expressions (mapping names to
-   *          ids) to be consulted if a curly brace expression appears in the
-   *          script
-   */
-  public RegParse(String script, Map<String, TokenEntry> tokenDefMap, int orig_line_number) {
-    mOrigScript = script;
-    mScript = filter_ws(script);
-    mTokenDefMap = tokenDefMap;
-    mOrigLineNumber = orig_line_number;
-    parseScript();
   }
 
   //   Filter out all spaces and tabs
@@ -346,9 +345,6 @@ public class RegParse {
     if (tokInfo == null)
       abort("Undefined token");
     RegParse rg = tokInfo.reg_ex;
-
-    todo("clean this up");
-
     return duplicateNFA(rg.startState(), rg.endState());
   }
 

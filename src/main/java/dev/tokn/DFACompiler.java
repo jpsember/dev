@@ -112,7 +112,8 @@ public final class DFACompiler {
       if (db)
         pr("============== parsing regex:", tokenName);
 
-      RegParse rex = new RegParse(expr, tokenNameMap, line_number);
+      RegParse rex = new RegParse();
+      rex.parse(expr, tokenNameMap, line_number);
 
       // Give it the next available token id, if it's not an anonymous token; else -1
 
