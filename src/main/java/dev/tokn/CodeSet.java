@@ -9,7 +9,8 @@ import static js.base.Tools.*;
 import java.util.Arrays;
 
 /**
- * A wrapper for the int[] array 'code ranges' used in the Edge class
+ * A wrapper for the int[] array 'code sets' used in the Edge class, with
+ * additional tools for constructing and calculating with them
  */
 public final class CodeSet implements Comparable<CodeSet> {
 
@@ -29,6 +30,32 @@ public final class CodeSet implements Comparable<CodeSet> {
     CodeSet c = new CodeSet();
     c.withElem(elements);
     return c;
+  }
+
+  /**
+   * Construct a CodeSet with the single value EPSILON
+   */
+  public static CodeSet epsilon() {
+    return withValue(State.EPSILON);
+  }
+
+  /**
+   * Have CodeSet implement Comparable interface, to produce deterministic
+   * results
+   */
+  @Override
+  public int compareTo(CodeSet other) {
+    int[] a = mElements;
+    int[] b = other.mElements;
+    int result = Integer.compare(a.length, b.length);
+    if (result == 0) {
+      for (int i = 0; i < a.length; i++) {
+        result = Integer.compare(a[i], b[i]);
+        if (result != 0)
+          break;
+      }
+    }
+    return result;
   }
 
   public CodeSet dup() {
@@ -202,7 +229,7 @@ public final class CodeSet implements Comparable<CodeSet> {
 
   @Override
   public String toString() {
-    return ToknUtils.dumpCodeRange(mElements);
+    return ToknUtils.dumpCodeSet(mElements);
   }
 
   public int[] elements() {
@@ -312,31 +339,5 @@ public final class CodeSet implements Comparable<CodeSet> {
 
   private int[] mElements = DataUtil.EMPTY_INT_ARRAY;
   private int m__hashcode;
-
-  /**
-   * Construct a CodeSet with the single value EPSILON
-   */
-  public static CodeSet epsilon() {
-    return withValue(State.EPSILON);
-  }
-
-  /**
-   * Have CodeSet implement Comparable interface, to produce deterministic
-   * results
-   */
-  @Override
-  public int compareTo(CodeSet other) {
-    int[] a = mElements;
-    int[] b = other.mElements;
-    int result = Integer.compare(a.length, b.length);
-    if (result == 0) {
-      for (int i = 0; i < a.length; i++) {
-        result = Integer.compare(a[i], b[i]);
-        if (result != 0)
-          break;
-      }
-    }
-    return result;
-  }
 
 }

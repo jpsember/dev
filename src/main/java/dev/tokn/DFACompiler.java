@@ -18,15 +18,11 @@ import static js.base.Tools.*;
 public final class DFACompiler extends BaseObject {
 
   public JSMap parse(String script) {
-
-    // To try make output deterministic?
-    State.resetDebugIds();
-
     int next_token_id = 0;
-    List<TokenEntry> token_records = arrayList();
+    List<RegParse> token_records = arrayList();
 
     // Maps token name to token entry
-    Map<String, TokenEntry> tokenNameMap = hashMap();
+    Map<String, RegParse> tokenNameMap = hashMap();
 
     parseLines(script);
 
@@ -57,9 +53,6 @@ public final class DFACompiler extends BaseObject {
       String expr = line.substring(pos + 1);
       log("parsing regex:", tokenName);
 
-      RegParse rex = new RegParse();
-      rex.parse(expr, tokenNameMap, line_number);
-
       // Give it the next available token id, if it's not an anonymous token; else -1
 
       int token_id = -1;
@@ -67,21 +60,24 @@ public final class DFACompiler extends BaseObject {
         token_id = next_token_id;
         next_token_id++;
       }
+      RegParse rex = new RegParse(token_id, tokenName);
 
-      TokenEntry entry = new TokenEntry(tokenName, rex, token_id);
+      rex.parse(expr, tokenNameMap, line_number);
+
+      // TokenType entry = new TokenType(tokenName, rex, token_id);
 
       if (tokenNameMap.containsKey(tokenName))
         throw badArg("Duplicate token name", line_number, line);
 
-      tokenNameMap.put(entry.name, entry);
+      tokenNameMap.put(tokenName, rex);
 
-      if (entry.id < 0)
+      if (rex.id() < 0)
         continue;
 
       if (ToknUtils.acceptsEmptyString(rex.startState(), rex.endState()))
         throw badArg("Zero-length tokens accepted:", line_number, line);
 
-      token_records.add(entry);
+      token_records.add(rex);
       if (verbose())
         log(ToknUtils.dumpStateMachine(rex.startState(), "regex for", tokenName));
     }
@@ -91,7 +87,7 @@ public final class DFACompiler extends BaseObject {
 
     NFAToDFA builder = new NFAToDFA();
     builder.setVerbose(verbose());
-    State dfa = builder.nfa_to_dfa(combined);
+    State dfa = builder.convertNFAToDFA(combined);
     if (verbose())
       log(ToknUtils.dumpStateMachine(dfa, "nfa to dfa"));
 
@@ -159,14 +155,14 @@ public final class DFACompiler extends BaseObject {
   // Regex for token names preceding regular expressions
   private static Pattern TOKENNAME_EXPR = RegExp.pattern("[_A-Za-z][_A-Za-z0-9]*\\s*:\\s*.*");
 
-  private JSMap constructJsonDFA(List<TokenEntry> token_records, State startState) {
+  private JSMap constructJsonDFA(List<RegParse> token_records, State startState) {
     JSMap m = map();
 
     m.put("version", 3.0);
 
     JSList list = list();
-    for (TokenEntry ent : token_records) {
-      list.add(ent.name);
+    for (RegParse ent : token_records) {
+      list.add(ent.name());
     }
     m.put("tokens", list);
 
@@ -198,7 +194,7 @@ public final class DFACompiler extends BaseObject {
       int edgeIndex = INIT_INDEX;
       for (Edge edge : s.edges()) {
         edgeIndex++;
-        int[] cr = edge.codeRanges();
+        int[] cr = edge.codeSets();
         checkArgument(cr.length >= 2);
 
         JSList out = list();
@@ -241,13 +237,12 @@ public final class DFACompiler extends BaseObject {
    * large NFA, each augmented with an edge labelled with the appropriate token
    * identifier to let the tokenizer see which token led to the final state.
    */
-  private State combineNFAs(List<TokenEntry> token_records) {
+  private State combineNFAs(List<RegParse> token_records) {
 
     // Create a new distinguished start state
     //
     State start_state = new State();
-    for (TokenEntry tk : token_records) {
-      RegParse regParse = tk.reg_ex;
+    for (RegParse regParse : token_records) {
 
       StatePair newStates = ToknUtils.duplicateNFA(regParse.startState(), regParse.endState());
 
@@ -260,7 +255,7 @@ public final class DFACompiler extends BaseObject {
       State dupEnd = newStates.end;
       State dupfinal_state = new State(true);
 
-      CodeSet cs = CodeSet.withValue(State.tokenIdToEdgeLabel(tk.id));
+      CodeSet cs = CodeSet.withValue(State.tokenIdToEdgeLabel(regParse.id()));
       ToknUtils.addEdge(dupEnd, cs.elements(), dupfinal_state);
 
       // Add an e-transition from the start state to this expression's start
@@ -273,22 +268,22 @@ public final class DFACompiler extends BaseObject {
   /**
    * Determine if any tokens are redundant, and report an error if so
    */
-  private List<String> applyRedundantTokenFilter(List<TokenEntry> token_records, State start_state) {
+  private List<String> applyRedundantTokenFilter(List<RegParse> token_records, State start_state) {
     Set<Integer> recognizedTokenIdsSet = treeSet();
     for (State state : ToknUtils.reachableStates(start_state)) {
       for (Edge edge : state.edges()) {
         if (!edge.destinationState().finalState())
           continue;
-        int token_id = State.edgeLabelToTokenId(edge.codeRanges()[0]);
+        int token_id = State.edgeLabelToTokenId(edge.codeSets()[0]);
         recognizedTokenIdsSet.add(token_id);
       }
     }
 
     List<String> unrecognized = arrayList();
-    for (TokenEntry rec : token_records) {
-      if (recognizedTokenIdsSet.contains(rec.id))
+    for (RegParse rec : token_records) {
+      if (recognizedTokenIdsSet.contains(rec.id()))
         continue;
-      unrecognized.add(rec.name);
+      unrecognized.add(rec.name());
     }
 
     return unrecognized;

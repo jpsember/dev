@@ -3,10 +3,14 @@ package dev.tokn;
 import js.parsing.Edge;
 import js.parsing.State;
 
-public class BigEdge extends Edge {
+/**
+ * A subclass of Edge that supports source states, useful during DFA
+ * construction
+ */
+final class BigEdge extends Edge {
 
-  public BigEdge(State sourceState, int[] codeRanges, State destState) {
-    super(codeRanges, destState);
+  public BigEdge(State sourceState, int[] codeSet, State destState) {
+    super(codeSet, destState);
     mSourceState = sourceState;
   }
 

@@ -28,7 +28,7 @@ import static dev.tokn.ToknUtils.*;
  * We encourage k to be small by sorting the NFA edges by their label
  * complexity.
  */
-public class RangePartition {
+final class RangePartition {
 
   /**
    * A node within a RangePartition tree
@@ -51,15 +51,12 @@ public class RangePartition {
     addSet(CodeSet.epsilon());
   }
 
-  public void addSet(CodeSet  codeSet) {
+  public void addSet(CodeSet codeSet) {
     checkState(!mPrepared);
     mUniqueCodeSets.add(codeSet);
   }
 
   private void prepare() {
-
-    final boolean db = false && alert("db in effect");
-
     checkState(!mPrepared);
 
     // Construct partition from previously added sets
@@ -75,33 +72,20 @@ public class RangePartition {
       addSetAux(s, mRootNode);
 
     mPrepared = true;
-
-    if (db) {
-      pr("RangePartition prepared; tree:");
-      dump(mRootNode, 0);
-    }
-  }
-
-  private void dump(RPNode node, int indent) {
-    pr(TAB(indent * 4), ToknUtils.dumpCodeRange(node.codeSet.elements()));
-    for (RPNode c : node.children)
-      dump(c, indent + 1);
   }
 
   /**
-   * Apply the partition to a CodeSet
+   * Apply the partition to a code set
    * 
-   * @param s
-   *          CodeSet
-   * @return array of subsets from the partition whose union equals s (this
-   *         array will be the single element s if no partitioning was
+   * @return array of subsets from the partition whose union equals the code set
+   *         (this array will be the single element s if no partitioning was
    *         necessary)
    */
-  public List<CodeSet> apply(CodeSet s) {
+  public List<CodeSet> apply(CodeSet codeSet) {
     if (!mPrepared)
       prepare();
     List<CodeSet> list = arrayList();
-    applyAux(mRootNode, s.dup(), list);
+    applyAux(mRootNode, codeSet.dup(), list);
 
     // Sort the list of subsets by their first elements
     list.sort((a, b) -> Integer.compare(a.elements()[0], b.elements()[0]));

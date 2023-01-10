@@ -11,7 +11,7 @@ import js.parsing.State;
 /**
  * Maintains a map of old to new states
  */
-public final class StateRenamer {
+final class StateRenamer {
 
   /**
    * Construct new versions of all reachable states, omitting edges
@@ -22,9 +22,8 @@ public final class StateRenamer {
   public void constructNewVersions(State oldStartState) {
     State.bumpDebugIds();
     List<State> oldStates = ToknUtils.reachableStates(oldStartState);
-    for (State oldState : oldStates) {
+    for (State oldState : oldStates)
       put(oldState, null);
-    }
   }
 
   /**
@@ -42,7 +41,7 @@ public final class StateRenamer {
     for (State oldState : oldStates) {
       State newState = get(oldState);
       for (Edge e : oldState.edges()) {
-        ToknUtils.addEdge(newState, e.codeRanges(), get(e.destinationState()));
+        ToknUtils.addEdge(newState, e.codeSets(), get(e.destinationState()));
       }
     }
   }
@@ -87,6 +86,6 @@ public final class StateRenamer {
     return newState;
   }
 
-  private final Map<State, State> mMap = treeMap(); //hashMap(); 
-  private List<State> mOldStateList = arrayList();
+  private final Map<State, State> mMap = hashMap();
+  private final List<State> mOldStateList = arrayList();
 }

@@ -81,7 +81,7 @@ public final class ToknUtils {
         State oldDest = oldEdge.destinationState();
         State newDest = newStateMap.get(oldDest);
         // We want a reversed edge
-        addEdge(newDest, oldEdge.codeRanges(), newState);
+        addEdge(newDest, oldEdge.codeSets(), newState);
       }
     }
 
@@ -114,7 +114,7 @@ public final class ToknUtils {
       State s2 = origToDupStateMap.get(s);
       for (Edge edge : s.edges()) {
         State newTargetState = origToDupStateMap.get(edge.destinationState());
-        addEdge(s2, edge.codeRanges(), newTargetState);
+        addEdge(s2, edge.codeSets(), newTargetState);
       }
     }
     return statePair(origToDupStateMap.get(startState), origToDupStateMap.get(endState));
@@ -142,7 +142,7 @@ public final class ToknUtils {
     return sp;
   }
 
-  public static String dumpCodeRange(int[] elements) {
+  public static String dumpCodeSet(int[] elements) {
     checkArgument((elements.length & 1) == 0);
 
     StringBuilder sb = new StringBuilder("{");
@@ -221,7 +221,7 @@ public final class ToknUtils {
         sb.append("       ");
         sb.append(e.destinationState().debugId());
         sb.append(' ');
-        sb.append(dumpCodeRange(e.codeRanges()));
+        sb.append(dumpCodeSet(e.codeSets()));
         sb.append('\n');
       }
     }
@@ -240,13 +240,13 @@ public final class ToknUtils {
 
     for (State s : ren.oldStates()) {
       for (Edge edge : s.edges())
-        par.addSet(CodeSet.with(edge.codeRanges()));
+        par.addSet(CodeSet.with(edge.codeSets()));
     }
 
     for (State s : ren.oldStates()) {
       State sNew = ren.get(s);
       for (Edge edge : s.edges()) {
-        List<CodeSet> newLbls = par.apply(CodeSet.with(edge.codeRanges()));
+        List<CodeSet> newLbls = par.apply(CodeSet.with(edge.codeSets()));
         for (CodeSet x : newLbls) {
           addEdge(sNew, x, ren.get(edge.destinationState()));
         }
@@ -287,7 +287,7 @@ public final class ToknUtils {
     State prev_dest = null;
 
     for (Edge edge : state.edges()) {
-      int[] label = edge.codeRanges();
+      int[] label = edge.codeSets();
       State dest = edge.destinationState();
 
       // If this edge goes to the same state as the previous one (they are in sorted order already), merge with that one...
@@ -331,7 +331,7 @@ public final class ToknUtils {
         return true;
 
       for (Edge edge : state.edges()) {
-        if (CodeSet.contains(edge.codeRanges(), State.EPSILON))
+        if (CodeSet.contains(edge.codeSets(), State.EPSILON))
           push(stateStack, edge.destinationState());
       }
     }
@@ -340,7 +340,7 @@ public final class ToknUtils {
 
   private static String toString(Edge edge) {
     StringBuilder sb = new StringBuilder();
-    sb.append(dumpCodeRange(edge.codeRanges()));
+    sb.append(dumpCodeSet(edge.codeSets()));
     sb.append(" => ");
     sb.append(edge.destinationState().debugId());
     return sb.toString();
@@ -354,12 +354,12 @@ public final class ToknUtils {
     for (State s : reachableStates(startState)) {
       CodeSet prevSet = new CodeSet();
       for (Edge e : s.edges()) {
-        if (CodeSet.contains(e.codeRanges(), State.EPSILON))
+        if (CodeSet.contains(e.codeSets(), State.EPSILON))
           badArg("edge accepts epsilon:", INDENT, toString(s, true));
         ;
 
         // See if the code set intersects union of previous edges' code sets
-        CodeSet ours = CodeSet.with(e.codeRanges());
+        CodeSet ours = CodeSet.with(e.codeSets());
         CodeSet inter = ours.intersect(prevSet);
         if (!inter.isEmpty())
           badArg("multiple edges on inputs:", inter, INDENT, toString(s, true));

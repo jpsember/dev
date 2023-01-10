@@ -77,7 +77,20 @@ import static dev.tokn.ToknUtils.*;
  * </pre>
  */
 
-public class RegParse {
+final class RegParse {
+
+  public RegParse(int id, String name) {
+    mId = id;
+    mName = name;
+  }
+
+  public String name() {
+    return mName;
+  }
+
+  public int id() {
+    return mId;
+  }
 
   /**
    * Parse a regular expression
@@ -88,12 +101,15 @@ public class RegParse {
    *          a map of previously parsed regular expressions (mapping names to
    *          ids) to be consulted if a curly brace expression appears in the
    *          script
+   * @param sourceLineNumber
+   *          for error reporting, the line number where the regular expression
+   *          came from
    */
-  public void parse( String script, Map<String, TokenEntry> tokenDefMap, int orig_line_number) {
+  public void parse(String script, Map<String, RegParse> tokenDefMap, int sourceLineNumber) {
     mOrigScript = script;
     mScript = filter_ws(script);
     mTokenDefMap = tokenDefMap;
-    mOrigLineNumber = orig_line_number;
+    mOrigLineNumber = sourceLineNumber;
     parseScript();
   }
 
@@ -333,15 +349,14 @@ public class RegParse {
     String nameStr = name.toString();
     if (!RegExp.patternMatchesString(TOKENREF_EXPR, nameStr))
       abort("Problem with token name");
-    TokenEntry tokInfo = mTokenDefMap.get(nameStr);
-    if (tokInfo == null) {
+    RegParse regExp = mTokenDefMap.get(nameStr);
+    if (regExp == null) {
       // Leading underscore is optional, as a convenience
-      tokInfo = mTokenDefMap.get("_" + nameStr);
+      regExp = mTokenDefMap.get("_" + nameStr);
     }
-    if (tokInfo == null)
+    if (regExp == null)
       abort("Undefined token");
-    RegParse rg = tokInfo.reg_ex;
-    return duplicateNFA(rg.startState(), rg.endState());
+    return duplicateNFA(regExp.startState(), regExp.endState());
   }
 
   private StatePair parseP() {
@@ -466,7 +481,7 @@ public class RegParse {
     nfa_end = new State(false, nfa_end.edges());
 
     NFAToDFA builder = new NFAToDFA();
-    State dfa_start_state = builder.nfa_to_dfa(nfa_start);
+    State dfa_start_state = builder.convertNFAToDFA(nfa_start);
 
     List<State> states = ToknUtils.reachableStates(dfa_start_state);
 
@@ -506,7 +521,7 @@ public class RegParse {
       //todo("should this be CODEMIN, or 0?");
       CodeSet codeset = CodeSet.withRange(State.CODEMIN, State.CODEMAX);
       for (Edge e : x.edges()) {
-        codeset = codeset.difference(CodeSet.with(e.codeRanges()));
+        codeset = codeset.difference(CodeSet.with(e.codeSets()));
       }
       if (codeset.elements().length != 0) {
         ToknUtils.addEdge(x, codeset.elements(), f);
@@ -527,7 +542,7 @@ public class RegParse {
     for (State x : states) {
       State x_new = new_state_map.get(x);
       for (Edge edge : x.edges()) {
-        x_new.edges().add(new Edge(edge.codeRanges(), new_state_map.get(edge.destinationState())));
+        x_new.edges().add(new Edge(edge.codeSets(), new_state_map.get(edge.destinationState())));
       }
     }
     return statePair(new_state_map.get(dfa_start_state), new_state_map.get(f));
@@ -576,9 +591,11 @@ public class RegParse {
   private State mEndState;
   private String mOrigScript;
   private String mScript;
-  private Map<String, TokenEntry> mTokenDefMap;
+  private Map<String, RegParse> mTokenDefMap;
   private int mOrigLineNumber;
   private StringBuilder mCharBuffer;
   private int mCursor;
+  private final int mId;
+  private final String mName;
 
 }

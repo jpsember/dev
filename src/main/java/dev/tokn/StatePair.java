@@ -5,7 +5,7 @@ import js.parsing.State;
 /**
  * Bookkeeping class
  */
-class StatePair {
+final class StatePair {
   State start;
   State end;
 }

@@ -27,12 +27,12 @@ import java.util.TreeSet;
  * details.
  *
  */
-public class NFAToDFA extends BaseObject {
+final class NFAToDFA extends BaseObject {
 
   /**
    * Convert an NFA to a DFA; return the new start state
    */
-  public State nfa_to_dfa(State start_state) {
+  public State convertNFAToDFA(State start_state) {
     checkState(mStartState == null, "already used");
     mStartState = start_state;
 
@@ -50,7 +50,6 @@ public class NFAToDFA extends BaseObject {
     // Reverse this NFA, convert to DFA, then reverse it, and convert it again.  
     // Apparently this  produces a minimal DFA.
     //
-
     log("reversing #1");
     mStartState = ToknUtils.reverseNFA(mStartState);
     if (verbose())
@@ -75,16 +74,13 @@ public class NFAToDFA extends BaseObject {
     return keySet;
   }
 
-  private void prepareNFAToDFAStateMap() {
-    mNFAStateSetToDFAStateMap.clear();
-  }
 
   /**
    * Convert NFA to DFA
    */
   private void nfa_to_dfa_aux() {
     log("---------- nfa_to_dfa_aux -------------");
-    prepareNFAToDFAStateMap();
+    mNFAStateSetToDFAStateMap.clear();
 
     mDFAStateToNFAStatesMap.clear();
 
@@ -117,7 +113,7 @@ public class NFAToDFA extends BaseObject {
         for (Edge nfaEdge : nfaState.edges()) {
           log("......edge:", nfaEdge);
 
-          CodeSet codeSet = CodeSet.with(nfaEdge.codeRanges());
+          CodeSet codeSet = CodeSet.with(nfaEdge.codeSets());
 
           // This CodeSet is guaranteed to not overlap any other (distinct) CodeSet.
           // Add the destination state to a list keyed to this CodeSet.
@@ -212,7 +208,7 @@ public class NFAToDFA extends BaseObject {
     while (nonEmpty(stk)) {
       State s = pop(stk);
       for (Edge edge : s.edges()) {
-        if (CodeSet.contains(edge.codeRanges(), State.EPSILON)) {
+        if (CodeSet.contains(edge.codeSets(), State.EPSILON)) {
           if (stateSet.add(edge.destinationState()))
             push(stk, edge.destinationState());
         }

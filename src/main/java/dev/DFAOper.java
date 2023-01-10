@@ -69,7 +69,6 @@ public class DFAOper extends AppOper {
 
   @Override
   public void perform() {
-    todo("There is some nondeterminism in the state machines being generated");
     if (mFiles.isEmpty())
       pr("(please specify an ." + SOURCE_EXT + " files)");
     File sourceFile = mFiles.get(0);
