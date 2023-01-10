@@ -24,49 +24,57 @@
  **/
 package dev;
 
-import js.app.App;
-
 import static js.base.Tools.*;
 
-public class Main extends App {
+import java.io.File;
+import java.util.List;
 
-  public static final String VERSION = "1.0";
+import js.app.AppOper;
+import js.app.CmdLineArgs;
+import js.file.Files;
 
-  public static void main(String[] args) {
-    loadTools();
-    App app = new Main();
-    app.startApplication(args);
-    app.exitWithReturnCode();
+public class DFAOper extends AppOper {
+
+  @Override
+  public String userCommand() {
+    return "dfa";
   }
 
   @Override
-  public String getVersion() {
-    return VERSION;
+  public String getHelpDescription() {
+    return "compile .dfa file from an .rxp file";
   }
 
   @Override
-  protected void registerOperations() {
-    registerOper(new CreateAppOper());
-    registerOper(new CreateMakeOper());
-    registerOper(new ResetTestOper());
-    registerOper(new CopyrightOper());
-    registerOper(new ExperimentOper());
-    registerOper(new EntityOper());
-    registerOper(new PushOper());
-    registerOper(new PullOper());
-    registerOper(new SetupMachineOper());
-    registerOper(new SecretsOper());
-    registerOper(new ArchiveOper());
-    registerOper(new PrettyPrintOper());
-    registerOper(new ResizeOper());
-    registerOper(new ExtractUsefulScriptsOper());
-    registerOper(new SplitProjectOper());
-    registerOper(new RemoveExtraneousScriptElementsOper());
-    registerOper(new ConvertJsonOper());
-    registerOper(new FetchCloudFilesOper());
-    registerOper(new MakeScriptOper());
-    registerOper(new WordleOper());
-    registerOper(new DFAOper());
+  protected List<Object> getAdditionalArgs() {
+    return arrayList("<.rxp file>+");
   }
+
+  @Override
+  protected void processAdditionalArgs() {
+    CmdLineArgs args = app().cmdLineArgs();
+    while (args.hasNextArg()) {
+      File relPath = new File(args.nextArg());
+      if (!relPath.isAbsolute()) {
+        relPath = new File(Files.currentDirectory(), relPath.toString());
+      }
+      mFiles.add(relPath);
+    }
+    args.assertArgsDone();
+  }
+
+  @Override
+  public void perform() {
+    if (mFiles.isEmpty())
+      pr("(please specify one or more .rxp files)");
+    for (File f : mFiles)
+      processSourceFile(f);
+  }
+
+  private void processSourceFile(File sourceFile) {
+    todo("do something with source file:", sourceFile);
+  }
+
+  private List<File> mFiles = arrayList();
 
 }
