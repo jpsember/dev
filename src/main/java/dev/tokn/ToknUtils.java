@@ -56,7 +56,7 @@ public final class ToknUtils {
     }
 
     if (db)
-      pr("reachable set:", State.toString(knownStatesSet));
+      pr("reachable set:", State.toString(output));
     return output;
   }
 

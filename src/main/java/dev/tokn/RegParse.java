@@ -517,6 +517,7 @@ public class RegParse {
     states.add(f);
 
     // Build a map of old to new states for the NFA
+    todo("can we use state renamer class?");
     Map<State, State> new_state_map = hashMap();
     for (State x : states) {
       State x_new = new State();

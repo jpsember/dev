@@ -87,6 +87,6 @@ public final class StateRenamer {
     return newState;
   }
 
-  private final Map<State, State> mMap = hashMap();
+  private final Map<State, State> mMap = hashMap(); 
   private List<State> mOldStateList = arrayList();
 }

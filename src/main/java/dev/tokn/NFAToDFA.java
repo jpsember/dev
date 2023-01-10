@@ -77,15 +77,6 @@ public class NFAToDFA extends BaseObject {
 
   private void prepareNFAToDFAStateMap() {
     mNFAStateSetToDFAStateMap.clear();
-    
-    // I don't think we want any states in the map, certainly not NFA states!
-if (false) 
-    for (State state : ToknUtils.reachableStates(mStartState)) {
-      List<State> list = arrayList();
-      list.add(state);
-      CodeSet keySet = constructKeyForStateCollection(list);
-      mNFAStateSetToDFAStateMap.put(keySet, state);
-    }
   }
 
   /**
@@ -171,7 +162,7 @@ if (false)
           log("...this was a new DFA state; marking it for exploration");
           unmarked.add(dfaDestState);
         }
-        log(VERT_SP, "...adding DFA edge", dfaState, codeSet, "==>", dfaDestState,VERT_SP);
+        log(VERT_SP, "...adding DFA edge", dfaState, codeSet, "==>", dfaDestState, VERT_SP);
 
         if (alert("checking for problems")) {
           for (Edge ex : dfaState.edges()) {
@@ -246,7 +237,10 @@ if (false)
   }
 
   private Set<State> eps_closure(State state) {
-    return eps_closure(hashSetWith(state));
+    // The set should be a TreeSet, so the order is deterministic (based on state's debug ids)
+    Set<State> set = treeSet();
+    set.add(state);
+    return eps_closure(set);
   }
 
   private State mStartState;

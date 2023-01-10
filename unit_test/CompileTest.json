@@ -1,13 +1,12 @@
-{                    "alpha" : 7270,
-                   "complex" : 3256,
-                  "complex1" : 7176,
-                "identifier" : 9867,
-                  "intvsdbl" : 5796,
-                 "normalize" : 6155,
+{                    "alpha" : 1316,
+                   "complex" : 9680,
+                  "complex1" : 1380,
+                "identifier" : 3155,
+                  "intvsdbl" : 1356,
       "normalizeMergeLabels" : 7748,
-  "normalizeOmitEmptyLabels" : 8056,
+  "normalizeOmitEmptyLabels" : 6458,
                  "partition" : 9257,
-         "printStateMachine" : 8376,
-                "reverseDFA" : 6116,
-                    "simple" : 8275
+         "printStateMachine" : 5234,
+                "reverseDFA" : 7204,
+                    "simple" : 5249
 }
