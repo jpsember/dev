@@ -2,6 +2,7 @@
                    "complex" : 3256,
                   "complex1" : 7176,
                 "identifier" : 9867,
+                  "intvsdbl" : 5796,
                  "normalize" : 6155,
       "normalizeMergeLabels" : 7748,
   "normalizeOmitEmptyLabels" : 8056,
