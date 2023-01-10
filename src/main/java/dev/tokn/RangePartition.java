@@ -43,10 +43,8 @@ public class RangePartition {
   }
 
   public RangePartition() {
-    //mSetsToAdd = arrayList();
-    mUniqueCodeSets = treeSet(); // hashSet();// is a hashSet sufficient?
-
-    //  Make the root node hold the largest possible CodeSet. 
+    mUniqueCodeSets = hashSet();
+    // Make the root node hold the largest possible CodeSet. 
     // We want to be able to include all the token ids as well.
     mRootNode = buildNode(CodeSet.withRange(State.CODEMIN, State.CODEMAX));
     // Add epsilon immediately, so it's always in its own subset

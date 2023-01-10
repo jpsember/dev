@@ -29,34 +29,21 @@ public final class ToknUtils {
    * Build set of states reachable from this state
    */
   public static List<State> reachableStates(State sourceState) {
-
-    final boolean db = false;
-
-    if (db)
-      pr("reachableStates from:", sourceState);
-
-    Set<State> knownStatesSet = treeSet(); // hashSet();  // is a hashSet sufficient? ought to be
-    List<State> scanStack = arrayList();
+    Set<State> knownStatesSet = hashSet();
+    List<State> stack = arrayList();
     List<State> output = arrayList();
-    push(scanStack, sourceState);
+    push(stack, sourceState);
     knownStatesSet.add(sourceState);
 
-    while (nonEmpty(scanStack)) {
-
-      State st = pop(scanStack);
-      output.add(st);
-      if (db)
-        pr(st.toString(true));
-
-      for (Edge edge : st.edges()) {
+    while (nonEmpty(stack)) {
+      State state = pop(stack);
+      output.add(state);
+      for (Edge edge : state.edges()) {
         State dest = edge.destinationState();
         if (knownStatesSet.add(dest))
-          push(scanStack, dest);
+          push(stack, dest);
       }
     }
-
-    if (db)
-      pr("reachable set:", State.toString(output));
     return output;
   }
 
@@ -332,8 +319,7 @@ public final class ToknUtils {
    * consuming no input
    */
   public static boolean acceptsEmptyString(State stateA, State stateB) {
-
-    Set<State> markedStates = treeSet(); // is a hashSet sufficient?
+    Set<State> markedStates = hashSet();
     List<State> stateStack = arrayList();
     push(stateStack, stateA);
     while (nonEmpty(stateStack)) {

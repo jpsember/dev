@@ -5,7 +5,6 @@ import js.parsing.Edge;
 import js.parsing.State;
 import static js.base.Tools.*;
 
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -159,16 +158,6 @@ public class NFAToDFA extends BaseObject {
           unmarked.add(dfaDestState);
         }
         log(VERT_SP, "...adding DFA edge", dfaState, codeSet, "==>", dfaDestState, VERT_SP);
-
-        if (false && alert("checking for problems")) {
-          for (Edge ex : dfaState.edges()) {
-            if (Arrays.equals(ex.codeRanges(), codeSet.elements())) {
-              die("attempt to add second edge with same label!", INDENT, ToknUtils.toString(dfaState, true),
-                  CR, ex);
-            }
-          }
-        }
-
         ToknUtils.addEdge(dfaState, codeSet.elements(), dfaDestState);
       }
     }
