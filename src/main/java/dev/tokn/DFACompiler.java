@@ -16,18 +16,7 @@ import static js.base.Tools.*;
 
 public final class DFACompiler {
 
-  private IntArray.Builder mOriginalLineNumbers;
-  private List<String> mSourceLines;
-
   private static final boolean db = false && alert("db is on");
-
-  private static String leftTrim(String s) {
-    String r = (s + "|").trim();
-    return r.substring(0, r.length() - 1);
-  }
-
-  //  Regex for token names preceding regular expressions
-  private static Pattern TOKENNAME_EXPR = RegExp.pattern("[_A-Za-z][_A-Za-z0-9]*\\s*:\\s*.*");
 
   public JSMap parse(String script) {
 
@@ -133,14 +122,14 @@ public final class DFACompiler {
       if (entry.id < 0)
         continue;
 
-      if (accepts_zero_characters(rex.startState(), rex.endState()))
+      if (acceptsEmptyString(rex.startState(), rex.endState()))
         throw badArg("Zero-length tokens accepted:", line_number, line);
 
       token_records.add(entry);
       if (db)
         pr(ToknUtils.dumpStateMachine(rex.startState(), "regex for", tokenName));
     }
-    State combined = combine_token_nfas(token_records);
+    State combined = combineNFAs(token_records);
     if (db)
       pr(ToknUtils.dumpStateMachine(combined, "combined regex state machines"));
 
@@ -149,10 +138,18 @@ public final class DFACompiler {
     if (db)
       pr(ToknUtils.dumpStateMachine(dfa, "nfa to dfa"));
 
-    apply_redundant_token_filter(token_records, dfa);
+    applyRedundantTokenFilter(token_records, dfa);
 
     return constructJsonDFA(token_records, dfa);
   }
+
+  private static String leftTrim(String s) {
+    String r = (s + "|").trim();
+    return r.substring(0, r.length() - 1);
+  }
+
+  //  Regex for token names preceding regular expressions
+  private static Pattern TOKENNAME_EXPR = RegExp.pattern("[_A-Za-z][_A-Za-z0-9]*\\s*:\\s*.*");
 
   private JSMap constructJsonDFA(List<TokenEntry> token_records, State startState) {
 
@@ -234,8 +231,10 @@ public final class DFACompiler {
     return m;
   }
 
-  /** Determine if regex accepts zero characters */
-  private static boolean accepts_zero_characters(State start_state, State end_state) {
+  /**
+   * Determine if regex accepts zero characters
+   */
+  private static boolean acceptsEmptyString(State start_state, State end_state) {
     Set<State> marked_states = hashSet();
     List<State> state_stack = arrayList();
     push(state_stack, start_state);
@@ -254,10 +253,8 @@ public final class DFACompiler {
    * Combine the individual NFAs constructed for the token definitions into one
    * large NFA, each augmented with an edge labelled with the appropriate token
    * identifier to let the tokenizer see which token led to the final state.
-   * 
-   * @param context
    */
-  private State combine_token_nfas(List<TokenEntry> token_records) {
+  private State combineNFAs(List<TokenEntry> token_records) {
 
     // Create a new distinguished start state
     //
@@ -289,14 +286,10 @@ public final class DFACompiler {
     return start_state;
   }
 
-  //  private static void addEdge(State source, CodeSet codeSet, State target) {
-  //    Edge edge = new Edge(codeSet.elements(), target.id());
-  //  }
-
   /**
    * Determine if any tokens are redundant, and report an error if so
    */
-  private void apply_redundant_token_filter(List<TokenEntry> token_records, State start_state) {
+  private void applyRedundantTokenFilter(List<TokenEntry> token_records, State start_state) {
 
     Set<Integer> recognized_token_id_set = treeSet();
 
@@ -325,26 +318,9 @@ public final class DFACompiler {
 
     if (nonEmpty(unrecognized))
       badState("Redundant token(s) found:", unrecognized);
-    //
-    //    start_state.reachable_states.each do |state|
-    //      state.edges.each do |label, dest|
-    //        next unless dest.final_state
-    //        token_id = ToknInternal::edge_label_to_token_id(label.elements[0])
-    //        recognized_token_id_set.add(token_id)
-    //      end
-    //    end
-    //
-    //    unrecognized = []
-    //
-    //    token_records.each do |rec|
-    //      next if recognized_token_id_set.include? rec.id
-    //      unrecognized << rec.name
-    //    end
-    //
-    //    return if unrecognized.empty?
-    //
-    //    raise ParseException, "Redundant token(s) found: #{unrecognized.join(", ")}"
-    //  end
   }
+
+  private IntArray.Builder mOriginalLineNumbers;
+  private List<String> mSourceLines;
 
 }
