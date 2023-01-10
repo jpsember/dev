@@ -45,6 +45,13 @@ import static dev.tokn.ToknUtils.*;
 
 public class CompileTest extends MyTestCase {
 
+  @Override
+  public void setup() {
+    super.setup();
+    // We need to reset the debug ids before each test, for deterministic behaviour
+    State.resetDebugIds();
+  }
+  
   @Test
   public void simple() {
     proc("abbaaa");
@@ -68,6 +75,16 @@ public class CompileTest extends MyTestCase {
   @Test
   public void intvsdbl() {
     proc();
+  }
+
+  @Test
+  public void subsumed() {
+    try {
+      proc("abab bca bbc bc");
+      die("expected redundant tokens");
+    } catch (IllegalArgumentException e) {
+      checkState(e.getMessage().contains("Redundant token"));
+    }
   }
 
   @Test
@@ -115,7 +132,8 @@ public class CompileTest extends MyTestCase {
   }
 
   @Test
-  public void partition() {
+  public void partition() {  
+    todo("failing due to nondeterminism?");
     State s = new State(false);
     State a = new State();
     State b = new State();

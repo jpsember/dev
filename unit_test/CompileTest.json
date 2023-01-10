@@ -3,10 +3,10 @@
                   "complex1" : 5159,
                 "identifier" : 8387,
                   "intvsdbl" : 1356,
-      "normalizeMergeLabels" : 7748,
-  "normalizeOmitEmptyLabels" : 6458,
-                 "partition" : 9257,
-         "printStateMachine" : 5234,
-                "reverseDFA" : 7204,
+      "normalizeMergeLabels" : 9744,
+  "normalizeOmitEmptyLabels" : 1109,
+                 "partition" : 7808,
+         "printStateMachine" : 2680,
+                "reverseDFA" : 3300,
                     "simple" : 5249
 }

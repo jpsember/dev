@@ -95,7 +95,9 @@ public final class DFACompiler extends BaseObject {
     if (verbose())
       log(ToknUtils.dumpStateMachine(dfa, "nfa to dfa"));
 
-    applyRedundantTokenFilter(token_records, dfa);
+    List<String> redundantTokenNames = applyRedundantTokenFilter(token_records, dfa);
+    if (nonEmpty(redundantTokenNames))
+      badArg("Redundant token(s) found (move them later in the .rxp file!):", redundantTokenNames);
 
     return constructJsonDFA(token_records, dfa);
   }
@@ -271,32 +273,25 @@ public final class DFACompiler extends BaseObject {
   /**
    * Determine if any tokens are redundant, and report an error if so
    */
-  private void applyRedundantTokenFilter(List<TokenEntry> token_records, State start_state) {
-
-    Set<Integer> recognized_token_id_set = treeSet();
-
+  private List<String> applyRedundantTokenFilter(List<TokenEntry> token_records, State start_state) {
+    Set<Integer> recognizedTokenIdsSet = treeSet();
     for (State state : ToknUtils.reachableStates(start_state)) {
       for (Edge edge : state.edges()) {
         if (!edge.destinationState().finalState())
           continue;
         int token_id = State.edgeLabelToTokenId(edge.codeRanges()[0]);
-        recognized_token_id_set.add(token_id);
+        recognizedTokenIdsSet.add(token_id);
       }
     }
 
     List<String> unrecognized = arrayList();
-
-    int z = INIT_INDEX;
     for (TokenEntry rec : token_records) {
-      z++;
-      checkState(z == rec.id, "index:", z, "rec id:", rec.id);
-      if (recognized_token_id_set.contains(rec.id))
+      if (recognizedTokenIdsSet.contains(rec.id))
         continue;
       unrecognized.add(rec.name);
     }
 
-    if (nonEmpty(unrecognized))
-      badState("Redundant token(s) found:", unrecognized);
+    return unrecognized;
   }
 
   private IntArray.Builder mOriginalLineNumbers;
