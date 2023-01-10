@@ -70,12 +70,15 @@ public final class ToknUtils {
    */
   public static State reverseNFA(State startState) {
 
-    final boolean db = false;
+    final boolean db = true;
     if (db) {
       pr(dumpStateMachine(startState, "reverseNFA:"));
     }
 
     State.bumpDebugIds();
+
+    // Create new start state first, so it has the lowest id
+    State newStartState = new State();
 
     List<State> newStartStateList = arrayList();
     List<State> newFinalStateList = arrayList();
@@ -111,9 +114,8 @@ public final class ToknUtils {
       newState.setEdges(em.edgesForState(newState));
     }
 
-    //  Create a distinguished start node that points to each of the start nodes
+    //  Make start node point to each of the reversed start nodes
 
-    State newStartState = new State(); //false, edges);
     for (State s : newStartStateList)
       newStartState.edges().add(constructEpsilonEdge(newStartState, s));
     if (db) {
@@ -252,8 +254,15 @@ public final class ToknUtils {
     sb.append('\n');
 
     List<State> reachableStates = reachableStates(initialState);
+
+    // Sort them by their debug ids
     reachableStates.sort(null);
+
+    // But make sure the start state is first
+    sb.append(toString(initialState, true));
     for (State s : reachableStates) {
+      if (s == initialState)
+        continue;
       sb.append(toString(s, true));
     }
     sb.append("=======================================================\n");

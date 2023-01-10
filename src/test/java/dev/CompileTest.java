@@ -30,6 +30,7 @@ import org.junit.Test;
 
 import dev.tokn.CodeSet;
 import dev.tokn.DFACompiler;
+import js.base.BasePrinter;
 import js.file.FileException;
 import js.file.Files;
 import js.json.JSMap;
@@ -77,7 +78,50 @@ public class CompileTest extends MyTestCase {
     addEdge(s, cs('Y'), b);
     addEdge(a, cs('Z'), f);
     addEdge(b, cs('W'), f);
-    assertMessage(dumpStateMachine(s, name()));
+
+    dump(s);
+    assertSb();
+  }
+
+  @Test
+  public void reverseDFA() {
+    State s = new State(false);
+    State a = new State();
+    State b = new State();
+    State f = new State(true);
+
+    addEdge(s, cs('X'), a);
+    addEdge(s, cs('Y'), b);
+    addEdge(a, cs('Z'), f);
+    addEdge(b, cs('W'), f);
+
+    dump(s, "input");
+    State s2 = reverseNFA(s);
+    dump(s2, "reversed");
+    assertSb();
+
+    assertMessage(dumpStateMachine(s2, name()));
+  }
+
+  private void dump(State state, Object... messages) {
+    String message;
+    if (messages.length == 0)
+      message = name();
+    else
+      message = BasePrinter.toString(messages);
+    sb().append(dumpStateMachine(state, message));
+  }
+
+  private StringBuilder sb() {
+    if (mStringBuilder == null)
+      mStringBuilder = new StringBuilder();
+    return mStringBuilder;
+  }
+
+  private StringBuilder mStringBuilder;
+
+  private void assertSb() {
+    assertMessage(sb().toString());
   }
 
   private static CodeSet cs(char value) {

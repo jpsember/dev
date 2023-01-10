@@ -3,5 +3,6 @@
            "complex1" : 7176,
          "identifier" : 9867,
   "printStateMachine" : 8376,
+         "reverseDFA" : 8451,
              "simple" : 8275
 }
