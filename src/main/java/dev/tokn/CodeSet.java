@@ -2,6 +2,7 @@ package dev.tokn;
 
 import js.data.DataUtil;
 import js.data.IntArray;
+import js.parsing.State;
 
 import static js.base.Tools.*;
 
@@ -313,4 +314,13 @@ public final class CodeSet {
 
   private int[] mElements = DataUtil.EMPTY_INT_ARRAY;
   private int m__hashcode;
+
+  /**
+   * Construct a CodeSet with the single value EPSILON
+   * 
+   * @return
+   */
+  public static CodeSet epsilon() {
+    return withValue(State.EPSILON);
+  }
 }

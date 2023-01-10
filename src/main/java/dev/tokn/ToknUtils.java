@@ -327,6 +327,31 @@ public final class ToknUtils {
     state.setEdges(new_edges);
   }
 
+  /**
+   * Determine if a state machine can get from one state to another while
+   * consuming no input
+   */
+  public static boolean acceptsEmptyString(State stateA, State stateB) {
+
+    Set<State> markedStates = hashSet();
+    List<State> stateStack = arrayList();
+    push(stateStack, stateA);
+    while (nonEmpty(stateStack)) {
+      State state = pop(stateStack);
+      if (markedStates.contains(state))
+        continue;
+      markedStates.add(state);
+      if (state == stateB)
+        return true;
+
+      for (Edge edge : state.edges()) {
+        if (CodeSet.contains(edge.codeRanges(), State.EPSILON))
+          push(stateStack, edge.destinationState());
+      }
+    }
+    return false;
+  }
+
   private static String toString(Edge edge) {
     StringBuilder sb = new StringBuilder();
     sb.append(dumpCodeRange(edge.codeRanges()));

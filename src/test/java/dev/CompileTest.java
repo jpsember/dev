@@ -25,6 +25,7 @@
 package dev;
 
 import static js.base.Tools.*;
+import static org.junit.Assert.*;
 
 import org.junit.Test;
 
@@ -51,6 +52,11 @@ public class CompileTest extends MyTestCase {
   @Test
   public void complex() {
     proc("// comment\n1234\n  'hello'  ");
+  }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void zerolen() {
+    proc("hello");
   }
 
   @Test
@@ -155,6 +161,46 @@ public class CompileTest extends MyTestCase {
     State s2 = normalizeStates(s);
     dump(s2, "normalized");
     assertSb();
+  }
+
+  @Test
+  public void acceptsEmptyStringTrue() {
+    State s = new State(false);
+    State a = new State();
+    State b = new State();
+    State f = new State(true);
+
+    addEdge(s, CodeSet.epsilon(), a);
+    addEdge(s, cs("cde"), b);
+
+    CodeSet ck = cs("uvwx");
+    ck.add(State.EPSILON);
+
+    addEdge(a, ck, f);
+    addEdge(b, cs("wxyz"), f);
+
+    dump(s, "input");
+
+    assertTrue(acceptsEmptyString(s, f));
+  }
+
+  @Test
+  public void acceptsEmptyStringFalse() {
+    State s = new State(false);
+    State a = new State();
+    State b = new State();
+    State f = new State(true);
+
+    addEdge(s, CodeSet.epsilon(), a);
+    addEdge(s, cs("cde"), b);
+
+    CodeSet ck = cs("uvwx");
+    addEdge(a, ck, f);
+    addEdge(b, cs("wxyz"), f);
+
+    dump(s, "input");
+
+    assertFalse(acceptsEmptyString(s, f));
   }
 
   private void dump(State state, Object... messages) {

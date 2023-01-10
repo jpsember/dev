@@ -17,55 +17,6 @@ import static js.base.Tools.*;
 
 public final class DFACompiler extends BaseObject {
 
-  private void parseLines(String script) {
-
-    mOriginalLineNumbers = IntArray.newBuilder();
-
-    // Join lines that have been ended with '\' to their following lines;
-    // only do this if there's an odd number of '\' at the end
-
-    mSourceLines = arrayList();
-    StringBuilder accum = null;
-
-    int accum_start_line = -1;
-
-    int originalLineNumber = 0;
-
-    for (String line : split(script, '\n')) {
-      originalLineNumber++;
-
-      int trailing_backslash_count = 0;
-      while (true) {
-        if (line.length() <= trailing_backslash_count)
-          break;
-        int j = line.length() - 1 - trailing_backslash_count;
-        if (j < 0)
-          break;
-        if (line.charAt(j) != '\\')
-          break;
-        trailing_backslash_count++;
-      }
-
-      if (accum == null) {
-        accum = new StringBuilder();
-        accum_start_line = originalLineNumber;
-      }
-
-      if ((trailing_backslash_count & 1) == 1) {
-        accum.append(line.substring(0, line.length() - 1));
-      } else {
-        accum.append(line);
-        mSourceLines.add(accum.toString());
-        mOriginalLineNumbers.add(accum_start_line);
-
-        accum = null;
-      }
-    }
-
-    if (accum != null)
-      badArg("Incomplete final line:", INDENT, script);
-  }
-
   public JSMap parse(String script) {
 
     // To try make output deterministic?
@@ -127,7 +78,7 @@ public final class DFACompiler extends BaseObject {
       if (entry.id < 0)
         continue;
 
-      if (acceptsEmptyString(rex.startState(), rex.endState()))
+      if (ToknUtils.acceptsEmptyString(rex.startState(), rex.endState()))
         throw badArg("Zero-length tokens accepted:", line_number, line);
 
       token_records.add(entry);
@@ -149,12 +100,61 @@ public final class DFACompiler extends BaseObject {
     return constructJsonDFA(token_records, dfa);
   }
 
+  private void parseLines(String script) {
+
+    mOriginalLineNumbers = IntArray.newBuilder();
+
+    // Join lines that have been ended with '\' to their following lines;
+    // only do this if there's an odd number of '\' at the end
+
+    mSourceLines = arrayList();
+    StringBuilder accum = null;
+
+    int accum_start_line = -1;
+
+    int originalLineNumber = 0;
+
+    for (String line : split(script, '\n')) {
+      originalLineNumber++;
+
+      int trailing_backslash_count = 0;
+      while (true) {
+        if (line.length() <= trailing_backslash_count)
+          break;
+        int j = line.length() - 1 - trailing_backslash_count;
+        if (j < 0)
+          break;
+        if (line.charAt(j) != '\\')
+          break;
+        trailing_backslash_count++;
+      }
+
+      if (accum == null) {
+        accum = new StringBuilder();
+        accum_start_line = originalLineNumber;
+      }
+
+      if ((trailing_backslash_count & 1) == 1) {
+        accum.append(line.substring(0, line.length() - 1));
+      } else {
+        accum.append(line);
+        mSourceLines.add(accum.toString());
+        mOriginalLineNumbers.add(accum_start_line);
+
+        accum = null;
+      }
+    }
+
+    if (accum != null)
+      badArg("Incomplete final line:", INDENT, script);
+  }
+
   private static String leftTrim(String s) {
     String r = (s + "|").trim();
     return r.substring(0, r.length() - 1);
   }
 
-  //  Regex for token names preceding regular expressions
+  // Regex for token names preceding regular expressions
   private static Pattern TOKENNAME_EXPR = RegExp.pattern("[_A-Za-z][_A-Za-z0-9]*\\s*:\\s*.*");
 
   private JSMap constructJsonDFA(List<TokenEntry> token_records, State startState) {
@@ -234,24 +234,6 @@ public final class DFACompiler extends BaseObject {
     }
     m.put("states", states);
     return m;
-  }
-
-  /**
-   * Determine if regex accepts zero characters
-   */
-  private static boolean acceptsEmptyString(State start_state, State end_state) {
-    Set<State> marked_states = hashSet();
-    List<State> state_stack = arrayList();
-    push(state_stack, start_state);
-    while (nonEmpty(state_stack)) {
-      State state = pop(state_stack);
-      if (marked_states.contains(state))
-        continue;
-      marked_states.add(state);
-      if (state == end_state)
-        return true;
-    }
-    return false;
   }
 
   /**
