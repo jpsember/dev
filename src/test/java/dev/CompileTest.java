@@ -119,17 +119,16 @@ public class CompileTest extends MyTestCase {
     dump(s2, "partitioned");
     assertSb();
   }
-  
-  
+
   @Test
-  public void normalize() {
+  public void normalizeMergeLabels() {
     State s = new State(false);
     State a = new State();
     State b = new State();
     State f = new State(true);
 
-    addEdge(s,cs("abcd"),a);
-    addEdge(s,cs("efgh"),a);
+    addEdge(s, cs("abcd"), a);
+    addEdge(s, cs("efgh"), a);
     addEdge(s, cs("cde"), b);
     addEdge(a, cs("uvwx"), f);
     addEdge(b, cs("wxyz"), f);
@@ -139,8 +138,25 @@ public class CompileTest extends MyTestCase {
     dump(s2, "normalized");
     assertSb();
   }
-  
-  
+
+  @Test
+  public void normalizeOmitEmptyLabels() {
+    State s = new State(false);
+    State a = new State();
+    State b = new State();
+    State f = new State(true);
+
+    addEdge(s, cs(""), a);
+    addEdge(s, cs("cde"), b);
+    addEdge(a, cs("uvwx"), f);
+    addEdge(b, cs("wxyz"), f);
+
+    dump(s, "input");
+    State s2 = normalizeStates(s);
+    dump(s2, "normalized");
+    assertSb();
+  }
+
   private void dump(State state, Object... messages) {
     String message;
     if (messages.length == 0)

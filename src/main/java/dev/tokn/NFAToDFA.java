@@ -61,7 +61,7 @@ public class NFAToDFA extends BaseObject {
     if (verbose())
       log(ToknUtils.dumpStateMachine(mStartState, "after reverse #2"));
     nfa_to_dfa_aux();
-    normalizeStates(mStartState);
+    mStartState = ToknUtils.normalizeStates(mStartState);
   }
 
   private static CodeSet constructKeyForStateCollection(Collection<State> states) {
@@ -189,24 +189,6 @@ public class NFAToDFA extends BaseObject {
             push(stk, edge.destinationState());
         }
       }
-    }
-  }
-
-  /**
-   * Normalize a state machine.
-   *
-   * <pre>
-   * For each state:
-   *  [] merge edges that go to a common state
-   *  [] delete edges that have empty labels
-   *  [] sort edges by destination state ids
-   * 
-   * </pre>
-   */
-  private static void normalizeStates(State startState) {
-    List<State> reachable = ToknUtils.reachableStates(startState);
-    for (State s : reachable) {
-      ToknUtils.normalize(s);
     }
   }
 

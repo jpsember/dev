@@ -13,8 +13,7 @@ import js.parsing.State;
 
 public final class ToknUtils {
 
-  @Deprecated // Create an 'add edge' utility method
-  public static BigEdge newEdge(State sourceState, int[] codeSet, State destinationState) {
+  private static BigEdge newEdge(State sourceState, int[] codeSet, State destinationState) {
     return new BigEdge(sourceState, codeSet, destinationState);
   }
 
@@ -128,7 +127,7 @@ public final class ToknUtils {
       State s2 = origToDupStateMap.get(s);
       for (Edge edge : s.edges()) {
         State newTargetState = origToDupStateMap.get(edge.destinationState());
-        s2.edges().add(newEdge(s2, edge.codeRanges(), newTargetState));
+        addEdge(s2, edge.codeRanges(), newTargetState);
       }
     }
     return statePair(origToDupStateMap.get(startState), origToDupStateMap.get(endState));
@@ -140,7 +139,7 @@ public final class ToknUtils {
    * Add an epsilon transition to a state
    */
   public static void addEps(State source, State target) {
-    source.edges().add(newEdge(source, EPSILON_RANGE, target));
+    addEdge(source, EPSILON_RANGE, target);
   }
 
   public static Edge constructEpsilonEdge(State source, State target) {
@@ -291,7 +290,7 @@ public final class ToknUtils {
    * [] delete edges that have empty labels
    * 
    */
-  public static void normalizeState(State state) {
+  private static void normalizeState(State state) {
     // Sort edges by destination state ids
     state.edges()
         .sort((e1, e2) -> Integer.compare(e1.destinationState().debugId(), e2.destinationState().debugId()));
@@ -324,49 +323,6 @@ public final class ToknUtils {
       if (prev_label.elements().length != 0)
         new_edges.add(new Edge(prev_label.elements(), prev_dest));
     }
-
-    state.setEdges(new_edges);
-  }
-
-  /**
-   * Normalize a state
-   * 
-   * <pre>
-    *  [] merge edges that go to a common state
-    *  [] sort edges by destination state debug ids
-    *  [] delete edges that have empty labels
-   * </pre>
-   */
-  @Deprecated
-  public static void normalize(State state) {
-    List<Edge> edgeList = arrayList();
-    edgeList.addAll(state.edges());
-    edgeList
-        .sort((e1, e2) -> Integer.compare(e1.destinationState().debugId(), e2.destinationState().debugId()));
-
-    List<Edge> new_edges = arrayList();
-    CodeSet prev_label = null;
-    State prev_dest = null;
-
-    for (Edge edge : edgeList) {
-      int[] label = edge.codeRanges();
-      State dest = edge.destinationState();
-
-      // If this edge goes to the same state as the previous one (they are in sorted order already), merge with that one...
-      if (prev_dest == dest)
-        prev_label.addSet(label);
-      else {
-        if (prev_dest != null) {
-          new_edges.add(ToknUtils.newEdge(state, prev_label.elements(), prev_dest));
-        }
-        // Must start a fresh copy!  Don't want to modify the original label.
-        prev_label = CodeSet.with(label);
-        prev_dest = edge.destinationState();
-      }
-    }
-
-    if (prev_dest != null)
-      new_edges.add(new Edge(prev_label.elements(), prev_dest));
 
     state.setEdges(new_edges);
   }
