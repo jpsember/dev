@@ -29,9 +29,11 @@ import static js.base.Tools.*;
 import java.io.File;
 import java.util.List;
 
+import dev.tokn.DFACompiler;
 import js.app.AppOper;
 import js.app.CmdLineArgs;
 import js.file.Files;
+import js.json.JSMap;
 
 public class DFAOper extends AppOper {
 
@@ -89,7 +91,11 @@ public class DFAOper extends AppOper {
       targetFile = Files.setExtension(sourceFile, OBJECT_EXT);
     assertExt(targetFile, OBJECT_EXT);
 
-    todo("do something with", sourceFile, targetFile);
+    DFACompiler compiler = new DFACompiler();
+    todo("have DFACompiler support verbose, and set according to app");
+    JSMap jsonMap = compiler.parse(Files.readString(sourceFile));
+    String str = jsonMap.toString();
+    files().writeIfChanged(targetFile, str);
   }
 
   private File assertExt(File file, String ext) {
