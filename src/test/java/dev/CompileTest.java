@@ -44,7 +44,7 @@ public class CompileTest extends MyTestCase {
   }
 
   @Test
-  public void complex() {
+  public void complex() { 
     proc("// comment\n1234\n  'hello'  ");
   }
 
@@ -108,7 +108,6 @@ public class CompileTest extends MyTestCase {
     DFACompiler c = new DFACompiler();
     mDFAJson = c.parse(mScript);
 
-    pr(mDFAJson);
     files().writeString(generatedFile("dfa.json"), mDFAJson.prettyPrint());
 
     if (sampleText == null) {

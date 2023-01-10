@@ -26,6 +26,8 @@ import java.util.Set;
  */
 public class NFAToDFA {
 
+  private static final boolean db = false && alert("db is on");
+
   public NFAToDFA withFilter(boolean f) {
     mWithFilter = f;
     return this;
@@ -60,16 +62,19 @@ public class NFAToDFA {
     // Apparently this  produces a minimal DFA.
     //
 
-    pr("reversing #1");
-    //pr(ToknUtils.dumpStateMachine(mStartState, "before reverse #1"));
+    if (db)
+      pr("reversing #1");
     mStartState = ToknUtils.reverseNFA(mStartState);
-    pr(ToknUtils.dumpStateMachine(mStartState, "after reverse #1"));
+    if (db)
+      pr(ToknUtils.dumpStateMachine(mStartState, "after reverse #1"));
 
     nfa_to_dfa_aux();
 
-    pr("reversing #2");
+    if (db)
+      pr("reversing #2");
     mStartState = ToknUtils.reverseNFA(mStartState);
-    pr(ToknUtils.dumpStateMachine(mStartState, "after reverse #2"));
+    if (db)
+      pr(ToknUtils.dumpStateMachine(mStartState, "after reverse #2"));
     nfa_to_dfa_aux();
     normalizeStates(mStartState);
   }
@@ -94,7 +99,6 @@ public class NFAToDFA {
         list.add(state);
         CodeSet keySet = constructKeyForStateCollection(list);
         mNFAStateSetToDFAStateMap.put(keySet, state);
-        pr("storing in NFA state map, key:", keySet, "state:", state);
       }
     }
 
@@ -114,14 +118,10 @@ public class NFAToDFA {
     List<State> unmarked = arrayList();
     unmarked.add(new_start_state);
 
-    pr("nfa_to_dfa loop start");
     while (nonEmpty(unmarked)) {
       State dfaState = pop(unmarked);
-      pr("unmarked state:", dfaState);
 
       Collection<State> nfaIds = sorted_nfa_state_id_lists.get(dfaState);
-      pr("nfaIds:", nfaIds);
-
       if (nfaIds == null)
         badState("dfaState had no entry in sorted_nfa_state_id_lists:", dfaState);
 
@@ -130,17 +130,13 @@ public class NFAToDFA {
 
       for (State nfaState : nfaIds) {
 
-        pr("examining nfa state:", nfaState.toString(true));
-
         for (Edge nfaEdge : nfaState.edges()) {
-          pr("edge:", nfaEdge);
           CodeSet codeSet = CodeSet.with(nfaEdge.codeRanges());
 
           if (codeSet.contains(State.EPSILON)) {
             continue;
           }
 
-          pr("looking in moveMap for key:", codeSet);
           Set<State> nfaStates = moveMap.get(codeSet);
           if (nfaStates == null) {
             nfaStates = hashSet();
@@ -212,8 +208,6 @@ public class NFAToDFA {
 
     CodeSet keySet = constructKeyForStateCollection(stateSet);
 
-    pr("create_dfa_state_if_necessary for:", keySet);
-
     State newState = mNFAStateSetToDFAStateMap.get(keySet);
     if (newState == null) {
       mDFAStateCreatedFlag = true;
@@ -226,7 +220,6 @@ public class NFAToDFA {
         }
       mNFAStateSetToDFAStateMap.put(keySet, newState);
       sorted_nfa_state_id_lists.put(newState, stateSet);
-      pr("created DFA state", newState, "for set of NFA ids:", keySet);
     }
     return newState;
   }

@@ -19,6 +19,8 @@ public final class DFACompiler {
   private IntArray.Builder mOriginalLineNumbers;
   private List<String> mSourceLines;
 
+  private static final boolean db = false && alert("db is on");
+
   private static String leftTrim(String s) {
     String r = (s + "|").trim();
     return r.substring(0, r.length() - 1);
@@ -107,7 +109,8 @@ public final class DFACompiler {
       String tokenName = line.substring(0, pos).trim();
 
       String expr = line.substring(pos + 1);
-      pr("============== parsing regex:", tokenName);
+      if (db)
+        pr("============== parsing regex:", tokenName);
 
       RegParse rex = new RegParse(expr, tokenNameMap, line_number);
 
@@ -133,15 +136,17 @@ public final class DFACompiler {
         throw badArg("Zero-length tokens accepted:", line_number, line);
 
       token_records.add(entry);
-
-      pr(ToknUtils.dumpStateMachine(rex.startState(), "regex for", tokenName));
+      if (db)
+        pr(ToknUtils.dumpStateMachine(rex.startState(), "regex for", tokenName));
     }
     State combined = combine_token_nfas(token_records);
-    pr(ToknUtils.dumpStateMachine(combined, "combined regex state machines"));
+    if (db)
+      pr(ToknUtils.dumpStateMachine(combined, "combined regex state machines"));
 
     NFAToDFA builder = new NFAToDFA();
     State dfa = builder.nfa_to_dfa(combined);
-    pr(ToknUtils.dumpStateMachine(dfa, "nfa to dfa"));
+    if (db)
+      pr(ToknUtils.dumpStateMachine(dfa, "nfa to dfa"));
 
     apply_redundant_token_filter(token_records, dfa);
 
@@ -150,7 +155,8 @@ public final class DFACompiler {
 
   private JSMap constructJsonDFA(List<TokenEntry> token_records, State startState) {
 
-    pr(ToknUtils.dumpStateMachine(startState, "construct JSON DFA"));
+    if (db)
+      pr(ToknUtils.dumpStateMachine(startState, "construct JSON DFA"));
     JSMap m = map();
 
     m.put("version", 3.0);
@@ -169,7 +175,6 @@ public final class DFACompiler {
 
     int index = 0;
     for (State s : reachable) {
-      pr("renaming:", s, "=>", index);
       stateIndexMap.put(s, index);
       orderedStates.add(s);
       index++;
@@ -194,20 +199,20 @@ public final class DFACompiler {
         checkArgument(cr.length >= 2);
 
         JSList out = list();
-        for (int i = 0; i < cr.length; i+=2) {
+        for (int i = 0; i < cr.length; i += 2) {
           int a = cr[i];
-          int b = cr[i+1];
-          
+          int b = cr[i + 1];
+
           // Optimization:  if b==a+1, represent ...a,b,... as ...(double)a,....
-          
-          if (b == a+1)
-            out.add((double)a);
+
+          if (b == a + 1)
+            out.add((double) a);
           else {
             out.add(a);
             out.add(b);
           }
         }
-        
+
         // Optimization: if resulting list has only one element, store that as a scalar
         if (out.size() == 1)
           stateDesc.addUnsafe(out.getUnsafe(0));
@@ -217,33 +222,14 @@ public final class DFACompiler {
         int destStateIndex = stateIndexMap.get(edge.destinationState());
 
         // Optimization: if last edge, and destination state is the final state, omit it
-        if (edgeIndex == s.edges().size()-1 && destStateIndex == finalStateIndex)continue;
-        
-          stateDesc.add(destStateIndex);
+        if (edgeIndex == s.edges().size() - 1 && destStateIndex == finalStateIndex)
+          continue;
+
+        stateDesc.add(destStateIndex);
       }
       states.add(stateDesc);
     }
     m.put("states", states);
-
-    /**
-     * <pre>
-     * 
-     * {"version":3.0,
-     * "tokens":["WS","IDENTIFIER","PREFIX","EXTENDED"]
-     *  "final":4,
-     *  "states":[
-     *       [97.0,1,   [98,123],2,     [9,11,12,14,32.0],3   ],
-     *       [[98,123],2,   35.0,5,     97.0,7,   -4.0],
-     *       [[97,123],2,   35.0,5   ],
-     *       [[9,11,12,14,32.0],3,     -2.0],
-     *       [],
-     *       [[65,91,95.0,97,123],6],
-     *       [[48,58,65,91,95.0,97,123],6,-3.0],
-     *       [[97.0,99,123],2,35.0,5,98.0,8],
-     *       [[97,123],2,35.0,5,-5.0]
-     *   ]}
-     * </pre>
-     */
     return m;
   }
 
@@ -259,14 +245,6 @@ public final class DFACompiler {
       marked_states.add(state);
       if (state == end_state)
         return true;
-
-      if (todo("refactor this code now that id is no longer there"))
-        return false;
-      //      for (Edge edge : state.edges()) {
-      //        if (CodeSet.contains(edge.codeRanges(), edge.destinationState().id())) {
-      //          push(state_stack, edge.destinationState());
-      //        }
-      //      }
     }
     return false;
   }
@@ -341,7 +319,8 @@ public final class DFACompiler {
       unrecognized.add(rec.name);
     }
 
-    pr(ToknUtils.dumpStateMachine(start_state, "apply_redundant_token_filter"));
+    if (db)
+      pr(ToknUtils.dumpStateMachine(start_state, "apply_redundant_token_filter"));
 
     if (nonEmpty(unrecognized))
       badState("Redundant token(s) found:", unrecognized);

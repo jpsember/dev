@@ -350,15 +350,6 @@ public class RegParse {
     todo("clean this up");
 
     return duplicateNFA(rg.startState(), rg.endState());
-
-    //      oldToNewMap, @nextStateId = rg.start_state.duplicateNFA(@nextStateId)
-    //
-    //      newStart = oldToNewMap[rg.start_state]
-    //      newEnd = oldToNewMap[rg.endState]
-    //
-    //      [newStart, newEnd]
-    //    end
-    //
   }
 
   private StatePair parseP() {
