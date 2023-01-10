@@ -89,7 +89,7 @@ public class RegParse {
    *          ids) to be consulted if a curly brace expression appears in the
    *          script
    */
-  public void parse(String script, Map<String, TokenEntry> tokenDefMap, int orig_line_number) {
+  public void parse( String script, Map<String, TokenEntry> tokenDefMap, int orig_line_number) {
     mOrigScript = script;
     mScript = filter_ws(script);
     mTokenDefMap = tokenDefMap;

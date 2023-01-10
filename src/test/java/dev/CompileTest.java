@@ -31,6 +31,7 @@ import org.junit.Test;
 
 import dev.tokn.CodeSet;
 import dev.tokn.DFACompiler;
+import dev.tokn.ToknUtils;
 import js.base.BasePrinter;
 import js.file.FileException;
 import js.file.Files;
@@ -61,6 +62,11 @@ public class CompileTest extends MyTestCase {
 
   @Test
   public void complex1() {
+    proc();
+  }
+
+  @Test
+  public void intvsdbl() {
     proc();
   }
 
@@ -281,6 +287,7 @@ public class CompileTest extends MyTestCase {
     mScript = Files.readString(this.getClass(), resourceName);
 
     DFACompiler c = new DFACompiler();
+    c.setVerbose(verbose());
     mDFAJson = c.parse(mScript);
     mDFAJson.put("~size", mDFAJson.toString().length());
     files().writeString(generatedFile("dfa.json"), mDFAJson.prettyPrint());
@@ -302,6 +309,8 @@ public class CompileTest extends MyTestCase {
       StringBuilder sb = new StringBuilder();
 
       // Don't skip any tokens
+      if (false && alert("showing dfa"))
+        pr(ToknUtils.dumpStateMachine(dfa().getStartState(), "dfa being used"));
       Scanner s = new Scanner(dfa(), sampleText, -1);
       s.setVerbose(verbose());
       while (s.hasNext()) {

@@ -36,6 +36,7 @@ public class NFAToDFA extends BaseObject {
 
     mStartState = ToknUtils.partitionEdges(mStartState);
     minimize();
+    ToknUtils.validateDFA(mStartState);
     return mStartState;
   }
 

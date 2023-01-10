@@ -364,4 +364,23 @@ public final class ToknUtils {
     BasePrinter.registerClassHandler(Edge.class, (x, p) -> p.append(toString((Edge) x)));
   }
 
+  public static void validateDFA(State startState) {
+    for (State s : reachableStates(startState)) {
+      CodeSet prevSet = new CodeSet();
+      for (Edge e : s.edges()) {
+        if (CodeSet.contains(e.codeRanges(), State.EPSILON))
+          badArg("edge accepts epsilon:", INDENT, toString(s, true));
+        ;
+
+        // See if the code set intersects union of previous edges' code sets
+        CodeSet ours = CodeSet.with(e.codeRanges());
+        CodeSet inter = ours.intersect(prevSet);
+        if (!inter.isEmpty())
+          badArg("multiple edges on inputs:", inter, INDENT, toString(s, true));
+        prevSet.addSet(ours);
+      }
+    }
+
+  }
+
 }
