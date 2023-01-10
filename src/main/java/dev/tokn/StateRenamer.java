@@ -5,6 +5,7 @@ import java.util.Map;
 
 import static js.base.Tools.*;
 
+import js.parsing.Edge;
 import js.parsing.State;
 
 /**
@@ -13,7 +14,7 @@ import js.parsing.State;
 public final class StateRenamer {
 
   /**
-   * Construct new versions of all reachable states
+   * Construct new versions of all reachable states, omitting edges
    * 
    * @param oldStartState
    *          old starting state
@@ -23,6 +24,26 @@ public final class StateRenamer {
     List<State> oldStates = ToknUtils.reachableStates(oldStartState);
     for (State oldState : oldStates) {
       put(oldState, null);
+    }
+  }
+
+  /**
+   * Construct new versions of all reachable states, including edges
+   * 
+   * @param oldStartState
+   *          old starting state
+   */
+  public void constructNewVersionsWithEdges(State oldStartState) {
+    State.bumpDebugIds();
+    List<State> oldStates = ToknUtils.reachableStates(oldStartState);
+    for (State oldState : oldStates) {
+      put(oldState, null);
+    }
+    for (State oldState : oldStates) {
+      State newState = get(oldState);
+      for (Edge e : oldState.edges()) {
+        ToknUtils.addEdge(newState, e.codeRanges(), get(e.destinationState()));
+      }
     }
   }
 

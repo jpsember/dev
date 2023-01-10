@@ -196,60 +196,18 @@ public class NFAToDFA extends BaseObject {
    * Normalize a state machine.
    *
    * <pre>
-  * For each state:
-  *  [] merge edges that go to a common state
-  *  [] delete edges that have empty labels
-  *  [] sort edges by destination state ids
+   * For each state:
+   *  [] merge edges that go to a common state
+   *  [] delete edges that have empty labels
+   *  [] sort edges by destination state ids
    * 
    * </pre>
    */
   private static void normalizeStates(State startState) {
     List<State> reachable = ToknUtils.reachableStates(startState);
     for (State s : reachable) {
-      normalize(s);
+      ToknUtils.normalize(s);
     }
-  }
-
-  /**
-   * Normalize a state
-   * 
-   * <pre>
-    *  [] merge edges that go to a common state
-    *  [] sort edges by destination state debug ids
-    *  [] delete edges that have empty labels
-   * </pre>
-   */
-  private static void normalize(State state) {
-    List<Edge> edgeList = arrayList();
-    edgeList.addAll(state.edges());
-    edgeList
-        .sort((e1, e2) -> Integer.compare(e1.destinationState().debugId(), e2.destinationState().debugId()));
-
-    List<Edge> new_edges = arrayList();
-    CodeSet prev_label = null;
-    State prev_dest = null;
-
-    for (Edge edge : edgeList) {
-      int[] label = edge.codeRanges();
-      State dest = edge.destinationState();
-
-      // If this edge goes to the same state as the previous one (they are in sorted order already), merge with that one...
-      if (prev_dest == dest)
-        prev_label.addSet(label);
-      else {
-        if (prev_dest != null) {
-          new_edges.add(ToknUtils.newEdge(state, prev_label.elements(), prev_dest));
-        }
-        // Must start a fresh copy!  Don't want to modify the original label.
-        prev_label = CodeSet.with(label);
-        prev_dest = edge.destinationState();
-      }
-    }
-
-    if (prev_dest != null)
-      new_edges.add(new Edge(prev_label.elements(), prev_dest));
-
-    state.setEdges(new_edges);
   }
 
   private State mStartState;
