@@ -12,6 +12,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 
 import java.util.Set;
+import java.util.TreeSet;
 
 /**
  * Converts NFAs (nondeterministic, finite state automata) to minimal DFAs.
@@ -106,7 +107,10 @@ public class NFAToDFA extends BaseObject {
       log("popped DFA state:", dfaState, "with NFA states:", State.toString(nfaStateSubset));
 
       // Map of CodeSet => set of NFA states
-      Map<CodeSet, Set<State>> moveMap = hashMap();
+      // 
+      // The sets should be TreeSets, for deterministic results
+      //
+      Map<CodeSet, TreeSet<State>> moveMap = treeMap();
 
       for (State nfaState : nfaStateSubset) {
         log("...processing NFA state:", nfaState);
@@ -119,24 +123,16 @@ public class NFAToDFA extends BaseObject {
           // This CodeSet is guaranteed to not overlap any other (distinct) CodeSet.
           // Add the destination state to a list keyed to this CodeSet.
 
-          if (codeSet.contains(State.EPSILON)) {
-            if (alert("remove later")) {
-              int[] e = codeSet.elements();
-              if (e.length != 2 || e[1] != State.EPSILON + 1)
-                badArg("expected only epsilon");
-
-              // The destination state must lie within this set of NFA states...
-              if (!nfaStateSubset.contains(nfaEdge.destinationState())) {
-                badArg("expected destination to lie within this NFA state set:", nfaEdge, INDENT,
-                    State.toString(nfaStateSubset));
-              }
-            }
+          // If the code set contains epsilon, we can assume it contains only epsilon
+          // (because of the edge partitioning we did earlier);
+          // and we can ignore it (as any state reachable from here lies within the
+          // NFA subset we are processing)
+          if (codeSet.contains(State.EPSILON))
             continue;
-          }
 
-          Set<State> nfaStates = moveMap.get(codeSet);
+          TreeSet<State> nfaStates = moveMap.get(codeSet);
           if (nfaStates == null) {
-            nfaStates = hashSet();
+            nfaStates = treeSet();
             moveMap.put(codeSet, nfaStates);
           }
           nfaStates.add(nfaEdge.destinationState());
@@ -149,7 +145,7 @@ public class NFAToDFA extends BaseObject {
       // Process each CodeSet->[NFA State] mapping, and generate a DFA state for the [NFA State] subset
       // (if none exists)
 
-      for (Entry<CodeSet, Set<State>> moveMapEntry : moveMap.entrySet()) {
+      for (Entry<CodeSet, TreeSet<State>> moveMapEntry : moveMap.entrySet()) {
         CodeSet codeSet = moveMapEntry.getKey();
         Set<State> nfaStates = moveMapEntry.getValue();
         log("processing map entry", codeSet, "=>", nfaStates);
@@ -164,7 +160,7 @@ public class NFAToDFA extends BaseObject {
         }
         log(VERT_SP, "...adding DFA edge", dfaState, codeSet, "==>", dfaDestState, VERT_SP);
 
-        if (alert("checking for problems")) {
+        if (false && alert("checking for problems")) {
           for (Edge ex : dfaState.edges()) {
             if (Arrays.equals(ex.codeRanges(), codeSet.elements())) {
               die("attempt to add second edge with same label!", INDENT, ToknUtils.toString(dfaState, true),

@@ -11,7 +11,7 @@ import java.util.Arrays;
 /**
  * A wrapper for the int[] array 'code ranges' used in the Edge class
  */
-public final class CodeSet {
+public final class CodeSet implements Comparable<CodeSet> {
 
   public static CodeSet withValue(int value) {
     CodeSet c = new CodeSet();
@@ -253,8 +253,6 @@ public final class CodeSet {
 
     boolean was_inside = false;
 
-    //pr("combine_with:",INDENT,sa.mElements,INDENT,sb.mElements,"intersect?",intersect);
-
     while (i < sa.mElements.length || j < sb.mElements.length) {
 
       int v;
@@ -317,10 +315,28 @@ public final class CodeSet {
 
   /**
    * Construct a CodeSet with the single value EPSILON
-   * 
-   * @return
    */
   public static CodeSet epsilon() {
     return withValue(State.EPSILON);
   }
+
+  /**
+   * Have CodeSet implement Comparable interface, to produce deterministic
+   * results
+   */
+  @Override
+  public int compareTo(CodeSet other) {
+    int[] a = mElements;
+    int[] b = other.mElements;
+    int result = Integer.compare(a.length, b.length);
+    if (result == 0) {
+      for (int i = 0; i < a.length; i++) {
+        result = Integer.compare(a[i], b[i]);
+        if (result != 0)
+          break;
+      }
+    }
+    return result;
+  }
+
 }

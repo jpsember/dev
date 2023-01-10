@@ -44,7 +44,7 @@ public class RangePartition {
 
   public RangePartition() {
     //mSetsToAdd = arrayList();
-    mUniqueCodeSets = hashSet();
+    mUniqueCodeSets = treeSet(); // hashSet();// is a hashSet sufficient?
 
     //  Make the root node hold the largest possible CodeSet. 
     // We want to be able to include all the token ids as well.

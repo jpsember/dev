@@ -35,7 +35,7 @@ public final class ToknUtils {
     if (db)
       pr("reachableStates from:", sourceState);
 
-    Set<State> knownStatesSet = hashSet();
+    Set<State> knownStatesSet = treeSet(); // hashSet();  // is a hashSet sufficient? ought to be
     List<State> scanStack = arrayList();
     List<State> output = arrayList();
     push(scanStack, sourceState);
@@ -333,7 +333,7 @@ public final class ToknUtils {
    */
   public static boolean acceptsEmptyString(State stateA, State stateB) {
 
-    Set<State> markedStates = hashSet();
+    Set<State> markedStates = treeSet(); // is a hashSet sufficient?
     List<State> stateStack = arrayList();
     push(stateStack, stateA);
     while (nonEmpty(stateStack)) {
