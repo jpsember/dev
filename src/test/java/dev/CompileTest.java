@@ -99,8 +99,6 @@ public class CompileTest extends MyTestCase {
     State s2 = reverseNFA(s);
     dump(s2, "reversed");
     assertSb();
-
-    assertMessage(dumpStateMachine(s2, name()));
   }
 
   private void dump(State state, Object... messages) {

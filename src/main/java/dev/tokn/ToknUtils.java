@@ -69,12 +69,6 @@ public final class ToknUtils {
    * @return start state of reversed NFA
    */
   public static State reverseNFA(State startState) {
-
-    final boolean db = true;
-    if (db) {
-      pr(dumpStateMachine(startState, "reverseNFA:"));
-    }
-
     State.bumpDebugIds();
 
     // Create new start state first, so it has the lowest id
@@ -86,8 +80,6 @@ public final class ToknUtils {
     StateRenamer newStateMap = new StateRenamer();
 
     List<State> stateSet = reachableStates(startState);
-    if (db)
-      pr("reachable states from", startState, INDENT, State.toString(stateSet));
 
     for (State s : stateSet) {
       State newState = newStateMap.put(s, new State(s == startState));
@@ -97,58 +89,22 @@ public final class ToknUtils {
         newStartStateList.add(newState);
     }
 
-    StateEdgeManager em = new StateEdgeManager();
-
     for (State oldState : stateSet) {
       State newState = newStateMap.get(oldState);
       for (Edge oldEdge : oldState.edges()) {
         State oldDest = oldEdge.destinationState();
         State newDest = newStateMap.get(oldDest);
         // We want a reversed edge
-        em.addEdge(newDest, oldEdge.codeRanges(), newState);
+        addEdge(newDest, oldEdge.codeRanges(), newState);
       }
-    }
-
-    for (State oldS : stateSet) {
-      State newState = newStateMap.get(oldS);
-      newState.setEdges(em.edgesForState(newState));
     }
 
     //  Make start node point to each of the reversed start nodes
 
     for (State s : newStartStateList)
       newStartState.edges().add(constructEpsilonEdge(newStartState, s));
-    if (db) {
-      pr("new start state:", newStartState);
-      pr(dumpStateMachine(newStartState, "Reversed:"));
-    }
-
     return newStartState;
   }
-
-  //  /**
-  //   * Get range of state ids in a set; returns [lowest id, 1 + highest id]
-  //   */
-  //  @Deprecated
-  //  public static int[] rangeOfStateIds(Collection<State> states) {
-  //    int max_id = -1;
-  //    int min_id = -1;
-  //    for (State state : states) {
-  //      if (max_id < 0) {
-  //        max_id = state.id();
-  //        min_id = max_id;
-  //      } else {
-  //        min_id = Math.min(min_id, state.id());
-  //        max_id = Math.max(max_id, state.id());
-  //
-  //      }
-  //    }
-  //    todo("Use a code range here?");
-  //    int[] result = new int[2];
-  //    result[0] = min_id;
-  //    result[1] = max_id + 1;
-  //    return result;
-  //  }
 
   /**
    * Duplicate the NFA reachable from a state
