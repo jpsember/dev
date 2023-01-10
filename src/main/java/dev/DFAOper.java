@@ -42,18 +42,20 @@ public class DFAOper extends AppOper {
 
   @Override
   public String getHelpDescription() {
-    return "compile .dfa file from an .rxp file";
+    return "compile ." + OBJECT_EXT + " file from an ." + SOURCE_EXT + " file";
   }
 
   @Override
   protected List<Object> getAdditionalArgs() {
-    return arrayList("<.rxp file>+");
+    return arrayList("<." + SOURCE_EXT + " input> [<." + OBJECT_EXT + " output>]");
   }
 
   @Override
   protected void processAdditionalArgs() {
     CmdLineArgs args = app().cmdLineArgs();
-    while (args.hasNextArg()) {
+    for (int i = 0; i < 2; i++) {
+      if (!args.hasNextArg())
+        break;
       File relPath = new File(args.nextArg());
       if (!relPath.isAbsolute()) {
         relPath = new File(Files.currentDirectory(), relPath.toString());
@@ -66,13 +68,34 @@ public class DFAOper extends AppOper {
   @Override
   public void perform() {
     if (mFiles.isEmpty())
-      pr("(please specify one or more .rxp files)");
-    for (File f : mFiles)
-      processSourceFile(f);
+      pr("(please specify an ." + SOURCE_EXT + " files)");
+    File sourceFile = mFiles.get(0);
+    File targetFile = null;
+    if (mFiles.size() >= 2)
+      targetFile = mFiles.get(1);
+    processSourceFile(sourceFile, targetFile);
   }
 
-  private void processSourceFile(File sourceFile) {
-    todo("do something with source file:", sourceFile);
+  private static final String SOURCE_EXT = "rxp";
+  private static final String OBJECT_EXT = "dfa";
+
+  private void processSourceFile(File sourceFile, File targetFile) {
+    sourceFile = assertExt(Files.addExtension(sourceFile, SOURCE_EXT), SOURCE_EXT);
+
+    if (!sourceFile.exists())
+      setError("No such file:", sourceFile);
+
+    if (Files.empty(targetFile))
+      targetFile = Files.setExtension(sourceFile, OBJECT_EXT);
+    assertExt(targetFile, OBJECT_EXT);
+
+    todo("do something with", sourceFile, targetFile);
+  }
+
+  private File assertExt(File file, String ext) {
+    if (!Files.getExtension(file).equals(ext))
+      setError("Not a ." + ext + " file:", file);
+    return file;
   }
 
   private List<File> mFiles = arrayList();
