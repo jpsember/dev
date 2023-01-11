@@ -51,7 +51,7 @@ public class CompileTest extends MyTestCase {
     // We need to reset the debug ids before each test, for deterministic behaviour
     State.resetDebugIds();
   }
-  
+
   @Test
   public void simple() {
     proc("abbaaa");
@@ -85,6 +85,11 @@ public class CompileTest extends MyTestCase {
     } catch (IllegalArgumentException e) {
       checkState(e.getMessage().contains("Redundant token"));
     }
+  }
+
+  @Test
+  public void predef1() {
+    proc();
   }
 
   @Test
@@ -132,8 +137,7 @@ public class CompileTest extends MyTestCase {
   }
 
   @Test
-  public void partition() {  
-    todo("failing due to nondeterminism?");
+  public void partition() {
     State s = new State(false);
     State a = new State();
     State b = new State();

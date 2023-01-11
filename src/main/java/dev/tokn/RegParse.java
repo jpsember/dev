@@ -107,7 +107,7 @@ final class RegParse {
    */
   public void parse(String script, Map<String, RegParse> tokenDefMap, int sourceLineNumber) {
     mOrigScript = script;
-    mScript = filter_ws(script);
+    mScript = removeSpacesAndTabs(script);
     mTokenDefMap = tokenDefMap;
     mOrigLineNumber = sourceLineNumber;
     parseScript();
@@ -123,8 +123,10 @@ final class RegParse {
     return mEndState;
   }
 
-  //   Filter out all spaces and tabs
-  private static String filter_ws(String s) {
+  /**
+   * Filter out all spaces and tabs, respecting escape sequences
+   */
+  private static String removeSpacesAndTabs(String s) {
     StringBuilder result = new StringBuilder();
     boolean escaped = false;
     for (int pos = 0; pos < s.length(); pos++) {
@@ -143,7 +145,6 @@ final class RegParse {
       default:
         escaped = false;
         break;
-
       }
       if (ch >= 0)
         result.append((char) ch);
@@ -152,8 +153,8 @@ final class RegParse {
   }
 
   /**
-   * Raise a ParseException, with a helpful message indicating the parser's
-   * current location within the string
+   * Raise an IllegalArgumentException, with a helpful message indicating the
+   * parser's current location within the text
    */
   private RuntimeException abort(Object... msgs) {
     int i = mCursor - 1 - mCharBuffer.length();
@@ -350,12 +351,8 @@ final class RegParse {
     if (!RegExp.patternMatchesString(TOKENREF_EXPR, nameStr))
       abort("Problem with token name");
     RegParse regExp = mTokenDefMap.get(nameStr);
-    if (regExp == null) {
-      // Leading underscore is optional, as a convenience
-      regExp = mTokenDefMap.get("_" + nameStr);
-    }
     if (regExp == null)
-      abort("Undefined token");
+      abort("Undefined token:",nameStr);
     return duplicateNFA(regExp.startState(), regExp.endState());
   }
 

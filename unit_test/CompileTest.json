@@ -6,6 +6,7 @@
       "normalizeMergeLabels" : 9744,
   "normalizeOmitEmptyLabels" : 1109,
                  "partition" : 7808,
+                   "predef1" : 8911,
          "printStateMachine" : 2680,
                 "reverseDFA" : 3300,
                     "simple" : 5249

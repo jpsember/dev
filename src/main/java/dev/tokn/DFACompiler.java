@@ -61,10 +61,7 @@ public final class DFACompiler extends BaseObject {
         next_token_id++;
       }
       RegParse rex = new RegParse(token_id, tokenName);
-
       rex.parse(expr, tokenNameMap, line_number);
-
-      // TokenType entry = new TokenType(tokenName, rex, token_id);
 
       if (tokenNameMap.containsKey(tokenName))
         throw badArg("Duplicate token name", line_number, line);

@@ -1,0 +1,17 @@
+WS: [\s\n]+
+
+# This is an 'anonymous' expression.  It doesn't generate a token definition of its own,
+# but can be included within others as $_DIG  (or {_DIG})
+
+_DIG: \d+
+
+ID:  [_a-zA-Z][_a-zA-Z0-9]*
+
+_OPEN: \[\[
+_CLOSE: \]\]
+
+INT: \-? $_DIG
+DBL: \-? ( [0] | [1-9]\d* ) . \d*
+
+EXPR: $_OPEN ( {_DIG} | $ID ) $_CLOSE
+
