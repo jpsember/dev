@@ -138,6 +138,7 @@ public class DFAOper extends AppOper {
     String beforeText = "";
     String afterText = "";
 
+    String symbolPrefix = "T_";
     int indent = 4;
     int m0 = content.indexOf(marker0);
     int m1 = content.indexOf(marker1);
@@ -147,14 +148,35 @@ public class DFAOper extends AppOper {
       afterText = "";
     } else {
 
-      // Use the number of spaces that the first marker is indented to determine the indentation
-      int j;
-      for (j = 0;; j++) {
-        int i = m0 - j - 1;
-        if (i < 0 || content.charAt(i) == '\n')
-          break;
+      {
+        // Use the number of spaces that the first marker is indented to determine the indentation
+        int j;
+        for (j = 0;; j++) {
+          int i = m0 - j - 1;
+          if (i < 0 || content.charAt(i) == '\n')
+            break;
+        }
+        indent = j;
       }
-      indent = j;
+
+      String existingText;
+      boolean success = false;
+      do {
+        // Look to existing first symbol to infer prefix
+        existingText = content.substring(m0 + marker0.length(), m1);
+        String tag = "static final int";
+        int j = existingText.indexOf(tag);
+        if (j < 0)
+          break;
+        tag = existingText.substring(j + tag.length()).trim();
+        j = tag.indexOf('_');
+        if (j < 0)
+          break;
+        symbolPrefix = tag.substring(0, j + 1).trim();
+        success = true;
+      } while (false);
+      if (!success)
+        log("Can't infer prefix from:", existingText);
 
       beforeText = content.substring(0, m0);
       afterText = content.substring(m1 + marker1.length());
@@ -169,7 +191,8 @@ public class DFAOper extends AppOper {
     for (String tokenName : tokenNames) {
       index++;
       sb.append(tab);
-      sb.append("public static final int T_");
+      sb.append("public static final int ");
+      sb.append(symbolPrefix);
       sb.append(tokenName);
       sb.append(" = ");
       sb.append(index);
