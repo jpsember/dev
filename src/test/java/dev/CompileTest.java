@@ -316,7 +316,6 @@ public class CompileTest extends MyTestCase {
     DFACompiler c = new DFACompiler();
     c.setVerbose(verbose());
     mDFAJson = c.parse(mScript);
-    mDFAJson.put("~size", mDFAJson.toString().length());
     files().writeString(generatedFile("dfa.json"), mDFAJson.prettyPrint());
 
     if (sampleText == null) {

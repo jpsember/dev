@@ -302,30 +302,20 @@ final class RegParse {
         break;
 
       CodeSet set = parseSET();
-      Edge.validate(set.elements());
       expecting_set = false;
       if (negated) {
-        if (had_initial_set) {
+        if (had_initial_set)
           rs = rs.difference(set);
-          Edge.validate(rs.elements());
-        }
-        else {
-          Edge.validate(rs.elements());
+        else
           rs.addSet(set);
-          Edge.validate(rs.elements());
-        }
       } else {
         rs.addSet(set);
         had_initial_set = true;
       }
-
     }
-    if (negated && !had_initial_set) {
-      Edge.validate(rs.elements());
+    if (negated && !had_initial_set)
       rs = rs.negate(0, State.CODEMAX);
-      Edge.validate(rs.elements());
-      }
-    if (rs.elements().length == 0)
+    if (rs.isEmpty())
       abort("Empty character range");
     State sA = new State();
     State sB = new State();
