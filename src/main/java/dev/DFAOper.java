@@ -169,10 +169,14 @@ public class DFAOper extends AppOper {
         if (j < 0)
           break;
         tag = existingText.substring(j + tag.length()).trim();
+        j = tag.indexOf('\n');
+        if (j > 0)
+          tag = tag.substring(0,j);
         j = tag.indexOf('_');
         if (j < 0)
-          break;
-        symbolPrefix = tag.substring(0, j + 1).trim();
+          symbolPrefix = "";
+        else
+          symbolPrefix = tag.substring(0, j + 1).trim();
         success = true;
       } while (false);
       if (!success)
