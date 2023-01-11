@@ -1,12 +1,13 @@
 package dev.tokn;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
 
 import js.base.BaseObject;
-import js.data.IntArray;
+import js.file.Files;
 import js.json.JSList;
 import js.json.JSMap;
 import js.parsing.Edge;
@@ -24,15 +25,26 @@ public final class DFACompiler extends BaseObject {
     // Maps token name to token entry
     Map<String, RegParse> tokenNameMap = hashMap();
 
-    parseLines(script);
+    ArrayList<Integer> originalLineNumbers = arrayList();
+    ArrayList<String> sourceLines = parseLines(script, originalLineNumbers);
+
+    {
+      List<String> predefinedLines = parsePredefinedExpressions();
+      sourceLines.addAll(0, predefinedLines);
+      ArrayList<Integer> newLineNumbers = arrayList();
+      for (int i = 0; i < predefinedLines.size(); i++)
+        newLineNumbers.add(-1);
+      newLineNumbers.addAll(originalLineNumbers);
+      originalLineNumbers = newLineNumbers;
+    }
 
     // Now that we've stitched together lines where there were trailing \ characters,
     // process each line as a complete token definition
 
     int line_index = INIT_INDEX;
-    for (String line : mSourceLines) {
+    for (String line : sourceLines) {
       line_index++;
-      int line_number = 1 + mOriginalLineNumbers.get(line_index);
+      int line_number = 1 + originalLineNumbers.get(line_index);
 
       // Strip whitespace only from the left side (which will strip all of
       // it, if the entire line is whitespace).  We want to preserve any
@@ -95,14 +107,13 @@ public final class DFACompiler extends BaseObject {
     return constructJsonDFA(token_records, dfa);
   }
 
-  private void parseLines(String script) {
+  public static ArrayList<String> parseLines(String script, ArrayList<Integer> originalLineNumbers) {
 
-    mOriginalLineNumbers = IntArray.newBuilder();
+    ArrayList<String> sourceLines = arrayList();
 
     // Join lines that have been ended with '\' to their following lines;
     // only do this if there's an odd number of '\' at the end
 
-    mSourceLines = arrayList();
     StringBuilder accum = null;
 
     int accum_start_line = -1;
@@ -133,15 +144,17 @@ public final class DFACompiler extends BaseObject {
         accum.append(line.substring(0, line.length() - 1));
       } else {
         accum.append(line);
-        mSourceLines.add(accum.toString());
-        mOriginalLineNumbers.add(accum_start_line);
-
+        sourceLines.add(accum.toString());
+        if (originalLineNumbers != null)
+          originalLineNumbers.add(accum_start_line);
         accum = null;
       }
     }
 
     if (accum != null)
       badArg("Incomplete final line:", INDENT, script);
+
+    return sourceLines;
   }
 
   private static String leftTrim(String s) {
@@ -286,7 +299,27 @@ public final class DFACompiler extends BaseObject {
     return unrecognized;
   }
 
-  private IntArray.Builder mOriginalLineNumbers;
-  private List<String> mSourceLines;
-
+  private List<String> parsePredefinedExpressions() {
+    String content = Files.readString(this.getClass(), "predef_expr.txt");
+    return parseLines(content, null);
+    //    
+    //    //    List<String> linesRaw = split(content, '\n');
+    //    //    List<String> lines = arrayList();
+    //    for (String s : linesRaw) {
+    //      s = s.trim();
+    //      if (s.isEmpty() || s.startsWith("#"))
+    //        continue;
+    //      lines.add(s);
+    //    }
+    //    checkArgument(lines.size() % 2 == 0, "unexpected number of lines", lines.size());
+    //    for (int i = 0; i < lines.size(); i += 2) {
+    //      String name = "_" + lines.get(i);
+    //      String expr = lines.get(i + 1);
+    //      RegParse regEx = new RegParse(-1, name);
+    //      regEx.parse(expr, tokenDefMap, i);
+    //      if (tokenDefMap.containsKey(name))
+    //        throw badArg("Duplicate token name in predefined expressions:", i, name);
+    //      tokenDefMap.put(name, regEx);
+    //    }
+  }
 }

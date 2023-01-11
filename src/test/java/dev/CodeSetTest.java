@@ -37,6 +37,15 @@ import js.testutil.MyTestCase;
 public class CodeSetTest extends MyTestCase {
 
   @Test
+  public void add2() {
+    prep();
+    add(10,13);
+    add(9);
+    pr(mSet0.elements());
+    equ("9 13");
+  }
+  
+  @Test
   public void add() {
     prep();
 

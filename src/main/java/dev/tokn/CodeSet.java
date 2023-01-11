@@ -83,6 +83,7 @@ public final class CodeSet implements Comparable<CodeSet> {
    * Add every value from another CodeSet to this one
    */
   public void addSet(int[] sa) {
+    pr("addSet:", ToknUtils.dumpCodeSet(sa), "to:",INDENT,ToknUtils.dumpCodeSet(elements()));
     for (int i = 0; i < sa.length; i += 2) {
       add(sa[i], sa[i + 1]);
     }

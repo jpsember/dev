@@ -302,12 +302,23 @@ final class RegParse {
         break;
 
       CodeSet set = parseSET();
+      Edge.validate(set.elements());
       expecting_set = false;
       if (negated) {
-        if (had_initial_set)
+        if (had_initial_set) {
           rs = rs.difference(set);
-        else
+          Edge.validate(rs.elements());
+        }
+        else {
+          Edge.validate(rs.elements());
+            
+         pr("before adding:",rs);
+         pr("adding:",set);
           rs.addSet(set);
+            
+            
+          Edge.validate(rs.elements());
+        }
       } else {
         rs.addSet(set);
         had_initial_set = true;
@@ -315,8 +326,10 @@ final class RegParse {
 
     }
     if (negated && !had_initial_set) {
+      Edge.validate(rs.elements());
       rs = rs.negate(0, State.CODEMAX);
-    }
+      Edge.validate(rs.elements());
+      }
     if (rs.elements().length == 0)
       abort("Empty character range");
     State sA = new State();
@@ -350,11 +363,38 @@ final class RegParse {
     String nameStr = name.toString();
     if (!RegExp.patternMatchesString(TOKENREF_EXPR, nameStr))
       abort("Problem with token name");
+
     RegParse regExp = mTokenDefMap.get(nameStr);
     if (regExp == null)
-      abort("Undefined token:",nameStr);
+      abort("Undefined token:", nameStr);
     return duplicateNFA(regExp.startState(), regExp.endState());
   }
+
+//  public static void installPredefinedExpressions(Map<String, RegParse> tokenDefMap) {
+//    checkState(tokenDefMap.isEmpty(), "token map isn't empty");
+//    String content = Files.readString(RegParse.class, "predef_expr.txt");
+//    
+//    List<String> lines = 
+//    DFACompiler.parseLines(content,  null);
+////    List<String> linesRaw = split(content, '\n');
+////    List<String> lines = arrayList();
+//    for (String s : linesRaw) {
+//      s = s.trim();
+//      if (s.isEmpty() || s.startsWith("#"))
+//        continue;
+//      lines.add(s);
+//    }
+//    checkArgument(lines.size() % 2 == 0, "unexpected number of lines", lines.size());
+//    for (int i = 0; i < lines.size(); i += 2) {
+//      String name = "_" + lines.get(i);
+//      String expr = lines.get(i + 1);
+//      RegParse regEx = new RegParse(-1, name);
+//      regEx.parse(expr, tokenDefMap, i);
+//      if (tokenDefMap.containsKey(name))
+//        throw badArg("Duplicate token name in predefined expressions:", i, name);
+//      tokenDefMap.put(name, regEx);
+//    }
+//  }
 
   private StatePair parseP() {
     char ch = peek(0);

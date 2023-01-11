@@ -58,6 +58,11 @@ public class CompileTest extends MyTestCase {
   }
 
   @Test
+  public void string() {
+    proc(" \"hello\" ");
+  }
+
+  @Test
   public void complex() {
     proc("// comment\n1234\n  'hello'  ");
   }
