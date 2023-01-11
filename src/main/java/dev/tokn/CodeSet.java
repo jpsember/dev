@@ -62,6 +62,64 @@ public final class CodeSet implements Comparable<CodeSet> {
     return with(mElements);
   }
 
+  /**
+   * Add a contiguous range of values to the set
+   * 
+   * @param lower
+   *          minimum value in range
+   * @param upper
+   *          one plus maximum value in range
+   */
+  public void add(int lower, int upper) {
+
+    checkArgument(lower < upper);
+    IntArray.Builder new_elements = IntArray.newBuilder();
+
+    // Consider a scan of the existing ranges, from low to high.
+    //
+    // There are three phases:
+    //
+    //  + copying ranges strictly below the new one
+    //  + merging the new range with existing ranges it touches
+    //  + copying ranges strictly above the new one
+    //
+    final int[] elem = mElements;
+    int i = 0;
+    int iMax = elem.length;
+
+    // First phase
+    {
+      while (i < iMax && elem[i + 1] < lower) {
+        new_elements.add(elem[i]);
+        new_elements.add(elem[i + 1]);
+        i += 2;
+      }
+    }
+
+    // Second phase
+    {
+      while (i < iMax && elem[i] <= upper) {
+        lower = Math.min(lower, elem[i]);
+        upper = Math.max(upper, elem[i + 1]);
+        i += 2;
+      }
+
+      new_elements.add(lower);
+      new_elements.add(upper);
+    }
+
+    // Third phase
+    {
+      while (i < iMax) {
+        new_elements.add(elem[i]);
+        new_elements.add(elem[i + 1]);
+        i += 2;
+      }
+    }
+
+    withElem(new_elements.build().array());
+  }
+
   public void add(int value) {
     add(value, value + 1);
   }
@@ -83,7 +141,6 @@ public final class CodeSet implements Comparable<CodeSet> {
    * Add every value from another CodeSet to this one
    */
   public void addSet(int[] sa) {
-    pr("addSet:", ToknUtils.dumpCodeSet(sa), "to:",INDENT,ToknUtils.dumpCodeSet(elements()));
     for (int i = 0; i < sa.length; i += 2) {
       add(sa[i], sa[i + 1]);
     }
@@ -94,73 +151,6 @@ public final class CodeSet implements Comparable<CodeSet> {
    */
   public void addSet(CodeSet s) {
     addSet(s.elements());
-  }
-
-  /**
-   * Add a contiguous range of values to the set
-   * 
-   * @param lower
-   *          minimum value in range
-   * @param upper
-   *          one plus maximum value in range
-   */
-  public void add(int lower, int upper) {
-    checkArgument(lower < upper);
-    IntArray.Builder new_elements = IntArray.newBuilder();
-
-    int i = 0;
-    while (elem(i, lower) < lower) {
-      new_elements.add(elem(i));
-      i++;
-    }
-
-    if ((i & 1) == 0) {
-      new_elements.add(lower);
-    }
-
-    while (elem(i, upper) < upper)
-      i++;
-
-    if ((i & 1) == 0)
-      new_elements.add(upper);
-
-    while (i < mElements.length) {
-      new_elements.add(elem(i));
-      i++;
-    }
-    withElem(new_elements.build().array());
-  }
-
-  /**
-   * Remove a contiguous range of values from the set
-   * 
-   * (note: not used at present)
-   */
-  public void remove(int lower, int upper) {
-    checkArgument(lower < upper);
-    IntArray.Builder new_elements = IntArray.newBuilder();
-
-    int i = 0;
-    while (elem(i, lower) < lower) {
-      new_elements.add(elem(i));
-      i++;
-    }
-
-    if ((i & 1) == 1)
-      new_elements.add(lower);
-
-    while (elem(i, upper + 1) <= upper)
-      i++;
-
-    if ((i & 1) == 1)
-      new_elements.add(upper);
-
-    while (i < mElements.length) {
-      new_elements.add(mElements[i]);
-      i++;
-    }
-
-    withElem(new_elements.build().array());
   }
 
   /**

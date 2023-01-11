@@ -27,6 +27,8 @@ package dev;
 import static js.base.Tools.*;
 import static org.junit.Assert.*;
 
+import java.util.BitSet;
+
 import org.junit.Test;
 
 import dev.tokn.CodeSet;
@@ -39,12 +41,54 @@ public class CodeSetTest extends MyTestCase {
   @Test
   public void add2() {
     prep();
-    add(10,13);
+    add(10, 13);
     add(9);
     pr(mSet0.elements());
     equ("9 13");
   }
-  
+
+  @Test
+  public void addRandom() {
+    BitSet bitSet = new BitSet();
+    StringBuilder sb = new StringBuilder();
+
+    for (int i = 0; i < 1000; i++) {
+      bitSet.clear();
+
+      prep();
+
+      final int max = 100;
+      final int offset = -max / 2;
+      final int maxChunkLen = (i % 10) + 1;
+      for (int j = 0; j < 50; j++) {
+        int u = random().nextInt(max - maxChunkLen);
+        int v = u + (int) (random().nextFloat() * random().nextFloat() * maxChunkLen) + 1;
+
+        add(u + offset, v + offset);
+        bitSet.set(u, v);
+      }
+
+      sb.setLength(0);
+      int streakLen = 0;
+      for (int j = 0; j <= max; j++) {
+        if (bitSet.get(j))
+          streakLen++;
+        else {
+          if (streakLen > 0) {
+            sb.append(' ');
+            sb.append(j - streakLen + offset);
+            sb.append(' ');
+            sb.append(j + offset);
+            streakLen = 0;
+          }
+        }
+      }
+      String result = sb.toString().trim();
+      log(result);
+      equ(result);
+    }
+  }
+
   @Test
   public void add() {
     prep();

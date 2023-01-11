@@ -28,6 +28,7 @@ public final class DFACompiler extends BaseObject {
     ArrayList<Integer> originalLineNumbers = arrayList();
     ArrayList<String> sourceLines = parseLines(script, originalLineNumbers);
 
+    // Parse the predefined expressions, and insert those lines before the current ones
     {
       List<String> predefinedLines = parsePredefinedExpressions();
       sourceLines.addAll(0, predefinedLines);
@@ -302,24 +303,5 @@ public final class DFACompiler extends BaseObject {
   private List<String> parsePredefinedExpressions() {
     String content = Files.readString(this.getClass(), "predef_expr.txt");
     return parseLines(content, null);
-    //    
-    //    //    List<String> linesRaw = split(content, '\n');
-    //    //    List<String> lines = arrayList();
-    //    for (String s : linesRaw) {
-    //      s = s.trim();
-    //      if (s.isEmpty() || s.startsWith("#"))
-    //        continue;
-    //      lines.add(s);
-    //    }
-    //    checkArgument(lines.size() % 2 == 0, "unexpected number of lines", lines.size());
-    //    for (int i = 0; i < lines.size(); i += 2) {
-    //      String name = "_" + lines.get(i);
-    //      String expr = lines.get(i + 1);
-    //      RegParse regEx = new RegParse(-1, name);
-    //      regEx.parse(expr, tokenDefMap, i);
-    //      if (tokenDefMap.containsKey(name))
-    //        throw badArg("Duplicate token name in predefined expressions:", i, name);
-    //      tokenDefMap.put(name, regEx);
-    //    }
   }
 }

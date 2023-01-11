@@ -14,4 +14,4 @@ _UNSIGNEDINT: \d+
 
 _STRING:      "  ([^\0x0a\0x0d\0x09"] | \\")* "
 
-#_SINGLESTRING: '  ([^\0x0a\0x0d\0x09'] | \\')* '
+_SINGLESTRING: '  ([^\0x0a\0x0d\0x09'] | \\')* '

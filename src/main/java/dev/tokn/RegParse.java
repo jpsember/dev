@@ -311,12 +311,7 @@ final class RegParse {
         }
         else {
           Edge.validate(rs.elements());
-            
-         pr("before adding:",rs);
-         pr("adding:",set);
           rs.addSet(set);
-            
-            
           Edge.validate(rs.elements());
         }
       } else {
@@ -369,32 +364,6 @@ final class RegParse {
       abort("Undefined token:", nameStr);
     return duplicateNFA(regExp.startState(), regExp.endState());
   }
-
-//  public static void installPredefinedExpressions(Map<String, RegParse> tokenDefMap) {
-//    checkState(tokenDefMap.isEmpty(), "token map isn't empty");
-//    String content = Files.readString(RegParse.class, "predef_expr.txt");
-//    
-//    List<String> lines = 
-//    DFACompiler.parseLines(content,  null);
-////    List<String> linesRaw = split(content, '\n');
-////    List<String> lines = arrayList();
-//    for (String s : linesRaw) {
-//      s = s.trim();
-//      if (s.isEmpty() || s.startsWith("#"))
-//        continue;
-//      lines.add(s);
-//    }
-//    checkArgument(lines.size() % 2 == 0, "unexpected number of lines", lines.size());
-//    for (int i = 0; i < lines.size(); i += 2) {
-//      String name = "_" + lines.get(i);
-//      String expr = lines.get(i + 1);
-//      RegParse regEx = new RegParse(-1, name);
-//      regEx.parse(expr, tokenDefMap, i);
-//      if (tokenDefMap.containsKey(name))
-//        throw badArg("Duplicate token name in predefined expressions:", i, name);
-//      tokenDefMap.put(name, regEx);
-//    }
-//  }
 
   private StatePair parseP() {
     char ch = peek(0);

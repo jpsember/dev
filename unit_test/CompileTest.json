@@ -1,6 +1,6 @@
 {                    "alpha" : 1316,
                    "complex" : 4651,
-                  "complex1" : 5159,
+                  "complex1" : 3896,
                 "identifier" : 8387,
                   "intvsdbl" : 1356,
       "normalizeMergeLabels" : 9744,
@@ -9,5 +9,6 @@
                    "predef1" : 8911,
          "printStateMachine" : 2680,
                 "reverseDFA" : 3300,
-                    "simple" : 5249
+                    "simple" : 5249,
+                    "string" : 6280
 }
