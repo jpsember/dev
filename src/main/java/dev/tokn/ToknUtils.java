@@ -2,7 +2,6 @@ package dev.tokn;
 
 import static js.base.Tools.*;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -88,7 +87,7 @@ public final class ToknUtils {
     //  Make start node point to each of the reversed start nodes
 
     for (State s : newStartStateList)
-      newStartState.edges().add(constructEpsilonEdge(newStartState, s));
+      addEps(newStartState, s);
     return newStartState;
   }
 
@@ -129,10 +128,6 @@ public final class ToknUtils {
     addEdge(source, EPSILON_RANGE, target);
   }
 
-  public static Edge constructEpsilonEdge(State source, State target) {
-    return newEdge(source, EPSILON_RANGE, target);
-  }
-
   public static StatePair statePair(State start, State end) {
     checkNotNull(start);
     checkNotNull(end);
@@ -153,10 +148,10 @@ public final class ToknUtils {
 
       int lower = elements[i];
       int upper = elements[i + 1];
-      sb.append(element_to_s(lower));
+      sb.append(elementToString(lower));
       if (upper != 1 + lower) {
         sb.append("..");
-        sb.append(element_to_s(upper - 1));
+        sb.append(elementToString(upper - 1));
       }
       i += 2;
     }
@@ -167,10 +162,8 @@ public final class ToknUtils {
   /**
    * Get a debug description of a value within a CodeSet
    */
-  private static String element_to_s(int charCode) {
-
+  private static String elementToString(int charCode) {
     final String forbidden = "\'\"\\[]{}()";
-
     // Unless it corresponds to a non-confusing printable ASCII value,
     // just print its decimal equivalent
     if (charCode == State.EPSILON)
@@ -180,10 +173,6 @@ public final class ToknUtils {
     if (charCode == State.CODEMAX - 1)
       return "MAX";
     return Integer.toString(charCode);
-  }
-
-  public static boolean equal(CodeSet a, CodeSet b) {
-    return Arrays.equals(a.elements(), b.elements());
   }
 
   public static String dumpStateMachine(State initialState, Object... title) {
@@ -256,15 +245,13 @@ public final class ToknUtils {
   }
 
   public static State normalizeStates(State startState) {
-    StateRenamer ren = new StateRenamer();
-    ren.constructNewVersionsWithEdges(startState);
-
-    for (State oldState : ren.oldStates()) {
-      State newState = ren.get(oldState);
-
+    StateRenamer renamer = new StateRenamer();
+    renamer.constructNewVersionsWithEdges(startState);
+    for (State oldState : renamer.oldStates()) {
+      State newState = renamer.get(oldState);
       normalizeState(newState);
     }
-    return ren.get(startState);
+    return renamer.get(startState);
   }
 
   /**
@@ -356,7 +343,6 @@ public final class ToknUtils {
       for (Edge e : s.edges()) {
         if (CodeSet.contains(e.codeSets(), State.EPSILON))
           badArg("edge accepts epsilon:", INDENT, toString(s, true));
-        ;
 
         // See if the code set intersects union of previous edges' code sets
         CodeSet ours = CodeSet.with(e.codeSets());
@@ -366,7 +352,6 @@ public final class ToknUtils {
         prevSet.addSet(ours);
       }
     }
-
   }
 
 }

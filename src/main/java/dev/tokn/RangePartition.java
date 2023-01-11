@@ -7,8 +7,6 @@ import java.util.Set;
 
 import js.parsing.State;
 
-import static dev.tokn.ToknUtils.*;
-
 /**
  * A data structure that transforms a set of CodeSets to a disjoint set of them,
  * such that no two range sets overlap.
@@ -95,7 +93,7 @@ final class RangePartition {
   private void applyAux(RPNode n, CodeSet s, List<CodeSet> list) {
     if (n.children.isEmpty()) {
       // Verify that this set equals the input set
-      checkState(equal(s, n.codeSet));
+      checkState(s.equals(n.codeSet));
       push(list, s);
     } else {
       for (RPNode m : n.children) {
@@ -133,7 +131,7 @@ final class RangePartition {
     //      #       t = intersect of m.set and s
     //      #       if t is nonempty, add(t, m)
     //      #
-    if (equal(n.codeSet, s))
+    if (n.codeSet.equals(s))
       return;
 
     if (n.children.isEmpty()) {

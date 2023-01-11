@@ -52,7 +52,7 @@ public class DFAOper extends AppOper {
     return arrayList(//
         "<." + SOURCE_EXT + " input>", //
         "[<." + OBJECT_EXT + " output>]", //
-        "ids <source file>");
+        "[ids <source file>]");
   }
 
   @Override

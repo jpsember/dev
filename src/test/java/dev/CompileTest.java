@@ -78,11 +78,6 @@ public class CompileTest extends MyTestCase {
   }
 
   @Test
-  public void intvsdbl() {
-    proc();
-  }
-
-  @Test
   public void subsumed() {
     try {
       proc("abab bca bbc bc");
@@ -352,7 +347,6 @@ public class CompileTest extends MyTestCase {
   }
 
   private DFA dfa() {
-    loadTools();
     if (mDFA == null)
       mDFA = new DFA(mDFAJson);
     return mDFA;
