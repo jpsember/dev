@@ -108,7 +108,12 @@ public final class DFACompiler extends BaseObject {
     return constructJsonDFA(token_records, dfa);
   }
 
-  public static ArrayList<String> parseLines(String script, ArrayList<Integer> originalLineNumbers) {
+  public List<String> tokenNames() {
+    checkState(mTokenIds != null, "not yet available");
+    return mTokenIds;
+  }
+
+  private static ArrayList<String> parseLines(String script, ArrayList<Integer> originalLineNumbers) {
 
     ArrayList<String> sourceLines = arrayList();
 
@@ -172,8 +177,10 @@ public final class DFACompiler extends BaseObject {
     m.put("version", 3.0);
 
     JSList list = list();
+    mTokenIds = arrayList();
     for (RegParse ent : token_records) {
       list.add(ent.name());
+      mTokenIds.add(ent.name());
     }
     m.put("tokens", list);
 
@@ -304,4 +311,6 @@ public final class DFACompiler extends BaseObject {
     String content = Files.readString(this.getClass(), "predef_expr.txt");
     return parseLines(content, null);
   }
+
+  private List<String> mTokenIds;
 }

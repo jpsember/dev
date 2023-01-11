@@ -6,7 +6,7 @@ _DIG: \d+
 # to be intpreted as an int
 
 # 1
-INT: \-?$DIG
+INT: \-?$_DIG
 
 # 2
 #
