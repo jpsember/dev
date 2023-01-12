@@ -547,8 +547,8 @@ final class RegParse {
   private CodeSet parseSET() {
     CodeSet code_set = parse_code_set(true);
     if (read_if('-')) {
-      int u = code_set.single_value();
-      int v = parse_code_set(true).single_value();
+      int u = code_set.singleValue();
+      int v = parse_code_set(true).singleValue();
       if (v < u)
         abort("Illegal range");
       code_set = CodeSet.withRange(u, v + 1);

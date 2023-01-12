@@ -127,7 +127,7 @@ public final class CodeSet implements Comparable<CodeSet> {
   /**
    * Return the single value represented by the set
    */
-  public int single_value() {
+  public int singleValue() {
     if (mElements.length == 2) {
       int a = mElements[0];
       int b = mElements[1];
