@@ -77,7 +77,6 @@ public class ScreenCaptureOper extends AppOper {
         s.arg("-D" + (1 + devNum)); // device number
 
         File output = getNextOutputFile(timestamp, devNum);
-        log("capturing image to:", output);
         s.arg(output);
         s.setVerbose();
         s.call();
