@@ -26,9 +26,6 @@ package dev;
 
 import static js.base.Tools.*;
 
-import java.util.List;
-import java.util.Random;
-
 import dev.gen.ExperimentConfig;
 import js.app.AppOper;
 
@@ -50,14 +47,74 @@ public class ExperimentOper extends AppOper {
     return ExperimentConfig.DEFAULT_INSTANCE;
   }
 
+
   @Override
   public void perform() {
 
-    List<String> numbersArray = arrayList();
-    Random r = new Random(1965);
-    for (int i = 0; i < 10; i++)
-      numbersArray.add("" + (r.nextInt(90) + 10));
-    pr(numbersArray);
+    halt("nothing here");
+//    
+//    // See https://markholloway.com/2018/11/14/macos-screencapture-terminal/
+//
+//    while (true) {
+//
+//      SystemCall s = new SystemCall();
+//      s.arg("screencapture");
+//      s.arg("-S"); // Capture the entire screen
+//      s.arg("-T", 1); // delay in seconds
+//      //     s.arg("-x");  // Do not play sounds
+//      s.arg("-r"); // Do not add some metadata to image
+//      s.arg("-tjpg"); // output image format
+//      s.arg("-D" + mDeviceNumber);
+//
+//      File output = getNextOutputFile();
+//      log("capturing image to:", output);
+//      s.arg(output);
+//      s.setVerbose();
+//      s.call();
+//      s.assertSuccess();
+//      imageFiles().add(output);
+//      final int sleepSeconds = 3;
+//      DateTimeTools.sleepForRealMs(sleepSeconds * 1000L);
+//
+//      if (imageFiles().size() > 3)
+//        break;
+//    }
   }
 
+//  private List<File> imageFiles() {
+//    if (mImageFiles == null) {
+//      List<File> lst = arrayList();
+//      DirWalk w = new DirWalk(imageDir());
+//      w.withRecurse(false);
+//      w.withExtensions("jpg");
+//      for (File f : w.files()) {
+//        String name = f.getName();
+//        if (!name.startsWith(prefix))
+//          continue;
+//        lst.add(f);
+//      }
+//      mImageFiles = lst;
+//    }
+//    return mImageFiles;
+//  }
+//
+//  private static final String prefix = "_screencapture_";
+//
+//  private File imageDir() {
+//    if (mImageDir == null) {
+//      mImageDir = new File(Files.homeDirectory(), "Downloads");
+//      checkState(mImageDir.isDirectory(), "can't find directory:", mImageDir);
+//    }
+//    return mImageDir;
+//  }
+//
+//  private File mImageDir;
+//
+//  private File getNextOutputFile() {
+//    File f = new File(imageDir(), prefix + System.currentTimeMillis() + ".jpg");
+//    return f;
+//  }
+//
+//  private List<File> mImageFiles;
+//  private int mDeviceNumber = 1;
 }

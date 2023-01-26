@@ -67,6 +67,7 @@ public class Main extends App {
     registerOper(new MakeScriptOper());
     registerOper(new WordleOper());
     registerOper(new DFAOper());
+    registerOper(new ScreenCaptureOper());
   }
 
 }
