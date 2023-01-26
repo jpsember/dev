@@ -62,22 +62,34 @@ public class ScreenCaptureOper extends AppOper {
 
     while (true) {
 
-      SystemCall s = new SystemCall();
-      s.arg("screencapture");
-      s.arg("-S"); // Capture the entire screen
-      s.arg("-T", 1); // delay in seconds
-      //     s.arg("-x");  // Do not play sounds
-      s.arg("-r"); // Do not add some metadata to image
-      s.arg("-tjpg"); // output image format
-      s.arg("-D" + mConfig.device());
+      checkArgument(mConfig.devices() >= 1, "bad device count");
 
-      File output = getNextOutputFile();
-      log("capturing image to:", output);
-      s.arg(output);
-      s.setVerbose();
-      s.call();
-      s.assertSuccess();
-      imageFiles().add(output);
+      long timestamp = System.currentTimeMillis();
+
+      for (int devNum = 0; devNum < mConfig.devices(); devNum++) {
+        SystemCall s = new SystemCall();
+        s.arg("screencapture");
+        s.arg("-S"); // Capture the entire screen
+        s.arg("-T", 1); // delay in seconds
+        //     s.arg("-x");  // Do not play sounds
+        s.arg("-r"); // Do not add some metadata to image
+        s.arg("-tjpg"); // output image format
+        s.arg("-D" + (1 + devNum)); // device number
+
+        File output = getNextOutputFile(timestamp, devNum);
+        log("capturing image to:", output);
+        s.arg(output);
+        s.setVerbose();
+        s.call();
+
+        // If error output is 'no such device', ignore
+        if (s.systemErr().contains("Invalid display specified"))
+          continue;
+
+        s.assertSuccess();
+        imageFiles().add(output);
+      }
+
       DateTimeTools.sleepForRealMs(mConfig.secondsBetweenShots() * 1000L);
 
       cullShots();
@@ -112,8 +124,9 @@ public class ScreenCaptureOper extends AppOper {
   private File imageDir() {
     if (mImageDir == null) {
       File c = mConfig.imageDirectory();
-      if (Files.empty(c))
-        c = new File(Files.homeDirectory(), "Downloads");
+      if (Files.empty(c)) {
+        c = files().mkdirs(new File(Files.homeDirectory(), "Downloads/screenshots"));
+      }
       checkState(c.isDirectory(), "can't find directory:", c);
       mImageDir = c;
     }
@@ -122,8 +135,8 @@ public class ScreenCaptureOper extends AppOper {
 
   private File mImageDir;
 
-  private File getNextOutputFile() {
-    File f = new File(imageDir(), mConfig.imagePrefix() + System.currentTimeMillis() + ".jpg");
+  private File getNextOutputFile(long timestamp, int deviceNumber) {
+    File f = new File(imageDir(), mConfig.imagePrefix() + timestamp + "_d" + deviceNumber + ".jpg");
     return f;
   }
 

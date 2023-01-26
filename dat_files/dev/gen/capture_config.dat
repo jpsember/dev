@@ -1,5 +1,5 @@
 fields {
-  int devices = 1; // number of devices to capture
+  int devices = 2; // number of devices to capture
   int max_screenshots = 1500;
   int seconds_between_shots = 60;
   File image_directory;
