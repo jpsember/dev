@@ -26,8 +26,15 @@ package dev;
 
 import static js.base.Tools.*;
 
+import java.io.ByteArrayOutputStream;
+
+import com.jcraft.jsch.ChannelExec;
+import com.jcraft.jsch.JSch;
+import com.jcraft.jsch.Session;
+
 import dev.gen.ExperimentConfig;
 import js.app.AppOper;
+import js.base.DateTimeTools;
 
 public class ExperimentOper extends AppOper {
 
@@ -49,6 +56,57 @@ public class ExperimentOper extends AppOper {
 
   @Override
   public void perform() {
-    throw notFinished();
+    try {
+      listFolderStructure();
+    } catch (Throwable t) {
+      throw asRuntimeException(t);
+    }
+  }
+
+  private void listFolderStructure() throws Exception {
+
+    String username = "pi";
+    String host = "4.tcp.ngrok.io";
+    int port = 15034;
+
+    Session session = null;
+    ChannelExec channel = null;
+
+    try {
+      JSch jsch = new JSch();
+
+      String privateKey = "/Users/home/.ssh/id_rsa";
+
+      jsch.addIdentity(privateKey);
+      pr("identity added ");
+
+      session = jsch.getSession(username, host, port);
+      pr("session created");
+
+      session.setConfig("StrictHostKeyChecking", "no");
+
+      session.connect();
+      pr("connected");
+
+      channel = (ChannelExec) session.openChannel("exec");
+      channel.setCommand("ls");
+      ByteArrayOutputStream responseStream = new ByteArrayOutputStream();
+      channel.setOutputStream(responseStream);
+      channel.connect();
+
+      while (channel.isConnected()) {
+        DateTimeTools.sleepForRealMs(100);
+      }
+
+      String responseString = new String(responseStream.toByteArray());
+      System.out.println(responseString);
+    } finally {
+      if (session != null) {
+        session.disconnect();
+      }
+      if (channel != null) {
+        channel.disconnect();
+      }
+    }
   }
 }
