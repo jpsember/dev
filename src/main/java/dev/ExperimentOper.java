@@ -28,6 +28,11 @@ import static js.base.Tools.*;
 
 import dev.gen.ExperimentConfig;
 import js.app.AppOper;
+import js.json.JSList;
+
+import javax.net.ssl.SSLSocket;
+import javax.net.ssl.SSLSocketFactory;
+import java.io.*;
 
 public class ExperimentOper extends AppOper {
 
@@ -39,7 +44,7 @@ public class ExperimentOper extends AppOper {
 
   @Override
   public String getHelpDescription() {
-    return "quick experiment";
+    return "quick experiment: open ssl socket connection to remote machine";
   }
 
   @Override
@@ -47,74 +52,60 @@ public class ExperimentOper extends AppOper {
     return ExperimentConfig.DEFAULT_INSTANCE;
   }
 
+  private static final String[] protocols = new String[] { "TLSv1.2" };
+  private static final String[] cipher_suites = new String[] { "TLS_AES_128_GCM_SHA256" };
 
   @Override
   public void perform() {
+    try {
 
-    halt("nothing here");
-//    
-//    // See https://markholloway.com/2018/11/14/macos-screencapture-terminal/
-//
-//    while (true) {
-//
-//      SystemCall s = new SystemCall();
-//      s.arg("screencapture");
-//      s.arg("-S"); // Capture the entire screen
-//      s.arg("-T", 1); // delay in seconds
-//      //     s.arg("-x");  // Do not play sounds
-//      s.arg("-r"); // Do not add some metadata to image
-//      s.arg("-tjpg"); // output image format
-//      s.arg("-D" + mDeviceNumber);
-//
-//      File output = getNextOutputFile();
-//      log("capturing image to:", output);
-//      s.arg(output);
-//      s.setVerbose();
-//      s.call();
-//      s.assertSuccess();
-//      imageFiles().add(output);
-//      final int sleepSeconds = 3;
-//      DateTimeTools.sleepForRealMs(sleepSeconds * 1000L);
-//
-//      if (imageFiles().size() > 3)
-//        break;
-//    }
+      SSLSocket socket = null;
+      PrintWriter out = null;
+      BufferedReader in = null;
+
+      try {
+        SSLSocketFactory factory = (SSLSocketFactory) SSLSocketFactory.getDefault();
+        socket = (SSLSocket) factory.createSocket("google.com", 443);
+
+        // Get the list of all supported cipher suites.
+        String[] cipherSuites = socket.getSupportedCipherSuites();
+        pr(JSList.with(cipherSuites));
+        halt();
+
+        socket.setEnabledProtocols(protocols);
+        socket.setEnabledCipherSuites(cipher_suites);
+
+        socket.startHandshake();
+
+        out = new PrintWriter(new BufferedWriter(new OutputStreamWriter(socket.getOutputStream())));
+
+        out.println("GET / HTTP/1.0");
+        out.println();
+        out.flush();
+
+        if (out.checkError())
+          System.out.println("SSLSocketClient:  java.io.PrintWriter error");
+
+        /* read response */
+        in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+
+        String inputLine;
+        while ((inputLine = in.readLine()) != null)
+          System.out.println(inputLine);
+
+      } catch (Exception e) {
+        e.printStackTrace();
+      } finally {
+        if (socket != null)
+          socket.close();
+        if (out != null)
+          out.close();
+        if (in != null)
+          in.close();
+      }
+
+    } catch (Throwable t) {
+      throw asRuntimeException(t);
+    }
   }
-
-//  private List<File> imageFiles() {
-//    if (mImageFiles == null) {
-//      List<File> lst = arrayList();
-//      DirWalk w = new DirWalk(imageDir());
-//      w.withRecurse(false);
-//      w.withExtensions("jpg");
-//      for (File f : w.files()) {
-//        String name = f.getName();
-//        if (!name.startsWith(prefix))
-//          continue;
-//        lst.add(f);
-//      }
-//      mImageFiles = lst;
-//    }
-//    return mImageFiles;
-//  }
-//
-//  private static final String prefix = "_screencapture_";
-//
-//  private File imageDir() {
-//    if (mImageDir == null) {
-//      mImageDir = new File(Files.homeDirectory(), "Downloads");
-//      checkState(mImageDir.isDirectory(), "can't find directory:", mImageDir);
-//    }
-//    return mImageDir;
-//  }
-//
-//  private File mImageDir;
-//
-//  private File getNextOutputFile() {
-//    File f = new File(imageDir(), prefix + System.currentTimeMillis() + ".jpg");
-//    return f;
-//  }
-//
-//  private List<File> mImageFiles;
-//  private int mDeviceNumber = 1;
 }
