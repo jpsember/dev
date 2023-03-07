@@ -75,9 +75,9 @@ public class ExperimentOper extends AppOper {
     try {
       JSch jsch = new JSch();
 
-      String privateKey = "/Users/home/.ssh/id_rsa";
+      String privateKey = "/Users/home/.ssh/issue40b";
 
-      jsch.addIdentity(privateKey);
+      jsch.addIdentity(privateKey,"dolphin");
       pr("identity added ");
 
       session = jsch.getSession(username, host, port);
