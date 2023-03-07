@@ -33,6 +33,7 @@ import js.json.JSList;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
 import java.io.*;
+import java.net.Socket;
 
 public class ExperimentOper extends AppOper {
 
@@ -58,52 +59,32 @@ public class ExperimentOper extends AppOper {
   @Override
   public void perform() {
     try {
+      String server = "en.wikipedia.org";
+      String path = "/wiki/Main_Page";
+      
+      // Connect to the server
+      Socket socket = new Socket( server, 80 );
 
-      SSLSocket socket = null;
-      PrintWriter out = null;
-      BufferedReader in = null;
+      // Create input and output streams to read from and write to the server
+      PrintStream out = new PrintStream( socket.getOutputStream() );
+      BufferedReader in = new BufferedReader( new InputStreamReader( socket.getInputStream() ) );
 
-      try {
-        SSLSocketFactory factory = (SSLSocketFactory) SSLSocketFactory.getDefault();
-        socket = (SSLSocket) factory.createSocket("google.com", 443);
+      // Follow the HTTP protocol of GET <path> HTTP/1.0 followed by an empty line
+      out.println( "GET " + path + " HTTP/1.0" );
+      out.println();
 
-        // Get the list of all supported cipher suites.
-        String[] cipherSuites = socket.getSupportedCipherSuites();
-        pr(JSList.with(cipherSuites));
-        halt();
-
-        socket.setEnabledProtocols(protocols);
-        socket.setEnabledCipherSuites(cipher_suites);
-
-        socket.startHandshake();
-
-        out = new PrintWriter(new BufferedWriter(new OutputStreamWriter(socket.getOutputStream())));
-
-        out.println("GET / HTTP/1.0");
-        out.println();
-        out.flush();
-
-        if (out.checkError())
-          System.out.println("SSLSocketClient:  java.io.PrintWriter error");
-
-        /* read response */
-        in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-
-        String inputLine;
-        while ((inputLine = in.readLine()) != null)
-          System.out.println(inputLine);
-
-      } catch (Exception e) {
-        e.printStackTrace();
-      } finally {
-        if (socket != null)
-          socket.close();
-        if (out != null)
-          out.close();
-        if (in != null)
-          in.close();
+      // Read data from the server until we finish reading the document
+      String line = in.readLine();
+      while( line != null )
+      {
+          System.out.println( line );
+          line = in.readLine();
       }
 
+      // Close our streams
+      in.close();
+      out.close();
+      socket.close();
     } catch (Throwable t) {
       throw asRuntimeException(t);
     }
