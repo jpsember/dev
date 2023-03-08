@@ -33,6 +33,7 @@ import java.util.Set;
 import js.app.AppOper;
 import js.app.CmdLineArgs;
 import js.file.Files;
+import js.webtools.EntityManager;
 import js.webtools.gen.RemoteEntityInfo;
 
 public class EntityOper extends AppOper {

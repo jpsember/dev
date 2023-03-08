@@ -33,6 +33,7 @@ import js.app.AppOper;
 import js.app.CmdLineArgs;
 import js.base.SystemCall;
 import js.file.Files;
+import js.webtools.EntityManager;
 import js.webtools.gen.RemoteEntityInfo;
 
 /**
