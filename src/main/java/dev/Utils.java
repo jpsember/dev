@@ -26,8 +26,8 @@ package dev;
 
 import static js.base.Tools.*;
 
-import dev.gen.RemoteEntityInfo;
 import js.file.Files;
+import js.webtools.gen.RemoteEntityInfo;
 
 public final class Utils {
 

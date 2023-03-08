@@ -29,11 +29,11 @@ import static js.base.Tools.*;
 import java.io.File;
 import java.util.Map;
 
-import dev.gen.RemoteEntityInfo;
-import dev.gen.OsType;
-import dev.gen.RemoteEntityCollection;
 import js.base.BaseObject;
 import js.file.Files;
+import js.webtools.gen.OsType;
+import js.webtools.gen.RemoteEntityCollection;
+import js.webtools.gen.RemoteEntityInfo;
 
 /**
  * <pre>

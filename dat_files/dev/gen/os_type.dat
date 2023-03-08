@@ -1,5 +1,0 @@
-enum {
-  unknown,
-  ubuntu,
-  osx,
-}

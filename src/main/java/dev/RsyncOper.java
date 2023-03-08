@@ -29,11 +29,11 @@ import static js.base.Tools.*;
 import java.io.File;
 import java.util.List;
 
-import dev.gen.RemoteEntityInfo;
 import js.app.AppOper;
 import js.app.CmdLineArgs;
 import js.base.SystemCall;
 import js.file.Files;
+import js.webtools.gen.RemoteEntityInfo;
 
 /**
  * <pre>

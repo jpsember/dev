@@ -29,13 +29,13 @@ import static js.base.Tools.*;
 import java.io.File;
 import java.util.regex.Matcher;
 
-import dev.gen.RemoteEntityInfo;
 import js.base.BaseObject;
 import js.base.SystemCall;
 import js.file.Files;
 import js.json.JSList;
 import js.json.JSMap;
 import js.parsing.RegExp;
+import js.webtools.gen.RemoteEntityInfo;
 
 public class Ngrok extends BaseObject {
 

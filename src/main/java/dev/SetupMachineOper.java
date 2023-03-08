@@ -30,13 +30,13 @@ import java.io.File;
 import java.util.Arrays;
 import java.util.List;
 
-import dev.gen.RemoteEntityInfo;
 import js.app.AppOper;
 import js.app.CmdLineArgs;
 import js.base.SystemCall;
 import js.file.Files;
 import js.json.JSMap;
 import js.parsing.MacroParser;
+import js.webtools.gen.RemoteEntityInfo;
 
 public class SetupMachineOper extends AppOper {
 

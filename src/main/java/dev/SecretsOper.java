@@ -46,11 +46,11 @@ import javax.crypto.spec.GCMParameterSpec;
 import javax.crypto.spec.PBEKeySpec;
 import javax.crypto.spec.SecretKeySpec;
 
-import dev.gen.RemoteEntityInfo;
 import js.app.AppOper;
 import js.app.CmdLineArgs;
 import js.file.DirWalk;
 import js.file.Files;
+import js.webtools.gen.RemoteEntityInfo;
 
 public class SecretsOper extends AppOper {
 
