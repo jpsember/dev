@@ -30,6 +30,7 @@ import java.io.ByteArrayOutputStream;
 
 import com.jcraft.jsch.ChannelExec;
 import com.jcraft.jsch.JSch;
+import com.jcraft.jsch.JSchException;
 import com.jcraft.jsch.Session;
 
 import dev.gen.ExperimentConfig;
@@ -73,33 +74,59 @@ public class ExperimentOper extends AppOper {
     ChannelExec channel = null;
 
     try {
+
+      checkpoint("opening JSch");
       JSch jsch = new JSch();
 
-      String privateKey = "/Users/home/.ssh/issue40b";
+      String privateKey = "/Users/home/.ssh/issue40d";
 
-      jsch.addIdentity(privateKey,"dolphin");
+      // The key pair must be generated with this command:
+      //
+      //   ssh-keygen -m PEM
+      //
+      try {
+        jsch.addIdentity(privateKey);
+      } catch (JSchException e) {
+        String msg = e.getMessage();
+        if (msg.contains("invalid privatekey")) {
+          pr("*** Failed to add identity to JSch; was the key created via 'ssh-keygen -m PEM' ?");
+        }
+        throw e;
+      }
       pr("identity added ");
 
+      checkpoint("getting session");
       session = jsch.getSession(username, host, port);
-      pr("session created");
 
       session.setConfig("StrictHostKeyChecking", "no");
 
+      checkpoint("connecting");
+
       session.connect();
-      pr("connected");
+      checkpoint("connected");
 
-      channel = (ChannelExec) session.openChannel("exec");
-      channel.setCommand("ls");
       ByteArrayOutputStream responseStream = new ByteArrayOutputStream();
-      channel.setOutputStream(responseStream);
-      channel.connect();
 
-      while (channel.isConnected()) {
-        DateTimeTools.sleepForRealMs(100);
+      pr("looping for several times");
+      for (int j = 0; j < 10; j++) {
+        responseStream.reset();
+        checkpoint("opening channel, iter", j);
+        channel = (ChannelExec) session.openChannel("exec");
+        channel.setOutputStream(responseStream);
+        channel.setCommand("ls -1 BarnServ-Alpha1/source/barnserv/start/data");
+        channel.connect();
+
+        while (channel.isConnected()) {
+          DateTimeTools.sleepForRealMs(50);
+        }
+
+        String responseString = new String(responseStream.toByteArray()).trim();
+
+        pr(responseString);
+
+        int status = channel.getExitStatus();
+        checkpoint("finished command, status:", status);
       }
-
-      String responseString = new String(responseStream.toByteArray());
-      System.out.println(responseString);
     } finally {
       if (session != null) {
         session.disconnect();
