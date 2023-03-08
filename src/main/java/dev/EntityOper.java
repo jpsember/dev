@@ -34,6 +34,7 @@ import js.app.AppOper;
 import js.app.CmdLineArgs;
 import js.file.Files;
 import js.webtools.EntityManager;
+import js.webtools.Ngrok;
 import js.webtools.gen.RemoteEntityInfo;
 
 public class EntityOper extends AppOper {
@@ -130,7 +131,7 @@ public class EntityOper extends AppOper {
     if (foundEnt == null) {
       setError("no entity found for:", quote(id), "; use 'list' to available ones");
     }
-    RemoteEntityInfo updatedEnt = updateEntity(foundEnt);
+    RemoteEntityInfo updatedEnt = Ngrok.sharedInstance().updateEntityDynamicFields(foundEnt);
     updatedEnt = manager().updateEnt(updatedEnt);
     manager().setActive(updatedEnt.id());
     createSSHScript(updatedEnt.id());
@@ -143,18 +144,6 @@ public class EntityOper extends AppOper {
       setError("entity already exists:", INDENT, foundEnt);
     }
     manager().create(RemoteEntityInfo.newBuilder().id(id));
-  }
-
-  private RemoteEntityInfo updateEntity(RemoteEntityInfo entity) {
-    RemoteEntityInfo.Builder b = entity.build().toBuilder();
-    RemoteEntityInfo tunnel = Ngrok.sharedInstance().tunnelInfo(entity.id());
-    if (tunnel == null) {
-      pr("*** no ngrok tunnel found for entity:", entity.id());
-    } else {
-      b.url(tunnel.url());
-      b.port(tunnel.port());
-    }
-    return b.build();
   }
 
   private void createSSHScript(String tag) {
