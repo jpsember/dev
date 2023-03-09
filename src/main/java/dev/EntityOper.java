@@ -78,9 +78,10 @@ public class EntityOper extends AppOper {
 
   @Override
   public void perform() {
+    mNgrok = new Ngrok();
     if (verbose()) {
       manager().setVerbose();
-      Ngrok.sharedInstance().setVerbose();
+      mNgrok.setVerbose();
     }
     if (mOperName == null)
       mOperName = "display";
@@ -95,7 +96,7 @@ public class EntityOper extends AppOper {
       setEntity(consumeIdArg());
       break;
     case "list":
-      pr(manager().currentEntities());
+      pr(manager().registry());
       break;
     case "add": {
       String id = consumeIdArg();
@@ -119,39 +120,41 @@ public class EntityOper extends AppOper {
   private boolean mIdArgUsed;
 
   private void displayEntity() {
-    RemoteEntityInfo ent = manager().optionalActiveEntity();
-    if (ent == null)
+    String activeEntityId = manager().activeEntityId();
+    if (nullOrEmpty(activeEntityId))
       pr("{}");
     else
-      pr(ent);
+      pr(manager().entity(activeEntityId));
   }
 
   private void setEntity(String id) {
-    RemoteEntityInfo foundEnt = manager().optionalEntryFor(id);
-    if (foundEnt == null) {
+    RemoteEntityInfo ent = manager().entity(id);
+
+    // RemoteEntityInfo foundEnt = manager().optionalEntryFor(id);
+    if (ent == null) {
       setError("no entity found for:", quote(id), "; use 'list' to available ones");
     }
-    RemoteEntityInfo updatedEnt = Ngrok.sharedInstance().updateEntityDynamicFields(foundEnt);
-    updatedEnt = manager().updateEnt(updatedEnt);
-    manager().setActive(updatedEnt.id());
-    createSSHScript(updatedEnt.id());
+
+    RemoteEntityInfo modified = mNgrok.addNgrokInfo(ent);
+    if (modified == null)
+      setError("no ngrok info found for:", quote(id));
+    manager().setActive(id);
+    createSSHScript(modified);
     displayEntity();
   }
 
   private void addEntity(String id) {
-    RemoteEntityInfo foundEnt = manager().optionalEntryFor(id);
-    if (foundEnt != null) {
-      setError("entity already exists:", INDENT, foundEnt);
-    }
+    RemoteEntityInfo ent = manager().entity(id);
+    if (ent != null)
+      setError("entity already exists:", INDENT, ent);
     manager().create(RemoteEntityInfo.newBuilder().id(id));
   }
 
-  private void createSSHScript(String tag) {
+  private void createSSHScript(RemoteEntityInfo ent) {
     StringBuilder sb = new StringBuilder();
-    RemoteEntityInfo ent = manager().entryFor(tag);
     sb.append("#!/usr/bin/env bash\n");
     sb.append("echo \"Connecting to: ");
-    sb.append(tag);
+    sb.append(ent.id());
     sb.append("\"\n");
     sb.append("ssh ");
     sb.append(ent.user());
@@ -175,6 +178,7 @@ public class EntityOper extends AppOper {
   }
 
   private EntityManager mEntityManager;
+  private Ngrok mNgrok;
   private String mIdArg;
   private String mOperName;
 }

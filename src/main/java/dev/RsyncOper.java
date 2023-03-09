@@ -147,7 +147,7 @@ public abstract class RsyncOper extends AppOper {
       s.arg(resolvedPath);
     else {
       RemoteEntityInfo ent = remoteEntity();
-      checkArgument(ent.port() > 0, "bad port:", INDENT, ent);
+      checkArgument(ent.port() != null, "bad port:", INDENT, ent);
 
       // I don't think we need to add quotes around the (single) argument [ssh -p]; in fact,
       // it maybe causes the SystemCall to fail 
@@ -226,7 +226,8 @@ public abstract class RsyncOper extends AppOper {
           mResolvedTarget = targetDir;
         else
           mResolvedTarget = Files.join(remoteProjectDir(), targetDir);
-        todo("Issue #32: haven't yet dealt with the copy directory contents vs copy directory (i.e. by adding '/')");
+        todo(
+            "Issue #32: haven't yet dealt with the copy directory contents vs copy directory (i.e. by adding '/')");
       }
     }
   }
@@ -264,7 +265,8 @@ public abstract class RsyncOper extends AppOper {
           mResolvedTarget = targetDir;
         else
           mResolvedTarget = Files.join(localProjectDir(), targetDir);
-        todo("Issue #32: haven't yet dealt with the copy directory contents vs copy directory (i.e. by adding '/')");
+        todo(
+            "Issue #32: haven't yet dealt with the copy directory contents vs copy directory (i.e. by adding '/')");
       }
     }
   }

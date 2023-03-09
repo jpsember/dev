@@ -212,7 +212,7 @@ public class SecretsOper extends AppOper {
       files().write(encrypted, target);
     } else {
       checkArgument(!nullOrEmpty(mEntityId), "Please specify the id of this entity");
-      RemoteEntityInfo entityInfo = EntityManager.sharedInstance().optionalEntryFor(mEntityId);
+      RemoteEntityInfo entityInfo = EntityManager.sharedInstance().entity(mEntityId);
       checkArgument(entityInfo != null, "no information found for entity id:", mEntityId);
 
       byte[] encrypted = Files.toByteArray(files().fileWithinProjectConfigDirectory("encrypted_secrets.bin"),
