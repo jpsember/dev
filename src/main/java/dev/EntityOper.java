@@ -78,10 +78,10 @@ public class EntityOper extends AppOper {
 
   @Override
   public void perform() {
-    mNgrok = new Ngrok();
+    Ngrok ngrok = Ngrok.sharedInstance();
     if (verbose()) {
       manager().setVerbose();
-      mNgrok.setVerbose();
+      ngrok.setVerbose();
     }
     if (mOperName == null)
       mOperName = "display";
@@ -135,7 +135,7 @@ public class EntityOper extends AppOper {
       setError("no entity found for:", quote(id), "; use 'list' to available ones");
     }
 
-    RemoteEntityInfo modified = mNgrok.addNgrokInfo(ent);
+    RemoteEntityInfo modified = Ngrok.sharedInstance().addNgrokInfo(ent, false);
     if (modified == null)
       setError("no ngrok info found for:", quote(id));
     manager().setActive(id);
@@ -178,7 +178,6 @@ public class EntityOper extends AppOper {
   }
 
   private EntityManager mEntityManager;
-  private Ngrok mNgrok;
   private String mIdArg;
   private String mOperName;
 }
