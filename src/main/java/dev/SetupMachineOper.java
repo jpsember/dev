@@ -94,10 +94,9 @@ public class SetupMachineOper extends AppOper {
     files().mkdirs(sshDir);
     writeWithBackup(new File(sshDir, "authorized_keys"), files().fileWithinSecrets("authorized_keys.txt"));
 
-    // Install public/private key pairs for accessing GitHub
+    // Install public/private key pairs
     //
-    todo("Per Issue #124, we may want to add another key here");
-    String[] keyNames = { "id_rsa" };
+    String[] keyNames = { "id_rsa", "cowmarker" };
     for (String keyName : keyNames) {
       writeWithBackup(new File(sshDir, keyName + ".pub"), files().fileWithinSecrets(keyName + ".pub.txt"));
       File targetFile = new File(sshDir, keyName);
