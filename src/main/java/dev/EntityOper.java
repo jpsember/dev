@@ -51,10 +51,10 @@ public class EntityOper extends AppOper {
 
   @Override
   protected List<Object> getAdditionalArgs() {
-    return arrayList("[[select] <id> | add <id> | list]");
+    return arrayList("[[select] <id> | add <id> | list | ngrok ]");
   }
 
-  private static Set<String> sOperNames = hashSetWith("display", "select", "list", "add");
+  private static Set<String> sOperNames = hashSetWith("display", "select", "list", "add", "ngrok");
 
   @Override
   protected void processAdditionalArgs() {
@@ -100,10 +100,12 @@ public class EntityOper extends AppOper {
       break;
     case "add": {
       String id = consumeIdArg();
-
       addEntity(id);
       setEntity(id);
     }
+      break;
+    case "ngrok":
+      pr(ngrok.refresh().ngrokTunnelMap());
       break;
     }
     if (mIdArg != null)
