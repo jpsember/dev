@@ -204,25 +204,58 @@ public class SecretsOper extends AppOper {
   @Override
   public void perform() {
     checkArgument(!nullOrEmpty(mPassPhrase), "Please provide a passphrase");
+  
+    // This is made more complicated due to
+    //
+    // 1) the entity_info.json file is stored in the secrets directory, and is not 
+    //    to be included in the encrypted directory contents
+    // 2) this operation is also (optionally) used to create this entity_info.json
+    //    file when decrypting the secrets
+    
     if (mEncryptMode) {
-      // Omit this system's entity info file, as it will be replaced for each remote system that installs the secrets
+    
+      // Encrypt all the files in the local project secrets directory, 
+      // except for `entity_info.json` which varies for each entity
+      
       byte[] zipFileBytes = zipDirectory(files().projectSecretsDirectory(), Files.SECRETS_FILE_ENTITY_INFO);
       byte[] encrypted = encryptData(mPassPhrase, zipFileBytes);
       File target = files().fileWithinProjectConfigDirectory("encrypted_secrets.bin");
       files().write(encrypted, target);
+    
     } else {
-      checkArgument(!nullOrEmpty(mEntityId), "Please specify the id of this entity");
-      RemoteEntityInfo entityInfo = EntityManager.sharedInstance().entity(mEntityId);
-      checkArgument(entityInfo != null, "no information found for entity id:", mEntityId);
+      
+      // Using the passphrase, decrypt the secrets into this entity's secrets directory
+      
+      File secretsDir = files().optFileWithinProject("secrets");
+      
+      // If there is an entity id argument, write the entity's info as well; otherwise,
+      // leave that file untouched (if it existed)
+      
+      File entityInfoFile = new File(secretsDir, Files.SECRETS_FILE_ENTITY_INFO);
+      String currentEntityInfoContent = Files.readString(entityInfoFile, "");
+      
+      boolean updateEntityInfo = nonEmpty(mEntityId);
+      RemoteEntityInfo entityInfo = null;
+      if (updateEntityInfo) {
+        entityInfo = EntityManager.sharedInstance().entity(mEntityId);
+        checkArgument(entityInfo != null, "no information found for entity id:", mEntityId);
+      }
 
       byte[] encrypted = Files.toByteArray(files().fileWithinProjectConfigDirectory("encrypted_secrets.bin"),
           "SecretsOper.1");
       byte[] decrypted = decryptData(mPassPhrase, encrypted);
-      File secretsDir = files().optFileWithinProject("secrets");
       unzipDirectory(decrypted, secretsDir);
 
-      // Write entity info
-      files().writePretty(new File(secretsDir, Files.SECRETS_FILE_ENTITY_INFO), entityInfo);
+      // If we are to update the entity info, do so from the entity manager; otherwise, restore
+      // the content we saved earlier (if there was any)
+      
+      if (updateEntityInfo) {
+        files().writePretty(entityInfoFile, entityInfo);
+      } else {
+        if (nonEmpty(currentEntityInfoContent)) {
+          files().writeString(entityInfoFile,  currentEntityInfoContent);
+        }
+      }
     }
   }
 
