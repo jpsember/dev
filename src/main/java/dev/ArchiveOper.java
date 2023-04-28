@@ -674,8 +674,7 @@ public final class ArchiveOper extends AppOper {
     log("...pushing version " + nextVersionNumber, "of:", mKey, "to", versionedFilename);
     log("...source:", mSourceFile);
 
-    String absName = prependSubfolder(versionedFilename);
-    if (device().fileExists(absName))
+    if (device().fileExists(versionedFilename))
       setError("Version", versionedFilename, "already exists in cloud");
 
     File sourceFile;
@@ -687,7 +686,7 @@ public final class ArchiveOper extends AppOper {
       sourceFile = createZipFile(mSourceFile);
 
     if (!files().dryRun()) {
-      device().push(sourceFile, absName);
+      device().push(sourceFile, versionedFilename);
     }
 
     if (!singleFile())
@@ -697,12 +696,6 @@ public final class ArchiveOper extends AppOper {
     mHiddenEntry.version(nextVersionNumber);
   }
 
-  private String prependSubfolder(String relativePath) {
-    if (archiveSubfolder().isEmpty())
-      return relativePath;
-    return archiveSubfolder() + "/" + relativePath;
-  }
-
   private void pullVersion(int desiredVersion) {
     log("...pulling version " + desiredVersion, "of:", mKey);
     String versionedFilename = filenameWithVersion(desiredVersion);
@@ -710,7 +703,7 @@ public final class ArchiveOper extends AppOper {
     files().deleteFile(tempFile());
 
     if (!files().dryRun()) {
-      device().pull(prependSubfolder(versionedFilename), tempFile());
+      device().pull(versionedFilename, tempFile());
     }
 
     if (singleFile()) {
@@ -907,17 +900,6 @@ public final class ArchiveOper extends AppOper {
     return fileWithinProjectDir(pathString);
   }
 
-  private String archiveSubfolder() {
-    if (mArchiveSubfolder == null) {
-      if (Files.nonEmpty(mMockRemoteDir)) {
-        mArchiveSubfolder = "";
-      } else {
-        mArchiveSubfolder = "archive";
-      }
-    }
-    return mArchiveSubfolder;
-  }
-
   private ArchiveDevice device() {
     if (mDevice == null) {
       if (Files.nonEmpty(mMockRemoteDir)) {
@@ -928,6 +910,7 @@ public final class ArchiveOper extends AppOper {
         JSMap m = JSMap.from(authFile);
         mDevice = new S3Archive(S3Params.newBuilder() //
             .profile(m.get("profile")) //
+            .folderPath("archive") //
             .bucketName(m.get("account_name")) //
         );
         if (alert("setting verbosity"))
@@ -964,5 +947,4 @@ public final class ArchiveOper extends AppOper {
   private String mOffloadPathArg;
   private File mMockRemoteDir;
   private ArchiveDevice mDevice;
-  private String mArchiveSubfolder;
 }

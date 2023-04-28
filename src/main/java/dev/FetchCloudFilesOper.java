@@ -61,6 +61,7 @@ public class FetchCloudFilesOper extends AppOper {
       S3Archive archive = new S3Archive(S3Params.newBuilder() //
           .profile(m.get("profile")) //
           .bucketName(m.get("account_name")) //
+          .folderPath(config.subfolderPath()) //
       );
       archive.setDryRun(dryRun());
       device = archive;
@@ -69,7 +70,7 @@ public class FetchCloudFilesOper extends AppOper {
     JSMap stats = stats();
     String mostRecentPath = stats.opt("recent", "");
 
-    List<CloudFileEntry> entries = device.listFiles(config.subfolderPath());
+    List<CloudFileEntry> entries = device.listFiles("");
     log("found", entries.size(), "files");
 
     int fetched = 0;
@@ -89,15 +90,7 @@ public class FetchCloudFilesOper extends AppOper {
       }
       fetched++;
       log("fetching #", fetched, INDENT, ent);
-      alert("does it pull directories to the basename of the supplied name?");
-      String fullPath;
-      if (nonEmpty(config.subfolderPath()))
-        fullPath = config.subfolderPath() + "/" + ent.name();
-      else
-        fullPath = ent.name();
-
-      device.pull(fullPath, dest);
-
+      device.pull(ent.name(), dest);
       mostRecentPath = ent.name();
       stats.put("recent", mostRecentPath);
       files().writePretty(statsFile(), stats);
