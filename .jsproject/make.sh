@@ -3,8 +3,6 @@ set -e
 
 APP=dev
 
-DATAGEN=1
-
 BINDIR="$HOME/bin"
 if [ ! -d $BINDIR ]
 then
@@ -43,14 +41,16 @@ done
 # Perform clean, if requested
 #
 if [ "$CLEAN" != "" ]; then
-  echo "...cleaning $APP"
+  echo "...cleaning"
   mvn clean
   if [ -f $LINK ]; then
+    echo "....removing old driver: ${LINK}"
     rm $LINK
   fi
-
   datagen clean delete_old
 fi
+
+
 
 
 
@@ -63,14 +63,5 @@ fi
 
 echo "...generating data classes"
 datagen
-
 mvn install $NOTEST
-
-##################################################
-# Install the driver script to the bin directory
-##################################################
-
-if [ ! -f $LINK ]; then
-  DIR=$(pwd)
-  cp $DIR/.jsproject/driver.sh $LINK
-fi
+cp .jsproject/driver.sh $LINK

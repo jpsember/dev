@@ -35,6 +35,7 @@ import js.json.JSMap;
 import js.webtools.ArchiveDevice;
 import js.webtools.S3Archive;
 import js.webtools.gen.CloudFileEntry;
+import js.webtools.gen.S3Params;
 
 public class FetchCloudFilesOper extends AppOper {
 
@@ -53,17 +54,22 @@ public class FetchCloudFilesOper extends AppOper {
     FetchCloudConfig config = config();
     checkArgument(!config.subfolderPath().isEmpty(), "subfolder_path must not be empty");
 
-    File authFile = files().fileWithinSecrets("s3_auth.json");
-    JSMap m = JSMap.from(authFile);
-    String profile = m.get("profile");
-    S3Archive archive = new S3Archive(profile, m.get("account_name"), config.subfolderPath(), null);
-    archive.setDryRun(dryRun());
-    ArchiveDevice device = archive;
+    ArchiveDevice device;
+    {
+      File authFile = files().fileWithinSecrets("s3_auth.json");
+      JSMap m = JSMap.from(authFile);
+      S3Archive archive = new S3Archive(S3Params.newBuilder() //
+          .profile(m.get("profile")) //
+          .bucketName(m.get("account_name")) //
+      );
+      archive.setDryRun(dryRun());
+      device = archive;
+    }
 
     JSMap stats = stats();
     String mostRecentPath = stats.opt("recent", "");
 
-    List<CloudFileEntry> entries = device.listFiles(null);
+    List<CloudFileEntry> entries = device.listFiles(config.subfolderPath());
     log("found", entries.size(), "files");
 
     int fetched = 0;
@@ -83,7 +89,14 @@ public class FetchCloudFilesOper extends AppOper {
       }
       fetched++;
       log("fetching #", fetched, INDENT, ent);
-      device.pull(ent.name(), dest);
+      alert("does it pull directories to the basename of the supplied name?");
+      String fullPath;
+      if (nonEmpty(config.subfolderPath()))
+        fullPath = config.subfolderPath() + "/" + ent.name();
+      else
+        fullPath = ent.name();
+
+      device.pull(fullPath, dest);
 
       mostRecentPath = ent.name();
       stats.put("recent", mostRecentPath);

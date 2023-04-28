@@ -45,6 +45,7 @@ import js.parsing.RegExp;
 import js.webtools.ArchiveDevice;
 import js.webtools.FileArchiveDevice;
 import js.webtools.S3Archive;
+import js.webtools.gen.S3Params;
 import dev.gen.archive.ArchiveEntry;
 import dev.gen.archive.ArchiveRegistry;
 import dev.gen.archive.LocalRegistry;
@@ -673,7 +674,8 @@ public final class ArchiveOper extends AppOper {
     log("...pushing version " + nextVersionNumber, "of:", mKey, "to", versionedFilename);
     log("...source:", mSourceFile);
 
-    if (device().fileExists(versionedFilename))
+    String absName = prependSubfolder(versionedFilename);
+    if (device().fileExists(absName))
       setError("Version", versionedFilename, "already exists in cloud");
 
     File sourceFile;
@@ -685,7 +687,7 @@ public final class ArchiveOper extends AppOper {
       sourceFile = createZipFile(mSourceFile);
 
     if (!files().dryRun()) {
-      device().push(sourceFile, versionedFilename);
+      device().push(sourceFile, absName);
     }
 
     if (!singleFile())
@@ -695,6 +697,12 @@ public final class ArchiveOper extends AppOper {
     mHiddenEntry.version(nextVersionNumber);
   }
 
+  private String prependSubfolder(String relativePath) {
+    if (archiveSubfolder().isEmpty())
+      return relativePath;
+    return archiveSubfolder() + "/" + relativePath;
+  }
+
   private void pullVersion(int desiredVersion) {
     log("...pulling version " + desiredVersion, "of:", mKey);
     String versionedFilename = filenameWithVersion(desiredVersion);
@@ -702,7 +710,7 @@ public final class ArchiveOper extends AppOper {
     files().deleteFile(tempFile());
 
     if (!files().dryRun()) {
-      device().pull(versionedFilename, tempFile());
+      device().pull(prependSubfolder(versionedFilename), tempFile());
     }
 
     if (singleFile()) {
@@ -899,14 +907,31 @@ public final class ArchiveOper extends AppOper {
     return fileWithinProjectDir(pathString);
   }
 
+  private String archiveSubfolder() {
+    if (mArchiveSubfolder == null) {
+      if (Files.nonEmpty(mMockRemoteDir)) {
+        mArchiveSubfolder = "";
+      } else {
+        mArchiveSubfolder = "archive";
+      }
+    }
+    return mArchiveSubfolder;
+  }
+
   private ArchiveDevice device() {
     if (mDevice == null) {
-      if (Files.nonEmpty(mMockRemoteDir))
+      if (Files.nonEmpty(mMockRemoteDir)) {
         mDevice = new FileArchiveDevice(mMockRemoteDir);
-      else {
+        todo("will it handle an empty subfolder properly?");
+      } else {
         File authFile = files().fileWithinSecrets("s3_auth.json");
         JSMap m = JSMap.from(authFile);
-        mDevice = new S3Archive(m.get("profile"), m.get("account_name"), "archive", mProjectDirectory);
+        mDevice = new S3Archive(S3Params.newBuilder() //
+            .profile(m.get("profile")) //
+            .bucketName(m.get("account_name")) //
+        );
+        if (alert("setting verbosity"))
+          mDevice.setVerbose();
       }
       mDevice.setDryRun(dryRun());
     }
@@ -939,4 +964,5 @@ public final class ArchiveOper extends AppOper {
   private String mOffloadPathArg;
   private File mMockRemoteDir;
   private ArchiveDevice mDevice;
+  private String mArchiveSubfolder;
 }

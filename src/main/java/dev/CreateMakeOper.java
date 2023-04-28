@@ -310,9 +310,12 @@ public final class CreateMakeOper extends AppOper {
     if (nullOrEmpty(mainClass)) {
       List<String> candidates = arrayList();
       DirWalk w = new DirWalk(new File(appDir(), "src/main/java")).withExtensions("java");
+      // Split the string constant up into two substrings so we don't report
+      // a problem if we run the program on ourselves
+      String searchString = "public static vo" + "id main(String[] ";
       for (File srcFile : w.files()) {
         String content = Files.readString(srcFile);
-        if (content.contains("public static void main(String[] ")) {
+        if (content.contains(searchString)) {
           File c = w.rel(srcFile);
           mainClass = chomp(c.toString(), ".java").replace('/', '.');
           candidates.add(mainClass);
