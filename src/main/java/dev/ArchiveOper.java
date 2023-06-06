@@ -546,6 +546,17 @@ public final class ArchiveOper extends AppOper {
     return key;
   }
 
+  /**
+   * Determine key from user argument. Throws exception if no key/object pair
+   * found
+   */
+  private String keyFromUserArg(String userArg) {
+    String key = optKeyFromUserArg(userArg);
+    if (nullOrEmpty(key))
+      setError("No such key found:", quote(userArg));
+    return key;
+  }
+
   private LocalEntry localEntryForKey(String key, Object... errorMessageIfNotFound) {
     LocalEntry entry = mRegistryLocal.entries().get(key);
     if (entry == null && errorMessageIfNotFound.length > 0)
@@ -565,7 +576,7 @@ public final class ArchiveOper extends AppOper {
   }
 
   private void markForForgetting(String userArg) {
-    String key = optKeyFromUserArg(userArg);
+    String key = keyFromUserArg(userArg);
     LocalEntry foundEntry = localEntryForKey(key, "No object found for:", userArg);
     if (foundEntry.pending() == Oper.PUSH || foundEntry.pending() == Oper.OFFLOAD)
       unexpectedStateError(key);
@@ -579,7 +590,7 @@ public final class ArchiveOper extends AppOper {
   }
 
   private void markForOffloading(String userArg) {
-    String key = optKeyFromUserArg(userArg);
+    String key = keyFromUserArg(userArg);
     LocalEntry foundEntry = localEntryForKey(key, "No object found for:", userArg);
     if (foundEntry.version() == 0 || foundEntry.pending() == Oper.PUSH || foundEntry.pending() == Oper.FORGET)
       unexpectedStateError(key);
