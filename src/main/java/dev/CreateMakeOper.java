@@ -346,20 +346,7 @@ public final class CreateMakeOper extends AppOper {
     args.add("-Dfile.encoding=UTF-8");
     args.add("-classpath");
     StringBuilder s = new StringBuilder();
-    int index = INIT_INDEX;
     for (DependencyEntry ent : mClassPathDependencies) {
-      index++;
-      if (index == 0) {
-        // The first dependency should match the program we are attempting to work on.
-        // Omit it.
-        if (ent.artifact().equals(appInfo().name())) {
-          log("omitting first dependency:", ent.artifact());
-          continue;
-        } else {
-          alert("Unexpected first dependency for appInfo.name", appInfo().name(), ":", INDENT, ent);
-        }
-      }
-
       if (s.length() > 0)
         s.append(':');
       s.append("$MVN/");
