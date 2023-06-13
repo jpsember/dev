@@ -1,4 +1,4 @@
-{  "outputDir" : "classes",
+{  "outputDir" : "output",
      "scripts" : ["barnserv","prepimg"],
   "scriptsDir" : "bin_dir",
   "programs" : {

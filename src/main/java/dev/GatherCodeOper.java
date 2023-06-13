@@ -28,11 +28,14 @@ import static js.base.Tools.*;
 
 import java.io.File;
 import java.util.List;
-import java.util.Set;
+import java.util.Map;
+import java.util.Map.Entry;
 
 import dev.gen.GatherCodeConfig;
 import js.app.AppOper;
 import js.file.Files;
+import js.json.JSMap;
+import js.parsing.MacroParser;
 
 public class GatherCodeOper extends AppOper {
 
@@ -58,20 +61,11 @@ public class GatherCodeOper extends AppOper {
 
   @Override
   public void perform() {
-
-    {
-      mScripts = hashSet();
-      File sir = config().scriptsDir();
-      for (File f : config().scripts()) {
-        if (Files.nonEmpty(sir))
-          f = new File(sir, f.toString());
-        f = Files.absolute(f);
-        mScripts.add(Files.assertExists(f, "scripts file"));
-      }
-    }
-
-    for (File scriptFile : mScripts) {
-      procScriptFile(scriptFile);
+    for (Entry<String, String> ent : config().programs().entrySet()) {
+      String programName = ent.getKey();
+      String mainClass = ent.getValue();
+      collectScriptClasses(programName);
+      generateRunScript(programName, mainClass);
     }
   }
 
@@ -83,9 +77,18 @@ public class GatherCodeOper extends AppOper {
     return mOutputDir;
   }
 
-  private void procScriptFile(File scriptFile) {
-    log("processScriptFile", scriptFile);
+  private File classesDir() {
+    if (mClassesDir == null) {
+      mClassesDir = files().mkdirs(new File(outputDir(), "classes"));
+    }
+    return mClassesDir;
+  }
 
+  private void collectScriptClasses(String programName) {
+    log("collectScriptClasses", programName);
+    List<File> classList = arrayList();
+    mProgramClassLists.put(programName, classList);
+    File scriptFile = Files.assertExists(new File(config().scriptsDir(), programName));
     String txt = Files.readString(scriptFile);
     List<String> lines = split(txt, '\n');
 
@@ -107,15 +110,14 @@ public class GatherCodeOper extends AppOper {
     checkState(i > 0, "can't find space in:", quote(s));
     s = s.substring(0, i);
 
-    // File mvnDir = new File(Files.homeDirectory(), ".m2/repository");
-    // Files.assertDirectoryExists(mvnDir, "can't find maven directory");
     lines = split(s, ':');
     for (String s2 : lines) {
       if (s2.startsWith("$MVN")) {
         s2 = new File(mavenRepoDir(), chompPrefix(s2, "$MVN/")).toString();
       }
       File jarFile = new File(s2);
-      copyFile(jarFile);
+      File dest = copyClassesFile(jarFile);
+      classList.add(dest);
     }
   }
 
@@ -128,7 +130,7 @@ public class GatherCodeOper extends AppOper {
     return mMaven;
   }
 
-  private void copyFile(File sourceFile) {
+  private File copyClassesFile(File sourceFile) {
     Files.assertExists(sourceFile, "copyFile argument");
 
     // Determine subdirectory to place it within
@@ -146,15 +148,46 @@ public class GatherCodeOper extends AppOper {
     String outputFile = sourceFile.getName();
     if (nonEmpty(outputSubdir))
       outputFile = outputSubdir + "/" + outputFile;
-    File target = new File(outputDir(), outputFile);
+    File target = new File(classesDir(), outputFile);
     long sourceTime = sourceFile.lastModified();
-    if (target.exists() && target.lastModified() >= sourceTime)
-      return;
-    log("copying", outputFile);
-    files().copyFile(sourceFile, target, true);
+    if (!(target.exists() && target.lastModified() >= sourceTime)) {
+      log("copying", outputFile);
+      files().copyFile(sourceFile, target, true);
+    }
+    return target;
   }
 
-  private Set<File> mScripts;
+  private String frag(String resourceName) {
+    return Files.readString(getClass(), resourceName);
+  }
+
+  private void generateRunScript(String programName, String mainClass) {
+    JSMap m = map();
+    m.put("program_name", programName);
+    m.put("main_class", mainClass);
+    List<File> classFiles = mProgramClassLists.get(programName);
+    {
+      StringBuilder sb = new StringBuilder();
+      String outputDirPrefix = outputDir().toString() + "/";
+      for (File f : classFiles) {
+        if (sb.length() != 0)
+          sb.append(':');
+        String s = f.toString();
+        s = chompPrefix(s, outputDirPrefix);
+        sb.append(s);
+      }
+      m.put("class_path", sb.toString());
+    }
+    MacroParser parser = new MacroParser();
+    parser.withTemplate(frag("gather_driver_template.txt")).withMapper(m);
+    String script = parser.content();
+    File dest = new File(outputDir(), programName);
+    files().writeString(dest, script);
+    files().chmod(dest, 744);
+  }
+
+  private Map<String, List<File>> mProgramClassLists = hashMap();
   private File mOutputDir;
+  private File mClassesDir;
   private File mMaven;
 }
