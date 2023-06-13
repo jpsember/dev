@@ -188,12 +188,13 @@ public class GatherCodeOper extends AppOper {
     List<File> classFiles = mProgramClassLists.get(programName);
     {
       StringBuilder sb = new StringBuilder();
-      String outputDirPrefix = outputDir().toString() + "/";
+      String outputDirPrefix = classesDir().toString();
       for (File f : classFiles) {
         if (sb.length() != 0)
           sb.append(':');
         String s = f.toString();
         s = chompPrefix(s, outputDirPrefix);
+        sb.append("$C");
         sb.append(s);
       }
       m.put("class_path", sb.toString());
@@ -203,7 +204,7 @@ public class GatherCodeOper extends AppOper {
     String script = parser.content();
     File dest = new File(outputDir(), programName + ".sh");
     files().writeString(dest, script);
-    files().chmod(dest, 744);
+    files().chmod(dest, 744); // But: these permissions will not be preserved by zipping
   }
 
   private void writeConfig() {
@@ -221,7 +222,7 @@ public class GatherCodeOper extends AppOper {
       d.withRecurse(true);
       for (File f : d.filesRelative()) {
         byte[] bytes = Files.toByteArray(d.abs(f), "zipping");
-        ZipEntry zipEntry = new ZipEntry(parentName + "/" + f.getName());
+        ZipEntry zipEntry = new ZipEntry(parentName + "/" + f.toString());
         zipOut.putNextEntry(zipEntry);
         zipOut.write(bytes);
         zipOut.closeEntry();

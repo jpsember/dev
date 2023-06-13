@@ -1,4 +1,6 @@
 #!/usr/bin/env sh
 set -eu
 
+C=classes
+
 java -Dfile.encoding=UTF-8 -classpath [!class_path] [!main_class] [!program_name] "$@"

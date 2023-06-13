@@ -3,10 +3,9 @@
   "scriptsDir" : "bin_dir",
 
  "generate_zip" : true,
-    "delete_unzipped" : true,
+ "delete_unzipped" : false,
   "programs" : {
     "barnserv" : "js.barnserv.BarnServlet",
     "prepimg" : "js.prepimg.PrepimgMain",
-
   }
 }
