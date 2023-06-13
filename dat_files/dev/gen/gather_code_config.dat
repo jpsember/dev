@@ -22,4 +22,6 @@ class {
   bool generate_zip;
 
   bool delete_unzipped;
+
+  string version_number = "1.0.0";
 }

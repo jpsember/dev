@@ -82,7 +82,7 @@ public class GatherCodeOper extends AppOper {
 
   private File outputDir() {
     if (mOutputDir == null) {
-      mOutputDir = Files.assertNonEmpty(config().outputDir(), "output_dir");
+      mOutputDir = Files.assertNonEmpty(interpretFile(config().outputDir()), "output_dir");
       files().mkdirs(mOutputDir);
     }
     return mOutputDir;
@@ -99,7 +99,7 @@ public class GatherCodeOper extends AppOper {
     log("collectScriptClasses", programName);
     List<File> classList = arrayList();
     mProgramClassLists.put(programName, classList);
-    File scriptFile = Files.assertExists(new File(config().scriptsDir(), programName));
+    File scriptFile = Files.assertExists(new File(interpretFile(config().scriptsDir()), programName));
     String txt = Files.readString(scriptFile);
     List<String> lines = split(txt, '\n');
 
@@ -130,6 +130,15 @@ public class GatherCodeOper extends AppOper {
       File dest = copyClassesFile(jarFile);
       classList.add(dest);
     }
+  }
+
+  private File interpretFile(File file) {
+    Files.assertNonEmpty(file, "can't interpret empty file");
+    String s = file.toString();
+    String s2 = chompPrefix(s, "~");
+    if (s != s2)
+      return new File(Files.homeDirectory(), s2);
+    return file;
   }
 
   private File mavenRepoDir() {
