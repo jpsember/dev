@@ -1,8 +1,12 @@
 {  "outputDir" : "output",
      "scripts" : ["barnserv","prepimg"],
   "scriptsDir" : "bin_dir",
+
+ "generate_zip" : true,
+    "delete_unzipped" : true,
   "programs" : {
     "barnserv" : "js.barnserv.BarnServlet",
     "prepimg" : "js.prepimg.PrepimgMain",
+
   }
 }

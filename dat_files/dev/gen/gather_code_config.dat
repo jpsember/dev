@@ -1,8 +1,25 @@
 class {
-  // Parent directory for scripts
-  File scriptsDir;
-  // Where the class files (*.jar) get written
-  File outputDir;
-  // Map of program names and the class file that contains its main method
+
+  // Map of program names and the class file that contains its main method.
+  // Each program name <foo> is expected to match a bash script at <scriptsDir>/<foo>
+  //
   map string string programs;
+
+  // Parent directory for scripts
+  //
+  File scriptsDir;
+
+  // The directory to produce.
+  //
+  // params.json
+  // <program_name>.sh
+  //    :
+  // classes/<jar files>
+  //    :
+  //
+  File outputDir;
+
+  bool generate_zip;
+
+  bool delete_unzipped;
 }

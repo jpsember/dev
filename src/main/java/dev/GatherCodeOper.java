@@ -27,12 +27,16 @@ package dev;
 import static js.base.Tools.*;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 
 import dev.gen.GatherCodeConfig;
 import js.app.AppOper;
+import js.file.DirWalk;
 import js.file.Files;
 import js.json.JSMap;
 import js.parsing.MacroParser;
@@ -68,6 +72,12 @@ public class GatherCodeOper extends AppOper {
       generateRunScript(programName, mainClass);
     }
     writeConfig();
+    if (config().generateZip()) {
+      createZip();
+      if (config().deleteUnzipped()) {
+        deleteUnzipped();
+      }
+    }
   }
 
   private File outputDir() {
@@ -190,6 +200,30 @@ public class GatherCodeOper extends AppOper {
   private void writeConfig() {
     File target = new File(outputDir(), "params.json");
     files().writePretty(target, config());
+  }
+
+  private void createZip() {
+    try {
+      File zipFile = Files.setExtension(outputDir(), Files.EXT_ZIP);
+      files().deletePeacefully(zipFile);
+      ZipOutputStream zipOut = new ZipOutputStream(files().outputStream(zipFile));
+      DirWalk d = new DirWalk(outputDir());
+      d.withRecurse(true);
+      for (File f : d.filesRelative()) {
+        byte[] bytes = Files.toByteArray(d.abs(f), "zipping");
+        ZipEntry zipEntry = new ZipEntry(f.getName());
+        zipOut.putNextEntry(zipEntry);
+        zipOut.write(bytes);
+        zipOut.closeEntry();
+      }
+      zipOut.close();
+    } catch (IOException e) {
+      throw Files.asFileException(e);
+    }
+  }
+
+  private void deleteUnzipped() {
+    files().deleteDirectory(outputDir(), "output");
   }
 
   private Map<String, List<File>> mProgramClassLists = hashMap();
