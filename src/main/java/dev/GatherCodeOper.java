@@ -67,6 +67,7 @@ public class GatherCodeOper extends AppOper {
       collectScriptClasses(programName);
       generateRunScript(programName, mainClass);
     }
+    writeConfig();
   }
 
   private File outputDir() {
@@ -181,9 +182,14 @@ public class GatherCodeOper extends AppOper {
     MacroParser parser = new MacroParser();
     parser.withTemplate(frag("gather_driver_template.txt")).withMapper(m);
     String script = parser.content();
-    File dest = new File(outputDir(), programName);
+    File dest = new File(outputDir(), programName + ".sh");
     files().writeString(dest, script);
     files().chmod(dest, 744);
+  }
+
+  private void writeConfig() {
+    File target = new File(outputDir(), "params.json");
+    files().writePretty(target, config());
   }
 
   private Map<String, List<File>> mProgramClassLists = hashMap();
