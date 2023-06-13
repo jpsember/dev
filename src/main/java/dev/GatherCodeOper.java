@@ -217,10 +217,11 @@ public class GatherCodeOper extends AppOper {
       files().deletePeacefully(zipFile);
       ZipOutputStream zipOut = new ZipOutputStream(files().outputStream(zipFile));
       DirWalk d = new DirWalk(outputDir());
+      String parentName = outputDir().getName();
       d.withRecurse(true);
       for (File f : d.filesRelative()) {
         byte[] bytes = Files.toByteArray(d.abs(f), "zipping");
-        ZipEntry zipEntry = new ZipEntry(f.getName());
+        ZipEntry zipEntry = new ZipEntry(parentName + "/" + f.getName());
         zipOut.putNextEntry(zipEntry);
         zipOut.write(bytes);
         zipOut.closeEntry();
