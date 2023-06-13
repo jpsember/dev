@@ -1,0 +1,8 @@
+{  "outputDir" : "classes",
+     "scripts" : ["barnserv","prepimg"],
+  "scriptsDir" : "bin_dir",
+  "programs" : {
+    "barnserv" : "js.barnserv.BarnServlet",
+    "prepimg" : "js.prepimg.PrepimgMain",
+  }
+}

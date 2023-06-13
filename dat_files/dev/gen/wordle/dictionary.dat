@@ -1,4 +1,0 @@
-fields {
-  *string words;
-  *byte word_bytes;
-}

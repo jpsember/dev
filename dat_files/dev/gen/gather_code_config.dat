@@ -1,0 +1,10 @@
+class {
+  // Parent directory for scripts
+  File scriptsDir;
+  // Scripts to parse (the bash scripts that launch the programs)
+  *File scripts;
+  // Where the class files (*.jar) get written
+  File outputDir;
+  // Optional: a map of program names and the class file that contains its main method
+  map string string programs;
+}
