@@ -234,7 +234,7 @@ public class GatherCodeOper extends AppOper {
   }
 
   private void deleteUnzipped() {
-    files().deleteDirectory(outputDir(), "output");
+    files().deleteDirectory(outputDir(), outputDir().getName());
   }
 
   private Map<String, List<File>> mProgramClassLists = hashMap();
