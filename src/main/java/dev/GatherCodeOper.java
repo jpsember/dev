@@ -28,11 +28,17 @@ import static js.base.Tools.*;
 
 import java.io.File;
 import java.io.IOException;
+import java.security.Key;
+import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
+
+import javax.crypto.Cipher;
+import javax.crypto.spec.IvParameterSpec;
+import javax.crypto.spec.SecretKeySpec;
 
 import dev.gen.GatherCodeConfig;
 import js.app.AppOper;
@@ -65,6 +71,11 @@ public class GatherCodeOper extends AppOper {
 
   @Override
   public void perform() {
+    if (false) {
+      experiment();
+      return;
+    }
+
     for (Entry<String, String> ent : config().programs().entrySet()) {
       String programName = ent.getKey();
       String mainClass = ent.getValue();
@@ -297,6 +308,8 @@ public class GatherCodeOper extends AppOper {
     // Encrypt the secrets zip file
     byte[] bytes = Files.toByteArray(targetFile, "zip file before encryption");
     byte[] encrypted = SecretsOper.encryptData(config().secretPassphrase(), bytes);
+    if (todo("add support for Java and Go compatible encryption"))
+      encrypted = bytes;
     files().write(encrypted, new File(outputDir(), "secrets.bin"));
   }
 
@@ -304,4 +317,54 @@ public class GatherCodeOper extends AppOper {
   private File mOutputDir;
   private File mClassesDir;
   private File mMaven;
+
+  private static Cipher cipher;
+
+  public static void experiment() {
+
+    // https://stackoverflow.com/questions/55370699/getting-different-result-cyphertext-while-using-aes-in-java-and-golang
+
+    try {
+      Key secretKey;
+      secretKey = (Key) new SecretKeySpec("0123456789012345".getBytes(), "AES");
+
+      cipher = Cipher.getInstance("AES/GCM/NoPadding");
+
+      String plainText = "The time has come the walrus said to talk of many things";
+      System.out.println("Plain Text Before Encryption: " + plainText);
+      String encryptedText = encrypt(plainText, secretKey);
+      System.out.println("Encrypted Text After Encryption: " + encryptedText);
+      String decryptedText = decrypt(encryptedText, secretKey);
+      System.out.println("Decrypted Text After Decryption: " + decryptedText);
+    } catch (Throwable t) {
+      throw asRuntimeException(t);
+    }
+  }
+
+  public static String encrypt(String plainText, Key secretKey) throws Exception {
+    byte[] plainTextByte = plainText.getBytes();
+
+    byte[] iv = new byte[12];
+    IvParameterSpec ivParameterSpec = new IvParameterSpec(iv);
+    cipher.init(Cipher.ENCRYPT_MODE, secretKey, ivParameterSpec);
+
+    byte[] encryptedByte = cipher.doFinal(plainTextByte);
+    Base64.Encoder encoder = Base64.getEncoder();
+    String encryptedText = encoder.encodeToString(encryptedByte);
+    return encryptedText;
+  }
+
+  public static String decrypt(String encryptedText, Key secretKey) throws Exception {
+    Base64.Decoder decoder = Base64.getDecoder();
+    byte[] encryptedTextByte = decoder.decode(encryptedText);
+
+    byte[] iv = new byte[12];
+    IvParameterSpec ivParameterSpec = new IvParameterSpec(iv);
+    cipher.init(Cipher.DECRYPT_MODE, secretKey, ivParameterSpec);
+
+    byte[] decryptedByte = cipher.doFinal(encryptedTextByte);
+    String decryptedText = new String(decryptedByte);
+    return decryptedText;
+  }
+
 }
