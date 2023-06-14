@@ -95,7 +95,7 @@ public class SecretsOper extends AppOper {
   /**
    * Encrypt bytes using passphrase and AES encryption
    */
-  private static byte[] encryptData(String passPhrase, byte[] data) {
+  public static byte[] encryptData(String passPhrase, byte[] data) {
     try {
       SecureRandom secureRandom = new SecureRandom();
       byte[] nonce = new byte[12];
@@ -118,7 +118,7 @@ public class SecretsOper extends AppOper {
   /**
    * Decrypt bytes that were encrypted via encryptData()
    */
-  private static byte[] decryptData(String passPhrase, byte[] data) {
+  public static byte[] decryptData(String passPhrase, byte[] data) {
     try {
       ByteBuffer byteBuffer = ByteBuffer.wrap(data);
       int nonceSize = byteBuffer.getInt();
@@ -137,7 +137,7 @@ public class SecretsOper extends AppOper {
     }
   }
 
-  private static SecretKey generateSecretKey(String passphrase, byte[] nonce) {
+  public static SecretKey generateSecretKey(String passphrase, byte[] nonce) {
     // Remove whitespace from passphrase, and convert to lower case
     passphrase = passphrase.replaceAll("\\s", "").toLowerCase();
     checkArgument(passphrase.length() >= 8, "passphrase is too short");

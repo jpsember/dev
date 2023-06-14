@@ -71,6 +71,7 @@ public class GatherCodeOper extends AppOper {
       collectScriptClasses(programName);
       generateRunScript(programName, mainClass);
     }
+    copySecrets();
     writeConfig();
     if (config().generateZip()) {
       createZip();
@@ -204,8 +205,6 @@ public class GatherCodeOper extends AppOper {
     String script = parser.content();
     File dest = new File(outputDir(), programName + ".sh");
     files().writeString(dest, script);
-    // The permissions won't survive the zipping process, so don't modify them
-    // files().chmod(dest, 744); 
   }
 
   private void writeConfig() {
@@ -213,28 +212,91 @@ public class GatherCodeOper extends AppOper {
     files().writePretty(target, config());
   }
 
-  private void createZip() {
-    try {
-      File zipFile = Files.setExtension(outputDir(), Files.EXT_ZIP);
-      files().deletePeacefully(zipFile);
-      ZipOutputStream zipOut = new ZipOutputStream(files().outputStream(zipFile));
-      DirWalk d = new DirWalk(outputDir());
-      d.withRecurse(true);
-      for (File f : d.filesRelative()) {
-        byte[] bytes = Files.toByteArray(d.abs(f), "zipping");
-        ZipEntry zipEntry = new ZipEntry(f.toString());
-        zipOut.putNextEntry(zipEntry);
-        zipOut.write(bytes);
-        zipOut.closeEntry();
-      }
-      zipOut.close();
-    } catch (IOException e) {
-      throw Files.asFileException(e);
+  private static class Zipper {
+
+    public Zipper(Files f) {
+      if (f == null)
+        f = Files.S;
+      mFiles = f;
     }
+
+    public void openForWriting(File zipFile) {
+      checkState(mZipFile == null);
+      checkArgument(Files.getExtension(Files.assertNonEmpty(zipFile, "zipFile arg")).equals(Files.EXT_ZIP),
+          zipFile, "not a zip file");
+      mZipFile = zipFile;
+      mFiles.deletePeacefully(zipFile);
+      mOutputStream = new ZipOutputStream(mFiles.outputStream(zipFile));
+    }
+
+    public void addEntry(File file, String name) {
+      checkState(mOutputStream != null);
+      byte[] bytes = Files.toByteArray(file, "zipping");
+      if (nullOrEmpty(name))
+        name = file.toString();
+
+      ZipEntry zipEntry = new ZipEntry(name);
+      try {
+        mOutputStream.putNextEntry(zipEntry);
+        mOutputStream.write(bytes);
+        mOutputStream.closeEntry();
+      } catch (IOException e) {
+        throw Files.asFileException(e);
+      }
+    }
+
+    public void close() {
+      checkState(mOutputStream != null);
+      try {
+        mOutputStream.close();
+      } catch (IOException e) {
+        throw Files.asFileException(e);
+      }
+      mOutputStream = null;
+    }
+
+    private final Files mFiles;
+    private File mZipFile;
+    private ZipOutputStream mOutputStream;
+  }
+
+  private void createZip() {
+    File zipFile = Files.setExtension(outputDir(), Files.EXT_ZIP);
+    Zipper z = new Zipper(files());
+    z.openForWriting(zipFile);
+    DirWalk d = new DirWalk(outputDir());
+    d.withRecurse(true);
+    for (File f : d.filesRelative()) {
+      File sourceFile = d.abs(f);
+      z.addEntry(sourceFile, null);
+    }
+    z.close();
   }
 
   private void deleteUnzipped() {
     files().deleteDirectory(outputDir(), outputDir().getName());
+  }
+
+  private void copySecrets() {
+    File source = config().secretsSource();
+    if (Files.empty(source))
+      return;
+    Files.assertDirectoryExists(source, "secrets_source");
+
+    File targetFile = new File(outputDir(), "secrets.zip");
+    Zipper z = new Zipper(files());
+    z.openForWriting(targetFile);
+    for (File f : config().secretFiles()) {
+      String name = f.toString();
+      File sourceFile = Files.assertExists(new File(source, name), "file within secrets");
+      log("...adding secret:", name);
+      z.addEntry(sourceFile, name);
+
+    }
+    z.close();
+
+    // Encrypt the secrets zip file
+    todo("encrypt secrets");
   }
 
   private Map<String, List<File>> mProgramClassLists = hashMap();

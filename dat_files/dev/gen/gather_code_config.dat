@@ -23,5 +23,15 @@ class {
 
   bool delete_unzipped;
 
+  // Secrets directory to include
+  //
+  File secrets_source;
+
+  // List of files within secrets_source to include
+  //
+  *File secret_files;
+  // String to use to encrypt the secrets
+  string secret_passphrase;
+
   string version_number = "1.0.0";
 }

@@ -1,11 +1,14 @@
 {  "outputDir" : "output",
-     "scripts" : ["barnserv","prepimg"],
   "scriptsDir" : "bin_dir",
-
  "generate_zip" : true,
  "delete_unzipped" : false,
   "programs" : {
     "barnserv" : "js.barnserv.BarnServlet",
     "prepimg" : "js.prepimg.PrepimgMain",
-  }
+  },
+
+   "secrets_source" : "source_secrets",
+     "secret_files" : [ "a.txt","b.txt", ],
+
 }
+
