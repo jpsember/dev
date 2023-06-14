@@ -279,7 +279,7 @@ public class GatherCodeOper extends AppOper {
     d.withRecurse(true);
     for (File f : d.filesRelative()) {
       File sourceFile = d.abs(f);
-      z.addEntry(sourceFile, null);
+      z.addEntry(sourceFile, f.toString());
     }
     z.close();
   }
@@ -293,7 +293,6 @@ public class GatherCodeOper extends AppOper {
     if (Files.empty(source))
       return;
     Files.assertDirectoryExists(source, "secrets_source");
-    checkArgument(nonEmpty(config().secretPassphrase()), "no secret_passphrase");
     File targetFile = new File(outputDir(), "secrets.zip");
     Zipper z = new Zipper(files());
     z.openForWriting(targetFile);
@@ -307,10 +306,18 @@ public class GatherCodeOper extends AppOper {
 
     // Encrypt the secrets zip file
     byte[] bytes = Files.toByteArray(targetFile, "zip file before encryption");
-    byte[] encrypted = SecretsOper.encryptData(config().secretPassphrase(), bytes);
+
+    byte[] encrypted;
+    if (todo("add support for Java and Go compatible encryption"))
+      encrypted = bytes;
+    else {
+      checkArgument(nonEmpty(config().secretPassphrase()), "no secret_passphrase");
+      encrypted = SecretsOper.encryptData(config().secretPassphrase(), bytes);
+    }
     if (todo("add support for Java and Go compatible encryption"))
       encrypted = bytes;
     files().write(encrypted, new File(outputDir(), "secrets.bin"));
+    targetFile.delete();
   }
 
   private Map<String, List<File>> mProgramClassLists = hashMap();
