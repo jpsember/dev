@@ -83,7 +83,7 @@ public class GatherCodeOper extends AppOper {
   private File outputDir() {
     if (mOutputDir == null) {
       mOutputDir = Files.assertNonEmpty(interpretFile(config().outputDir()), "output_dir");
-      files().mkdirs(mOutputDir);
+      files().remakeDirs(mOutputDir);
     }
     return mOutputDir;
   }
@@ -137,8 +137,8 @@ public class GatherCodeOper extends AppOper {
     String s = file.toString();
     String s2 = chompPrefix(s, "~");
     if (s != s2)
-      return new File(Files.homeDirectory(), s2);
-    return file;
+      file = new File(Files.homeDirectory(), s2);
+    return file.getAbsoluteFile();
   }
 
   private File mavenRepoDir() {
@@ -204,7 +204,8 @@ public class GatherCodeOper extends AppOper {
     String script = parser.content();
     File dest = new File(outputDir(), programName + ".sh");
     files().writeString(dest, script);
-    files().chmod(dest, 744); // But: these permissions will not be preserved by zipping
+    // The permissions won't survive the zipping process, so don't modify them
+    // files().chmod(dest, 744); 
   }
 
   private void writeConfig() {
@@ -218,11 +219,10 @@ public class GatherCodeOper extends AppOper {
       files().deletePeacefully(zipFile);
       ZipOutputStream zipOut = new ZipOutputStream(files().outputStream(zipFile));
       DirWalk d = new DirWalk(outputDir());
-      String parentName = outputDir().getName();
       d.withRecurse(true);
       for (File f : d.filesRelative()) {
         byte[] bytes = Files.toByteArray(d.abs(f), "zipping");
-        ZipEntry zipEntry = new ZipEntry(parentName + "/" + f.toString());
+        ZipEntry zipEntry = new ZipEntry(f.toString());
         zipOut.putNextEntry(zipEntry);
         zipOut.write(bytes);
         zipOut.closeEntry();
