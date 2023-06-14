@@ -282,7 +282,7 @@ public class GatherCodeOper extends AppOper {
     if (Files.empty(source))
       return;
     Files.assertDirectoryExists(source, "secrets_source");
-
+    checkArgument(nonEmpty(config().secretPassphrase()), "no secret_passphrase");
     File targetFile = new File(outputDir(), "secrets.zip");
     Zipper z = new Zipper(files());
     z.openForWriting(targetFile);
@@ -291,12 +291,13 @@ public class GatherCodeOper extends AppOper {
       File sourceFile = Files.assertExists(new File(source, name), "file within secrets");
       log("...adding secret:", name);
       z.addEntry(sourceFile, name);
-
     }
     z.close();
 
     // Encrypt the secrets zip file
-    todo("encrypt secrets");
+    byte[] bytes = Files.toByteArray(targetFile, "zip file before encryption");
+    byte[] encrypted = SecretsOper.encryptData(config().secretPassphrase(), bytes);
+    files().write(encrypted, new File(outputDir(), "secrets.bin"));
   }
 
   private Map<String, List<File>> mProgramClassLists = hashMap();

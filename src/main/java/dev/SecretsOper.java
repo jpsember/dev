@@ -137,7 +137,7 @@ public class SecretsOper extends AppOper {
     }
   }
 
-  public static SecretKey generateSecretKey(String passphrase, byte[] nonce) {
+  private static SecretKey generateSecretKey(String passphrase, byte[] nonce) {
     // Remove whitespace from passphrase, and convert to lower case
     passphrase = passphrase.replaceAll("\\s", "").toLowerCase();
     checkArgument(passphrase.length() >= 8, "passphrase is too short");
