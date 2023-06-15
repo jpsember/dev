@@ -1,4 +1,5 @@
 class {
+  string version_number = "1.0.0";
 
   // Map of program names and the class file that contains its main method.
   // Each program name <foo> is expected to match a bash script at <scriptsDir>/<foo>
@@ -12,10 +13,12 @@ class {
   // The directory to produce.
   //
   // params.json
-  // <program_name>.sh
+  // secrets.bin
+  // programs/<program_name>.sh
   //    :
   // classes/<jar files>
   //    :
+  // others/<files with same path relative to repo root>
   //
   File outputDir;
 
@@ -33,5 +36,6 @@ class {
   // String to use to encrypt the secrets
   string secret_passphrase;
 
-  string version_number = "1.0.0";
+  //
+  JSMap others_map;
 }

@@ -76,14 +76,20 @@ public class GatherCodeOper extends AppOper {
       return;
     }
 
+    writeConfig();
+
+    // Process the set of programs, collecting required classes, generate run scripts
     for (Entry<String, String> ent : config().programs().entrySet()) {
       String programName = ent.getKey();
       String mainClass = ent.getValue();
-      collectScriptClasses(programName);
+      collectProgramClasses(programName);
       generateRunScript(programName, mainClass);
     }
-    copySecrets();
-    writeConfig();
+
+    writeSecrets();
+
+    writeOthers();
+
     if (config().generateZip()) {
       createZip();
       if (config().deleteUnzipped()) {
@@ -96,18 +102,14 @@ public class GatherCodeOper extends AppOper {
     if (mOutputDir == null) {
       mOutputDir = Files.assertNonEmpty(interpretFile(config().outputDir()), "output_dir");
       files().remakeDirs(mOutputDir);
+      mClassesDir = files().mkdirs(outputFile("classes"));
+      mProgramsDir = files().mkdirs(outputFile("programs"));
+      mOthersDir = files().mkdirs(outputFile("others"));
     }
     return mOutputDir;
   }
 
-  private File classesDir() {
-    if (mClassesDir == null) {
-      mClassesDir = files().mkdirs(new File(outputDir(), "classes"));
-    }
-    return mClassesDir;
-  }
-
-  private void collectScriptClasses(String programName) {
+  private void collectProgramClasses(String programName) {
     log("collectScriptClasses", programName);
     List<File> classList = arrayList();
     mProgramClassLists.put(programName, classList);
@@ -180,7 +182,7 @@ public class GatherCodeOper extends AppOper {
     String outputFile = sourceFile.getName();
     if (nonEmpty(outputSubdir))
       outputFile = outputSubdir + "/" + outputFile;
-    File target = new File(classesDir(), outputFile);
+    File target = new File(mClassesDir, outputFile);
     long sourceTime = sourceFile.lastModified();
     if (!(target.exists() && target.lastModified() >= sourceTime)) {
       log("copying", outputFile);
@@ -200,7 +202,7 @@ public class GatherCodeOper extends AppOper {
     List<File> classFiles = mProgramClassLists.get(programName);
     {
       StringBuilder sb = new StringBuilder();
-      String outputDirPrefix = classesDir().toString();
+      String outputDirPrefix = mClassesDir.toString();
       for (File f : classFiles) {
         if (sb.length() != 0)
           sb.append(':');
@@ -214,13 +216,16 @@ public class GatherCodeOper extends AppOper {
     MacroParser parser = new MacroParser();
     parser.withTemplate(frag("gather_driver_template.txt")).withMapper(m);
     String script = parser.content();
-    File dest = new File(outputDir(), programName + ".sh");
+    File dest = new File(mProgramsDir, programName + ".sh");
     files().writeString(dest, script);
   }
 
   private void writeConfig() {
-    File target = new File(outputDir(), "params.json");
-    files().writePretty(target, config());
+    files().writePretty(outputFile("params.json"), config());
+  }
+
+  private File outputFile(String path) {
+    return new File(outputDir(), path);
   }
 
   private static class Zipper {
@@ -288,14 +293,14 @@ public class GatherCodeOper extends AppOper {
     files().deleteDirectory(outputDir(), outputDir().getName());
   }
 
-  private void copySecrets() {
+  private void writeSecrets() {
     File source = config().secretsSource();
     if (Files.empty(source))
       return;
     Files.assertDirectoryExists(source, "secrets_source");
-    File targetFile = new File(outputDir(), "secrets.zip");
+    File tempZipFile = Files.createTempFile("writeSecrets", ".zip");
     Zipper z = new Zipper(files());
-    z.openForWriting(targetFile);
+    z.openForWriting(tempZipFile);
     for (File f : config().secretFiles()) {
       String name = f.toString();
       File sourceFile = Files.assertExists(new File(source, name), "file within secrets");
@@ -305,7 +310,7 @@ public class GatherCodeOper extends AppOper {
     z.close();
 
     // Encrypt the secrets zip file
-    byte[] bytes = Files.toByteArray(targetFile, "zip file before encryption");
+    byte[] bytes = Files.toByteArray(tempZipFile, "zip file before encryption");
 
     byte[] encrypted;
     if (todo("add support for Java and Go compatible encryption"))
@@ -316,13 +321,26 @@ public class GatherCodeOper extends AppOper {
     }
     if (todo("add support for Java and Go compatible encryption"))
       encrypted = bytes;
-    files().write(encrypted, new File(outputDir(), "secrets.bin"));
-    targetFile.delete();
+    files().write(encrypted, outputFile("secrets.bin"));
+    tempZipFile.delete();
+  }
+
+  private void writeOthers() {
+    log("writeOthers");
+    JSMap m = config().othersMap();
+    for (String key : m.keySet()) {
+
+      Object value = m.getUnsafe(key);
+      log("...", key, INDENT, value);
+    }
+    halt("not finished");
   }
 
   private Map<String, List<File>> mProgramClassLists = hashMap();
   private File mOutputDir;
   private File mClassesDir;
+  private File mProgramsDir;
+  private File mOthersDir;
   private File mMaven;
 
   private static Cipher cipher;
