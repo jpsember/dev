@@ -36,6 +36,9 @@ class {
   // String to use to encrypt the secrets
   string secret_passphrase;
 
-  //
+  // Root directory of assets referred to in others_map
+
+  File others_root;
+
   JSMap others_map;
 }

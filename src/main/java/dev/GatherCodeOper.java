@@ -100,7 +100,7 @@ public class GatherCodeOper extends AppOper {
 
   private File outputDir() {
     if (mOutputDir == null) {
-      mOutputDir = Files.assertNonEmpty(interpretFile(config().outputDir()), "output_dir");
+      mOutputDir = interpretFile(config().outputDir(), "output_dir");
       files().remakeDirs(mOutputDir);
       mClassesDir = files().mkdirs(outputFile("classes"));
       mProgramsDir = files().mkdirs(outputFile("programs"));
@@ -113,7 +113,8 @@ public class GatherCodeOper extends AppOper {
     log("collectScriptClasses", programName);
     List<File> classList = arrayList();
     mProgramClassLists.put(programName, classList);
-    File scriptFile = Files.assertExists(new File(interpretFile(config().scriptsDir()), programName));
+    File scriptFile = Files
+        .assertExists(new File(interpretFile(config().scriptsDir(), "scripts_dir"), programName));
     String txt = Files.readString(scriptFile);
     List<String> lines = split(txt, '\n');
 
@@ -146,8 +147,8 @@ public class GatherCodeOper extends AppOper {
     }
   }
 
-  private File interpretFile(File file) {
-    Files.assertNonEmpty(file, "can't interpret empty file");
+  private File interpretFile(File file, String context) {
+    Files.assertNonEmpty(file, context);
     String s = file.toString();
     String s2 = chompPrefix(s, "~");
     if (s != s2)
@@ -327,13 +328,28 @@ public class GatherCodeOper extends AppOper {
 
   private void writeOthers() {
     log("writeOthers");
+    File root = interpretFile(config().othersRoot(), "others_root");
+    Files.assertDirectoryExists(root, "others_root");
+
     JSMap m = config().othersMap();
     for (String key : m.keySet()) {
-
       Object value = m.getUnsafe(key);
-      log("...", key, INDENT, value);
+      //log("...", key, value);
+      if (value == Boolean.TRUE) {
+        othersWriteDir(root, key);
+        continue;
+      }
     }
     halt("not finished");
+  }
+
+  private void othersWriteDir(File root, String relPath) {
+    log("...writing dir:", relPath);
+   File sourceDir = Files.assertDirectoryExists(new File(root,relPath),"othersWriteDir");
+   DirWalk w = new DirWalk(sourceDir).withRecurse(true);
+   for (File f : w.files()) {
+     //File targFile = 
+   }
   }
 
   private Map<String, List<File>> mProgramClassLists = hashMap();
