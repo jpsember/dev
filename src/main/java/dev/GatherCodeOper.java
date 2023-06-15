@@ -44,6 +44,7 @@ import dev.gen.GatherCodeConfig;
 import js.app.AppOper;
 import js.file.DirWalk;
 import js.file.Files;
+import js.json.JSList;
 import js.json.JSMap;
 import js.parsing.MacroParser;
 
@@ -96,6 +97,8 @@ public class GatherCodeOper extends AppOper {
         deleteUnzipped();
       }
     }
+
+    todo("ability to create directories (without copying things to them)");
   }
 
   private File outputDir() {
@@ -147,13 +150,35 @@ public class GatherCodeOper extends AppOper {
     }
   }
 
+  /**
+   * Convert a file ~.... as being in the current directory;
+   * 
+   * and !.... as being within the project directory
+   * 
+   * Return an absolute form of the resulting file
+   * 
+   */
   private File interpretFile(File file, String context) {
     Files.assertNonEmpty(file, context);
     String s = file.toString();
-    String s2 = chompPrefix(s, "~");
-    if (s != s2)
-      file = new File(Files.homeDirectory(), s2);
-    return file.getAbsoluteFile();
+    File result = file;
+
+    do {
+      String prefix = "~";
+      if (s.startsWith(prefix)) {
+        result = new File(Files.homeDirectory(), chompPrefix(s, prefix));
+        break;
+      }
+      prefix = "!";
+      if (s.startsWith(prefix)) {
+        result = new File(files().projectDirectory(), chompPrefix(s, prefix));
+        break;
+      }
+    } while (false);
+
+    result = result.getAbsoluteFile();
+    log("interpret:", file, "=>", result);
+    return result;
   }
 
   private File mavenRepoDir() {
@@ -327,6 +352,16 @@ public class GatherCodeOper extends AppOper {
   }
 
   private void writeOthers() {
+    // "others_root" : directory that others_map entries will be relative to; can be ~/xxxx, or ~/xxxx
+    //
+    // "others_map" : {  key : val }
+    //
+    // key is a file or directory relative to others_root
+    //
+    // val is one of:
+    //    true : copy the file or directory denoted by key
+    //    ["xxxx","yyyy"]  : copy specific files (or directories) within key
+    //
     log("writeOthers");
     File root = interpretFile(config().othersRoot(), "others_root");
     Files.assertDirectoryExists(root, "others_root");
@@ -334,22 +369,62 @@ public class GatherCodeOper extends AppOper {
     JSMap m = config().othersMap();
     for (String key : m.keySet()) {
       Object value = m.getUnsafe(key);
-      //log("...", key, value);
       if (value == Boolean.TRUE) {
-        othersWriteDir(root, key);
+        othersCopyFileOrDir(root, key);
         continue;
       }
+      if (value instanceof JSList) {
+        JSList list = (JSList) value;
+        List<File> files = arrayList();
+        for (String s : list.asStringArray())
+          files.add(new File(s));
+        othersCopyDir(root, key, files);
+        continue;
+      }
+      throw notSupported("don't know how to handle key/value pair:", INDENT, key, value);
     }
-    halt("not finished");
   }
 
-  private void othersWriteDir(File root, String relPath) {
+  private void othersCopyFileOrDir(File root, String relPath) {
+    File sourceFile = Files.assertExists(new File(root, relPath), "othersCopyFileOrDir");
+    if (sourceFile.isDirectory()) {
+      log("...writing dir:", relPath);
+      File sourceDir = sourceFile;
+      DirWalk w = new DirWalk(sourceDir).withRecurse(true).omitNames(".DS_Store");
+      for (File f : w.files()) {
+        File rel = Files.relativeToContainingDirectory(f, root);
+        File targFile = new File(mOthersDir, rel.toString());
+        log("......copying to 'others':", rel);
+        files().copyFile(f, targFile);
+      }
+    } else {
+      File rel = Files.relativeToContainingDirectory(sourceFile, root);
+      File targFile = new File(mOthersDir, rel.toString());
+      log("...copying to 'others':", rel);
+      files().copyFile(sourceFile, targFile);
+    }
+  }
+
+  private void othersCopyDir(File root, String relPath, List<File> fileListOrNull) {
+    File sourceDir = Files.assertDirectoryExists(new File(root, relPath), "othersCopyDir");
     log("...writing dir:", relPath);
-   File sourceDir = Files.assertDirectoryExists(new File(root,relPath),"othersWriteDir");
-   DirWalk w = new DirWalk(sourceDir).withRecurse(true);
-   for (File f : w.files()) {
-     //File targFile = 
-   }
+    if (fileListOrNull == null) {
+      DirWalk w = new DirWalk(sourceDir).withRecurse(true).omitNames(".DS_Store");
+      fileListOrNull = w.filesRelative();
+      for (File f : fileListOrNull) {
+        File rel = Files.relativeToContainingDirectory(f, root);
+        File targFile = new File(mOthersDir, rel.toString());
+        log("......copying to 'others':", rel);
+        files().copyFile(f, targFile);
+      }
+    } else {
+      for (File f : fileListOrNull) {
+        String combined = relPath;
+        if (nonEmpty(relPath))
+          combined += "/" + f;
+        othersCopyFileOrDir(root, combined);
+      }
+    }
   }
 
   private Map<String, List<File>> mProgramClassLists = hashMap();

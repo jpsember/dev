@@ -317,8 +317,8 @@ public abstract class RsyncOper extends AppOper {
 
   private File localProjectDir() {
     if (mCachedLocalProjectDir == null)
-      mCachedLocalProjectDir = Files.parent(Files.getFileWithinParents(Files.currentDirectory(), ".git",
-          "git repository containing current directory"));
+      mCachedLocalProjectDir = Files
+          .parent(Files.getFileWithinParents(null, ".git", "git repository containing current directory"));
     return mCachedLocalProjectDir;
   }
 
