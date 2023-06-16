@@ -1,9 +1,21 @@
 class {
-  // Name of file (no path) as it appears in the install zip file
-  string file_name;
 
-  File target_dir;
-  string target_name;
+  // Where file is located on compile machine.
+  // This can be stripped from the information written to the
+  // deploy artifact, as it is only used in the gathering state.
+  //
+  File source_path;
+
+  // Name of file (no path) as it appears in the install zip file
+
+  string source_name;
+
+  enum DirCode dir_code;
+
+  // Relative path to file as it appears deployed,
+  // this is relative to the directory defined by dir_code
+  //
+  File target_path;
 
   ? int permissions;
 }

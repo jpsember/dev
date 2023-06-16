@@ -40,6 +40,7 @@ import javax.crypto.Cipher;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 
+import dev.gen.DirCode;
 import dev.gen.GatherCodeConfig;
 import dev.gen.InstallFileEntry;
 import js.app.AppOper;
@@ -362,32 +363,37 @@ public class GatherCodeOper extends AppOper {
     Files.assertDirectoryExists(root, "project_root_creator");
 
     JSList lst = config().othersList();
-    auxWriteOthers(root, lst);
+    auxWriteOthers(root, lst, null);
 
     // Write the script
 
     JSMap m = map();
     for (InstallFileEntry ent : mFileEntries.values())
-      m.put(ent.fileName(), ent.toJson());
+      m.put(ent.sourceName(), ent.toJson());
     files().writePretty(outputFile("others_info.json"), m);
     log("others_info.json:", INDENT, m);
   }
 
-  private void auxWriteOthers(File root, Object fileSet) {
+  private void auxWriteOthers(File root, Object fileSet, InstallFileEntry fent) {
+    if (fent == null)
+      fent = InstallFileEntry.DEFAULT_INSTANCE;
     if (fileSet instanceof String) {
-      InstallFileEntry.Builder b = parseInstallExpr(null, root, (String) fileSet);
+      InstallFileEntry.Builder b = fent.build().toBuilder();
+      parseInstallExpr(b, root, (String) fileSet);
       othersCopy(b);
     } else if (fileSet instanceof JSList) {
       JSList fileSets = (JSList) fileSet;
+      //InstallFileEntry.Builder b = fent.build().toBuilder();
       for (Object fs : fileSets.wrappedList()) {
-        auxWriteOthers(root, fs);
+        auxWriteOthers(root, fs, fent);
       }
     } else if (fileSet instanceof JSMap) {
       JSMap m = (JSMap) fileSet;
-      String auxRoot = m.opt("path", "");
+      String auxRoot = m.opt("source", "");
+      InstallFileEntry.Builder b = fent.build().toBuilder();
       Object auxFileSet = m.optUnsafe("items");
       checkArgument(auxFileSet != null, "expected items:", INDENT, m);
-      auxWriteOthers(extendRoot(root, auxRoot), auxFileSet);
+      auxWriteOthers(extendRoot(root, auxRoot, b), auxFileSet, b);
     } else
       throw notSupported("don't know how to handle fileset:", INDENT, fileSet);
   }
@@ -396,10 +402,13 @@ public class GatherCodeOper extends AppOper {
       String filenameExpr) {
     if (b == null)
       b = InstallFileEntry.newBuilder();
-    File ext = extendRoot(root, filenameExpr);
-    b.targetName(ext.getName());
+    File ext = extendRoot(root, filenameExpr, b);
+
+    b.sourcePath(ext);
+
     todo("how to handle specifying directories on install system?");
-    b.targetDir(ext.getParentFile());
+    b.targetPath(ext);
+//    b.targetDir(ext.getParentFile());
     return b;
   }
 
@@ -410,10 +419,12 @@ public class GatherCodeOper extends AppOper {
   // abc        ~           <current directory>
   // abc        ~/alpha     <current directory>/alpha
   //
-  private File extendRoot(File root, String aux) {
+  private File extendRoot(File root, String aux, InstallFileEntry.Builder b) {
+    b.dirCode(DirCode.INSTALL);
     if (aux.isEmpty())
       return root;
     if (aux.startsWith("~")) {
+      b.dirCode(DirCode.HOME);
       String remaining = aux.substring(1);
       if (remaining.startsWith("/"))
         remaining = remaining.substring(1);
@@ -433,7 +444,7 @@ public class GatherCodeOper extends AppOper {
   }
 
   private void othersCopy(InstallFileEntry.Builder b) {
-    File sourceFile = new File(b.targetDir(), b.targetName());
+    File sourceFile = b.sourcePath(); //new File(b.targetPath(), b.targetName());
     if (!sourceFile.exists()) {
       badArg("file doesn't exist:", sourceFile, INDENT, b);
     }
@@ -446,16 +457,17 @@ public class GatherCodeOper extends AppOper {
       }
     } else {
       // Find a unique name to store this within the zip file.
-      String key = b.targetName();
+      String keyStart = b.sourcePath().getName();
+      String key = keyStart;
       int i = 0;
       while (mFileEntries.containsKey(key)) {
         i++;
-        key = b.targetName() + "_" + i;
+        key = keyStart + "_" + i;
       }
-      b.fileName(key);
-      mFileEntries.put(b.fileName(), b);
+      b.sourceName(key);
+      mFileEntries.put(b.sourceName(), b);
 
-      files().copyFile(sourceFile, new File(mOthersDir, b.fileName()));
+      files().copyFile(sourceFile, new File(mOthersDir, b.sourceName()));
     }
   }
 
