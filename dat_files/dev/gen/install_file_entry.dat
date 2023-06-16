@@ -1,0 +1,9 @@
+class {
+  // Name of file (no path) as it appears in the install zip file
+  string file_name;
+
+  File target_dir;
+  string target_name;
+
+  ? int permissions;
+}

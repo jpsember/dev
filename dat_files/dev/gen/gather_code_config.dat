@@ -43,5 +43,5 @@ class {
   //
   File project_root_creator = "!";  // this default means set it to Files.projectDirectory()
 
-  JSMap others_map;
+  JSList others_list;
 }

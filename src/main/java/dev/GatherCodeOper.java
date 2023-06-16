@@ -41,6 +41,7 @@ import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 
 import dev.gen.GatherCodeConfig;
+import dev.gen.InstallFileEntry;
 import js.app.AppOper;
 import js.file.DirWalk;
 import js.file.Files;
@@ -352,78 +353,109 @@ public class GatherCodeOper extends AppOper {
   }
 
   private void writeOthers() {
-    // "project_root_creator" : directory that others_map entries will be relative to; can be ~/xxxx, or ~/xxxx
-    //
-    // "others_map" : {  key : val }
-    //
-    // key is a file or directory relative to others_root
-    //
-    // val is one of:
-    //    true : copy the file or directory denoted by key
-    //    ["xxxx","yyyy"]  : copy specific files (or directories) within key
+    // "project_root_creator" : initial directory that others_map entries will be relative to; 
+    //   can be ~xxxx => ~/xxxx, !xxxx => <project dir>/xxxx
     //
     log("writeOthers");
+    mFileEntries = hashMap();
     File root = interpretFile(config().projectRootCreator(), "project_root_creator");
     Files.assertDirectoryExists(root, "project_root_creator");
 
-    JSMap m = config().othersMap();
-    for (String key : m.keySet()) {
-      Object value = m.getUnsafe(key);
-      if (value == Boolean.TRUE) {
-        othersCopyFileOrDir(root, key);
-        continue;
-      }
-      if (value instanceof JSList) {
-        JSList list = (JSList) value;
-        List<File> files = arrayList();
-        for (String s : list.asStringArray())
-          files.add(new File(s));
-        othersCopyDir(root, key, files);
-        continue;
-      }
-      throw notSupported("don't know how to handle key/value pair:", INDENT, key, value);
-    }
+    JSList lst = config().othersList();
+    auxWriteOthers(root, lst);
+
+    // Write the script
+
+    JSMap m = map();
+    for (InstallFileEntry ent : mFileEntries.values())
+      m.put(ent.fileName(), ent.toJson());
+    files().writePretty(outputFile("others_info.json"), m);
+    log("others_info.json:", INDENT, m);
   }
 
-  private void othersCopyFileOrDir(File root, String relPath) {
-    File sourceFile = Files.assertExists(new File(root, relPath), "othersCopyFileOrDir");
+  private void auxWriteOthers(File root, Object fileSet) {
+    if (fileSet instanceof String) {
+      InstallFileEntry.Builder b = parseInstallExpr(null, root, (String) fileSet);
+      othersCopy(b);
+    } else if (fileSet instanceof JSList) {
+      JSList fileSets = (JSList) fileSet;
+      for (Object fs : fileSets.wrappedList()) {
+        auxWriteOthers(root, fs);
+      }
+    } else if (fileSet instanceof JSMap) {
+      JSMap m = (JSMap) fileSet;
+      String auxRoot = m.opt("path", "");
+      Object auxFileSet = m.optUnsafe("items");
+      checkArgument(auxFileSet != null, "expected items:", INDENT, m);
+      auxWriteOthers(extendRoot(root, auxRoot), auxFileSet);
+    } else
+      throw notSupported("don't know how to handle fileset:", INDENT, fileSet);
+  }
+
+  private InstallFileEntry.Builder parseInstallExpr(InstallFileEntry.Builder b, File root,
+      String filenameExpr) {
+    if (b == null)
+      b = InstallFileEntry.newBuilder();
+    File ext = extendRoot(root, filenameExpr);
+    b.targetName(ext.getName());
+    todo("how to handle specifying directories on install system?");
+    b.targetDir(ext.getParentFile());
+    return b;
+  }
+
+  // root       aux         new root
+  // ---------------------------------------------
+  // abc                    abc                
+  // abc        xyz/def     abc/xyz/def
+  // abc        ~           <current directory>
+  // abc        ~/alpha     <current directory>/alpha
+  //
+  private File extendRoot(File root, String aux) {
+    if (aux.isEmpty())
+      return root;
+    if (aux.startsWith("~")) {
+      String remaining = aux.substring(1);
+      if (remaining.startsWith("/"))
+        remaining = remaining.substring(1);
+      checkArgument(!remaining.startsWith("/"), "bad arg:", aux);
+      File newRoot = Files.currentDirectory();
+      if (nonEmpty(remaining)) {
+        newRoot = new File(newRoot, remaining);
+      }
+      return newRoot;
+    }
+
+    if (aux.startsWith("/")) {
+      badArg("unsupported source directory argument:", aux);
+    }
+
+    return new File(root, aux);
+  }
+
+  private void othersCopy(InstallFileEntry.Builder b) {
+    File sourceFile = new File(b.targetDir(), b.targetName());
+    if (!sourceFile.exists()) {
+      badArg("file doesn't exist:", sourceFile, INDENT, b);
+    }
     if (sourceFile.isDirectory()) {
-      log("...writing dir:", relPath);
-      File sourceDir = sourceFile;
-      DirWalk w = new DirWalk(sourceDir).withRecurse(true).omitNames(".DS_Store");
+      log("...writing dir:", sourceFile);
+      DirWalk w = new DirWalk(sourceFile).withRecurse(true).omitNames(".DS_Store");
       for (File f : w.files()) {
-        File rel = Files.relativeToContainingDirectory(f, root);
-        File targFile = new File(mOthersDir, rel.toString());
-        log("......copying to 'others':", rel);
-        files().copyFile(f, targFile);
+        InstallFileEntry.Builder child = parseInstallExpr(null, sourceFile, f.getName());
+        othersCopy(child);
       }
     } else {
-      File rel = Files.relativeToContainingDirectory(sourceFile, root);
-      File targFile = new File(mOthersDir, rel.toString());
-      log("...copying to 'others':", rel);
-      files().copyFile(sourceFile, targFile);
-    }
-  }
+      // Find a unique name to store this within the zip file.
+      String key = b.targetName();
+      int i = 0;
+      while (mFileEntries.containsKey(key)) {
+        i++;
+        key = b.targetName() + "_" + i;
+      }
+      b.fileName(key);
+      mFileEntries.put(b.fileName(), b);
 
-  private void othersCopyDir(File root, String relPath, List<File> fileListOrNull) {
-    File sourceDir = Files.assertDirectoryExists(new File(root, relPath), "othersCopyDir");
-    log("...writing dir:", relPath);
-    if (fileListOrNull == null) {
-      DirWalk w = new DirWalk(sourceDir).withRecurse(true).omitNames(".DS_Store");
-      fileListOrNull = w.filesRelative();
-      for (File f : fileListOrNull) {
-        File rel = Files.relativeToContainingDirectory(f, root);
-        File targFile = new File(mOthersDir, rel.toString());
-        log("......copying to 'others':", rel);
-        files().copyFile(f, targFile);
-      }
-    } else {
-      for (File f : fileListOrNull) {
-        String combined = relPath;
-        if (nonEmpty(relPath))
-          combined += "/" + f;
-        othersCopyFileOrDir(root, combined);
-      }
+      files().copyFile(sourceFile, new File(mOthersDir, b.fileName()));
     }
   }
 
@@ -483,4 +515,5 @@ public class GatherCodeOper extends AppOper {
     return decryptedText;
   }
 
+  private Map<String, InstallFileEntry> mFileEntries;
 }
