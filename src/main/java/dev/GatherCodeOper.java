@@ -352,7 +352,7 @@ public class GatherCodeOper extends AppOper {
   }
 
   private void writeOthers() {
-    // "others_root" : directory that others_map entries will be relative to; can be ~/xxxx, or ~/xxxx
+    // "project_root_creator" : directory that others_map entries will be relative to; can be ~/xxxx, or ~/xxxx
     //
     // "others_map" : {  key : val }
     //
@@ -363,8 +363,8 @@ public class GatherCodeOper extends AppOper {
     //    ["xxxx","yyyy"]  : copy specific files (or directories) within key
     //
     log("writeOthers");
-    File root = interpretFile(config().othersRoot(), "others_root");
-    Files.assertDirectoryExists(root, "others_root");
+    File root = interpretFile(config().projectRootCreator(), "project_root_creator");
+    Files.assertDirectoryExists(root, "project_root_creator");
 
     JSMap m = config().othersMap();
     for (String key : m.keySet()) {
