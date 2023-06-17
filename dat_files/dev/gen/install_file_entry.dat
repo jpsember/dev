@@ -9,12 +9,15 @@ class {
   // Name of file (no path) as it appears in the install zip file
   string key;
 
-  enum DirCode dir_code;
-
-  // Relative path to file as it appears deployed,
-  // this is relative to the directory defined by dir_code
+  // Where file is to be installed on target machine.
+  // May contain macros of the form [xxx], e.g.
+  //
+  // /[home]/xxx/yyy
   //
   File target_path;
+
+  // alternate target filename?
+  string target_name;
 
   ? int permissions;
 }

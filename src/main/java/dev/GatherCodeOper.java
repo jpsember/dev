@@ -80,15 +80,17 @@ public class GatherCodeOper extends AppOper {
 
     writeConfig();
 
-    // Process the set of programs, collecting required classes, generate run scripts
-    for (Entry<String, String> ent : config().programs().entrySet()) {
-      String programName = ent.getKey();
-      String mainClass = ent.getValue();
-      collectProgramClasses(programName);
-      generateRunScript(programName, mainClass);
-    }
+    if (!alert("skipping programs, secrets")) {
+      // Process the set of programs, collecting required classes, generate run scripts
+      for (Entry<String, String> ent : config().programs().entrySet()) {
+        String programName = ent.getKey();
+        String mainClass = ent.getValue();
+        collectProgramClasses(programName);
+        generateRunScript(programName, mainClass);
+      }
 
-    writeSecrets();
+      writeSecrets();
+    }
 
     writeOthers();
 
@@ -371,6 +373,7 @@ public class GatherCodeOper extends AppOper {
     JSList lst = config().othersList();
     OthersState state = new OthersState();
     state.sourceDir = sourceDir;
+    state.targetDir = new File("[target]");
     auxRewrite(lst, state);
 
     // Process the rewritten list
@@ -422,23 +425,28 @@ public class GatherCodeOper extends AppOper {
     if (fileSet instanceof String) {
       String filePath = (String) fileSet;
       File sourceFile = extendRoot(state.sourceDir, filePath);
-      InstallFileEntry.Builder b = builderWithKey(sourceFile);
-      todo("when to init targetPath?", b);
-      applyMissingFields(b, state);
+
+      // If this is a directory, process recursively
+      if (sourceFile.isDirectory()) {
+        
+      } else {
+        InstallFileEntry.Builder b = builderWithKey(sourceFile);
+        applyMissingFields(b, state);
+      }
     } else if (fileSet instanceof JSList) {
       JSList fileSets = (JSList) fileSet;
       for (Object fs : fileSets.wrappedList()) {
         auxRewrite(fs, state);
       }
     } else if (fileSet instanceof JSMap) {
-      
       state = state.dup();
-      
       JSMap m = (JSMap) fileSet;
       String sourceExpr = m.opt("source", "");
-      String targetDirExpr = m.opt("targetdir","");
+      String targetDirExpr = m.opt("targetdir", "");
       if (nonEmpty(targetDirExpr)) {
-        if (state.targetDir != null)
+        if (state.targetDir == null) {
+          state.targetDir = new File(targetDirExpr);
+        } else
           state.targetDir = extendRoot(state.targetDir, targetDirExpr);
       }
       Object auxFileSet = m.optUnsafe("items");
@@ -448,9 +456,8 @@ public class GatherCodeOper extends AppOper {
         File sourceFile = extendRoot(state.sourceDir, sourceExpr);
         InstallFileEntry.Builder b = builderWithKey(sourceFile);
         applyMissingFields(b, state);
-        todo("when to init targetPath here?", b);
       } else {
-         state.sourceDir = extendRoot(state.sourceDir, sourceExpr);
+        state.sourceDir = extendRoot(state.sourceDir, sourceExpr);
         auxRewrite(auxFileSet, state);
       }
     } else
@@ -458,11 +465,12 @@ public class GatherCodeOper extends AppOper {
   }
 
   private void applyMissingFields(InstallFileEntry.Builder b, OthersState state) {
-     if (Files.empty(b.targetPath())) {
-       if (state.targetDir != null) {
-         
-       }
-     }
+    if (nullOrEmpty(b.targetName())) {
+      b.targetName(b.sourcePath().getName());
+    }
+    if (Files.empty(b.targetPath())) {
+      b.targetPath(new File(state.targetDir, b.targetName()));
+    }
   }
 
   //root       aux         new root
@@ -473,6 +481,8 @@ public class GatherCodeOper extends AppOper {
   // abc        ~/alpha     <current directory>/alpha
   //
   private File extendRoot(File root, String aux) {
+    pr("extend root:", root, "with:", aux);
+
     todo("rename arguments");
     if (aux.isEmpty())
       return root;
