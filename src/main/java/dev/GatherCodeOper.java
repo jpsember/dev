@@ -40,7 +40,6 @@ import javax.crypto.Cipher;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 
-import dev.gen.DirCode;
 import dev.gen.GatherCodeConfig;
 import dev.gen.InstallFileEntry;
 import js.app.AppOper;
@@ -367,41 +366,32 @@ public class GatherCodeOper extends AppOper {
     log("others_info.json:", INDENT, m);
   }
 
-  private void auxWriteOthers(File root, Object fileSet, InstallFileEntry fent) {
-    if (fent == null)
-      fent = InstallFileEntry.DEFAULT_INSTANCE;
+  private void auxWriteOthers(File root, Object fileSet, File targetDir) {
     if (fileSet instanceof String) {
-      InstallFileEntry.Builder b = fent.build().toBuilder();
-      parseInstallExpr(b, root, (String) fileSet);
+      InstallFileEntry.Builder b = parseInstallExpr(root, (String) fileSet);
       othersCopy(b);
     } else if (fileSet instanceof JSList) {
       JSList fileSets = (JSList) fileSet;
-      //InstallFileEntry.Builder b = fent.build().toBuilder();
       for (Object fs : fileSets.wrappedList()) {
-        auxWriteOthers(root, fs, fent);
+        auxWriteOthers(root, fs, targetDir);
       }
     } else if (fileSet instanceof JSMap) {
       JSMap m = (JSMap) fileSet;
       String auxRoot = m.opt("source", "");
-      InstallFileEntry.Builder b = fent.build().toBuilder();
       Object auxFileSet = m.optUnsafe("items");
       checkArgument(auxFileSet != null, "expected items:", INDENT, m);
-      auxWriteOthers(extendRoot(root, auxRoot, b), auxFileSet, b);
+      auxWriteOthers(extendRoot(root, auxRoot), auxFileSet, targetDir);
     } else
       throw notSupported("don't know how to handle fileset:", INDENT, fileSet);
   }
 
-  private InstallFileEntry.Builder parseInstallExpr(InstallFileEntry.Builder b, File root,
-      String filenameExpr) {
-    if (b == null)
-      b = InstallFileEntry.newBuilder();
-    File ext = extendRoot(root, filenameExpr, b);
-
+  private InstallFileEntry.Builder parseInstallExpr(File root, String filenameExpr) {
+    InstallFileEntry.Builder b = InstallFileEntry.newBuilder();
+    File ext = extendRoot(root, filenameExpr);
     b.sourcePath(ext);
 
     todo("how to handle specifying directories on install system?");
     b.targetPath(ext);
-    //    b.targetDir(ext.getParentFile());
     return b;
   }
 
@@ -412,12 +402,10 @@ public class GatherCodeOper extends AppOper {
   // abc        ~           <current directory>
   // abc        ~/alpha     <current directory>/alpha
   //
-  private File extendRoot(File root, String aux, InstallFileEntry.Builder b) {
-    b.dirCode(DirCode.INSTALL);
+  private File extendRoot(File root, String aux) {
     if (aux.isEmpty())
       return root;
     if (aux.startsWith("~")) {
-      b.dirCode(DirCode.HOME);
       String remaining = aux.substring(1);
       if (remaining.startsWith("/"))
         remaining = remaining.substring(1);
@@ -437,7 +425,7 @@ public class GatherCodeOper extends AppOper {
   }
 
   private void othersCopy(InstallFileEntry.Builder b) {
-    File sourceFile = b.sourcePath(); //new File(b.targetPath(), b.targetName());
+    File sourceFile = b.sourcePath();
     if (!sourceFile.exists()) {
       badArg("file doesn't exist:", sourceFile, INDENT, b);
     }
@@ -445,7 +433,7 @@ public class GatherCodeOper extends AppOper {
       log("...writing dir:", sourceFile);
       DirWalk w = new DirWalk(sourceFile).withRecurse(true).omitNames(".DS_Store");
       for (File f : w.files()) {
-        InstallFileEntry.Builder child = parseInstallExpr(null, sourceFile, f.getName());
+        InstallFileEntry.Builder child = parseInstallExpr(sourceFile, f.getName());
         othersCopy(child);
       }
     } else {
