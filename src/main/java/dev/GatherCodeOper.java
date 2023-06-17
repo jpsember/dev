@@ -43,7 +43,6 @@ import javax.crypto.spec.SecretKeySpec;
 import dev.gen.GatherCodeConfig;
 import dev.gen.InstallFileEntry;
 import js.app.AppOper;
-import js.data.AbstractData;
 import js.file.DirWalk;
 import js.file.Files;
 import js.json.JSList;
@@ -110,6 +109,7 @@ public class GatherCodeOper extends AppOper {
       mClassesDir = files().mkdirs(outputFile("classes"));
       mProgramsDir = files().mkdirs(outputFile("programs"));
       mOthersDir = files().mkdirs(outputFile("others"));
+      todo("not doing anything with othersdir:",mOthersDir);
     }
     return mOutputDir;
   }
@@ -349,67 +349,103 @@ public class GatherCodeOper extends AppOper {
   private void writeOthers() {
     log("writeOthers");
     mFileEntries = hashMap();
-    File root = config().projectRoot();
-    if (Files.empty(root))
-      root = files().projectDirectory();
-    root = interpretFile(root, "project_root");
-    Files.assertDirectoryExists(root, "project_root");
+
+    // Determine the initial source directory
+    File sourceDir = config().projectRoot();
+    if (Files.empty(sourceDir))
+      sourceDir = files().projectDirectory();
+    sourceDir = interpretFile(sourceDir, "project_root");
+    Files.assertDirectoryExists(sourceDir, "sourceDir");
 
     JSList lst = config().othersList();
+    auxRewrite(lst, sourceDir);
 
-    InstallFileEntry b = InstallFileEntry.newBuilder().sourcePath(root).build();
+    // Process the rewritten list
 
-    auxWriteOthers(b, lst);
+    List<String> sortedKeys = arrayList();
+    sortedKeys.addAll(mFileEntries.keySet());
+    sortedKeys.sort(null);
+    //halt(sortedKeys);
+    for (String key : sortedKeys) {
+      InstallFileEntry ent = mFileEntries.get(key);
+      pr(ent);
+    }
+    halt("not finished");
+    //
+    //    InstallFileEntry b = InstallFileEntry.newBuilder().sourcePath(sourceDir).build();
+    //
+    //    auxWriteOthers(b, lst);
 
     // Write the script
 
     JSMap m = map();
     for (InstallFileEntry ent : mFileEntries.values())
-      m.put(ent.sourceName(), ent.toJson());
+      m.put(ent.key(), ent.toJson());
     files().writePretty(outputFile("others_info.json"), m);
     log("others_info.json:", INDENT, m);
   }
 
-  private void auxWriteOthers(InstallFileEntry fileEnt, Object fileSet) {
-    assertBuilt(fileEnt);
+  private InstallFileEntry.Builder builderWithKey(File sourceFile) {
+    InstallFileEntry.Builder b = InstallFileEntry.newBuilder() //
+        .sourcePath(sourceFile);
+    int i = 0;
+    String baseKey = sourceFile.getName();
+    if (alert("experiment")) {
+      if (mFileEntries.isEmpty())
+        baseKey = "alpha.txt";
+    }
+    String key = baseKey;
+    while (mFileEntries.containsKey(key)) {
+      i++;
+      key = baseKey + "_" + i;
+      todo("insert number before extension if any?");
+    }
+    b.key(key);
+    mFileEntries.put(key, b);
+    return b;
+  }
+
+  private void auxRewrite(Object fileSet, /* List<InstallFileEntry> result, */ File sourceDir) {
     if (fileSet instanceof String) {
-      InstallFileEntry b = parseInstallExpr(fileEnt, (String) fileSet);
-      othersCopy(b);
+      String filePath = (String) fileSet;
+      File sourceFile = extendRoot(sourceDir, filePath);
+      InstallFileEntry.Builder b = builderWithKey(sourceFile);
+      todo("when to init targetPath?", b);
+
     } else if (fileSet instanceof JSList) {
       JSList fileSets = (JSList) fileSet;
       for (Object fs : fileSets.wrappedList()) {
-        auxWriteOthers(fileEnt, fs);
+        auxRewrite(fs, sourceDir);
       }
     } else if (fileSet instanceof JSMap) {
       JSMap m = (JSMap) fileSet;
-      String auxRoot = m.opt("source", "");
+      String sourceExpr = m.opt("source", "");
       Object auxFileSet = m.optUnsafe("items");
-      checkArgument(auxFileSet != null, "expected items:", INDENT, m);
-      auxWriteOthers(extendRoot(fileEnt, auxRoot), auxFileSet);
+      if (auxFileSet == null) {
+        // The name is included in sourceExpr
+        checkArgument(nonEmpty(sourceExpr), "probably shouldn't be empty");
+        File sourceFile = extendRoot(sourceDir, sourceExpr);
+        InstallFileEntry.Builder b = builderWithKey(sourceFile);
+        todo("when to init targetPath here?", b);
+      } else {
+        File newSourceDir = extendRoot(sourceDir, sourceExpr);
+        auxRewrite(auxFileSet, newSourceDir);
+      }
     } else
       throw notSupported("don't know how to handle fileset:", INDENT, fileSet);
   }
 
-  private InstallFileEntry parseInstallExpr(InstallFileEntry ent, String filenameExpr) {
-    ent = extendRoot(ent, filenameExpr);
-    //b.sourcePath(ext);
-
-    todo("how to handle specifying directories on install system?");
-    // b.targetPath(ext);
-    return ent;
-  }
-
-  // root       aux         new root
+  //root       aux         new root
   // ---------------------------------------------
   // abc                    abc                
   // abc        xyz/def     abc/xyz/def
   // abc        ~           <current directory>
   // abc        ~/alpha     <current directory>/alpha
   //
-  private InstallFileEntry extendRoot(InstallFileEntry ent, String aux) {
-    assertBuilt(ent);
+  private File extendRoot(File root, String aux) {
+    todo("rename arguments");
     if (aux.isEmpty())
-      return ent;
+      return root;
 
     if (aux.equals("~"))
       aux = "~/";
@@ -419,47 +455,11 @@ public class GatherCodeOper extends AppOper {
       if (nonEmpty(remaining)) {
         newRoot = new File(newRoot, remaining);
       }
-      return ent.toBuilder().sourcePath(newRoot).build();
+      return newRoot;
     } else if (aux.startsWith("/")) {
       throw badArg("unsupported source directory argument:", aux);
     } else
-      return ent.toBuilder().sourcePath(new File(ent.sourcePath(), aux)).build();
-  }
-
-  int k;
-
-  private void assertBuilt(AbstractData data) {
-    checkState(data.build() == data, "was not built");
-  }
-
-  private void othersCopy(InstallFileEntry b) {
-    assertBuilt(b);
-    log("othersCopy", INDENT, b);
-    File sourceFile = b.sourcePath();
-    if (!sourceFile.exists()) {
-      badArg("file doesn't exist:", sourceFile, INDENT, b);
-    }
-    if (sourceFile.isDirectory()) {
-      log("...writing dir:", sourceFile);
-      DirWalk w = new DirWalk(sourceFile).withRecurse(true).omitNames(".DS_Store");
-      for (File f : w.files()) {
-        InstallFileEntry child = parseInstallExpr(b, f.getName());
-        othersCopy(child);
-      }
-    } else {
-      // Find a unique name to store this within the zip file.
-      String keyStart = b.sourcePath().getName();
-      String key = keyStart;
-      int i = 0;
-      while (mFileEntries.containsKey(key)) {
-        i++;
-        key = keyStart + "_" + i;
-      }
-      b = b.toBuilder().sourceName(key).build();
-      mFileEntries.put(b.sourceName(), b);
-
-      files().copyFile(sourceFile, new File(mOthersDir, b.sourceName()));
-    }
+      return new File(root, aux);
   }
 
   private Map<String, List<File>> mProgramClassLists = hashMap();

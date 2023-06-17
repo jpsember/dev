@@ -7,8 +7,8 @@ class {
   File source_path;
 
   // Name of file (no path) as it appears in the install zip file
-
-  string source_name;
+  string key;
+  - string source_name;
 
   enum DirCode dir_code;
 
