@@ -42,6 +42,7 @@ import javax.crypto.spec.SecretKeySpec;
 
 import dev.gen.GatherCodeConfig;
 import dev.gen.InstallFileEntry;
+import dev.gen.OthersState;
 import js.app.AppOper;
 import js.file.DirWalk;
 import js.file.Files;
@@ -347,18 +348,7 @@ public class GatherCodeOper extends AppOper {
     files().write(encrypted, outputFile("secrets.bin"));
     tempZipFile.delete();
   }
-
-  private static class OthersState {
-    File sourceDir;
-    File targetDir;
-
-    OthersState dup() {
-      OthersState x = new OthersState();
-      x.sourceDir = sourceDir;
-      return x;
-    }
-  }
-
+  
   private void writeOthers() {
     log("writeOthers");
     mFileEntries = hashMap();
@@ -371,9 +361,10 @@ public class GatherCodeOper extends AppOper {
     Files.assertDirectoryExists(sourceDir, "sourceDir");
 
     JSList lst = config().othersList();
-    OthersState state = new OthersState();
-    state.sourceDir = sourceDir;
-    state.targetDir = new File("[target]");
+    OthersState state = OthersState.newBuilder() //
+        .sourceDir(sourceDir) //
+        .targetDir(new File("[target]")) //
+        .build();
     auxRewrite(lst, state);
 
     // Process the rewritten list
@@ -424,11 +415,16 @@ public class GatherCodeOper extends AppOper {
   private void auxRewrite(Object fileSet, OthersState state) {
     if (fileSet instanceof String) {
       String filePath = (String) fileSet;
-      File sourceFile = extendRoot(state.sourceDir, filePath);
+      File sourceFile = extendFile(state.sourceDir(), filePath);
 
       // If this is a directory, process recursively
       if (sourceFile.isDirectory()) {
-        
+        state = state.toBuilder().sourceDir(sourceFile).build();
+        log("...writing dir:", sourceFile);
+        DirWalk w = new DirWalk(state.sourceDir()).withRecurse(true).omitNames(".DS_Store");
+        for (File f : w.files()) {
+          auxRewrite(f.getName(), state);
+        }
       } else {
         InstallFileEntry.Builder b = builderWithKey(sourceFile);
         applyMissingFields(b, state);
@@ -439,25 +435,21 @@ public class GatherCodeOper extends AppOper {
         auxRewrite(fs, state);
       }
     } else if (fileSet instanceof JSMap) {
-      state = state.dup();
       JSMap m = (JSMap) fileSet;
       String sourceExpr = m.opt("source", "");
       String targetDirExpr = m.opt("targetdir", "");
       if (nonEmpty(targetDirExpr)) {
-        if (state.targetDir == null) {
-          state.targetDir = new File(targetDirExpr);
-        } else
-          state.targetDir = extendRoot(state.targetDir, targetDirExpr);
+        state = state.toBuilder().targetDir(extendFile(state.targetDir(), targetDirExpr)).build();
       }
       Object auxFileSet = m.optUnsafe("items");
       if (auxFileSet == null) {
         // The name is included in sourceExpr
         checkArgument(nonEmpty(sourceExpr), "probably shouldn't be empty");
-        File sourceFile = extendRoot(state.sourceDir, sourceExpr);
+        File sourceFile = extendFile(state.sourceDir(), sourceExpr);
         InstallFileEntry.Builder b = builderWithKey(sourceFile);
         applyMissingFields(b, state);
       } else {
-        state.sourceDir = extendRoot(state.sourceDir, sourceExpr);
+        state = state.toBuilder().sourceDir(extendFile(state.sourceDir(), sourceExpr)).build();
         auxRewrite(auxFileSet, state);
       }
     } else
@@ -469,37 +461,34 @@ public class GatherCodeOper extends AppOper {
       b.targetName(b.sourcePath().getName());
     }
     if (Files.empty(b.targetPath())) {
-      b.targetPath(new File(state.targetDir, b.targetName()));
+      b.targetPath(new File(state.targetDir(), b.targetName()));
     }
   }
 
-  //root       aux         new root
+  // file       suffix      new
   // ---------------------------------------------
+  //            abc         abc
+  //            /abc        /abc
   // abc                    abc                
   // abc        xyz/def     abc/xyz/def
-  // abc        ~           <current directory>
-  // abc        ~/alpha     <current directory>/alpha
+  // abc        /xyz/def    /xyz/def
   //
-  private File extendRoot(File root, String aux) {
-    pr("extend root:", root, "with:", aux);
+  private File extendFile(File file, String suffix) {
+    File result = auxExtendRoot(file, suffix);
+    log("extendRoot:", file, "with:", suffix, INDENT, spaces(26), result);
+    return result;
+  }
 
-    todo("rename arguments");
+  private File auxExtendRoot(File root, String aux) {
+    if (Files.empty(root)) {
+      checkArgument(nonEmpty(aux));
+      return new File(aux);
+    }
     if (aux.isEmpty())
       return root;
-
-    if (aux.equals("~"))
-      aux = "~/";
-    if (aux.startsWith("~/")) {
-      String remaining = aux.substring(2);
-      File newRoot = Files.currentDirectory();
-      if (nonEmpty(remaining)) {
-        newRoot = new File(newRoot, remaining);
-      }
-      return newRoot;
-    } else if (aux.startsWith("/")) {
-      throw badArg("unsupported source directory argument:", aux);
-    } else
-      return new File(root, aux);
+    if (aux.startsWith("/"))
+      return new File(aux);
+    return new File(root, aux);
   }
 
   private Map<String, List<File>> mProgramClassLists = hashMap();
