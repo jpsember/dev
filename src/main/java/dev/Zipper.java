@@ -4,10 +4,13 @@ import static js.base.Tools.*;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Set;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
 import js.base.BaseObject;
+import js.data.AbstractData;
+import js.data.DataUtil;
 import js.file.Files;
 
 public final class Zipper extends BaseObject {
@@ -20,7 +23,7 @@ public final class Zipper extends BaseObject {
   }
 
   public void open(File zipFile) {
-    log("openForWriting:", zipFile);
+    log("open:", zipFile);
     checkState(mZipFile == null);
     checkArgument(Files.getExtension(Files.assertNonEmpty(zipFile, "zipFile arg")).equals(Files.EXT_ZIP),
         zipFile, "not a zip file");
@@ -29,30 +32,28 @@ public final class Zipper extends BaseObject {
     mOutputStream = new ZipOutputStream(mFiles.outputStream(zipFile));
   }
 
-  @Deprecated
-  public void addEntry(File file, String name) {
-    checkState(mOutputStream != null);
-    byte[] bytes = Files.toByteArray(file, "zipping");
-    if (nullOrEmpty(name))
-      name = file.toString();
-
-    ZipEntry zipEntry = new ZipEntry(name);
-    try {
-      mOutputStream.putNextEntry(zipEntry);
-      mOutputStream.write(bytes);
-      mOutputStream.closeEntry();
-    } catch (IOException e) {
-      throw Files.asFileException(e);
-    }
+  public void addEntry(String name, String string) {
+    addEntry(name, string.getBytes());
   }
 
+  public void addEntry(String name, File file) {
+    addEntry(name, Files.toByteArray(file, "addEntry"));
+  }
+
+  public void addEntry(String name, AbstractData data) {
+    addEntry(name,DataUtil.toByteArray(data));
+  }
+  
   public void addEntry(String name, byte[] bytes) {
+    log("addEntry:", name);
+    checkState(!mEntries.contains(name));
     checkState(mOutputStream != null);
     ZipEntry zipEntry = new ZipEntry(name);
     try {
       mOutputStream.putNextEntry(zipEntry);
       mOutputStream.write(bytes);
       mOutputStream.closeEntry();
+      mEntries.add(name);
     } catch (IOException e) {
       throw Files.asFileException(e);
     }
@@ -68,7 +69,12 @@ public final class Zipper extends BaseObject {
     mOutputStream = null;
   }
 
+  public boolean contains(String name) {
+    return mEntries.contains(name);
+  }
+
   private final Files mFiles;
   private File mZipFile;
   private ZipOutputStream mOutputStream;
+  private Set<String> mEntries = hashSet();
 }

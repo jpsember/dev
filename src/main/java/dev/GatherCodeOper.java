@@ -111,7 +111,7 @@ public class GatherCodeOper extends AppOper {
     writeOthers();
 
     // Write info 
-    mZip.addEntry("deploy_info.json", DataUtil.toByteArray(mDeployInfo));
+    mZip.addEntry("deploy_info.json", mDeployInfo);
 
     closeZip();
 
@@ -150,7 +150,7 @@ public class GatherCodeOper extends AppOper {
 
   private void collectProgramClasses(String programName) {
     log("collectScriptClasses", programName);
-    List<File> classList = arrayList();
+    List<String> classList = arrayList();
     mProgramClassLists.put(programName, classList);
     //halt("scriptsdir:",config().scriptsDir());
     File scriptFile = Files
@@ -182,8 +182,7 @@ public class GatherCodeOper extends AppOper {
         s2 = new File(mavenRepoDir(), chompPrefix(s2, "$MVN/")).toString();
       }
       File jarFile = new File(s2);
-      File dest = copyClassesFile(jarFile);
-      classList.add(dest);
+      classList.add(copyClassesFile(jarFile));
     }
   }
 
@@ -220,7 +219,7 @@ public class GatherCodeOper extends AppOper {
     return mMaven;
   }
 
-  private File copyClassesFile(File sourceFile) {
+  private String copyClassesFile(File sourceFile) {
     Files.assertExists(sourceFile, "copyFile argument");
 
     // Determine subdirectory to place it within
@@ -238,17 +237,12 @@ public class GatherCodeOper extends AppOper {
     String outputFile = sourceFile.getName();
     if (nonEmpty(outputSubdir))
       outputFile = outputSubdir + "/" + outputFile;
-    //    File target = new File(mClassesDir, outputFile);
-    //    long sourceTime = sourceFile.lastModified();
-    //    if (!(target.exists() && target.lastModified() >= sourceTime)) {
-    //      log("copying", outputFile);
-
-    File target = new File("classes/" + outputFile);
-    mZip.addEntry(target.toString(), Files.toByteArray(sourceFile, "class file"));
-
-    //      files().copyFile(sourceFile, target, true);
-    //   }
-    return target;
+    String name = "classes/" + outputFile;
+    // If this class file has already been added, don't do it again
+    if (!mZip.contains(name)) {
+      mZip.addEntry(name, sourceFile);
+    }
+    return name;
   }
 
   private String frag(String resourceName) {
@@ -259,14 +253,13 @@ public class GatherCodeOper extends AppOper {
     JSMap m = map();
     m.put("program_name", programName);
     m.put("main_class", mainClass);
-    List<File> classFiles = mProgramClassLists.get(programName);
+    List<String> classFiles = mProgramClassLists.get(programName);
     {
       StringBuilder sb = new StringBuilder();
       String outputDirPrefix = "classes"; //mClassesDir.toString();
-      for (File f : classFiles) {
+      for (String s : classFiles) {
         if (sb.length() != 0)
           sb.append(':');
-        String s = f.toString();
         s = chompPrefix(s, outputDirPrefix);
         sb.append("$C");
         sb.append(s);
@@ -276,36 +269,12 @@ public class GatherCodeOper extends AppOper {
     MacroParser parser = new MacroParser();
     parser.withTemplate(frag("gather_driver_template.txt")).withMapper(m);
     String script = parser.content();
-    mZip.addEntry("programs/" + programName + ".sh", script.getBytes());
-//    File dest = new File(mProgramsDir, programName + ".sh");
-//    halt("write to zip file!");
-//    files().writeString(dest, script);
+    mZip.addEntry("programs/" + programName + ".sh", script);
   }
 
   private void writeConfig() {
-    mZip.addEntry("params.json", config().toString().getBytes());
+    mZip.addEntry("params.json", config());
   }
-
-  private void openZip() {
-    checkState(mZip == null);
-    File output = config().output();
-    if (Files.empty(output) || !Files.getExtension(output).equals(Files.EXT_ZIP)) {
-      badArg("output should have a .zip extension:", output);
-    }
-    File zipFile = output;
-    Zipper z = new Zipper(files());
-    z.open(zipFile);
-    mZip = z;
-  }
-
-  private void closeZip() {
-    if (mZip == null)
-      return;
-    mZip.close();
-    mZip = null;
-  }
-
-  private Zipper mZip;
 
   private void writeSecrets() {
     File source = config().secretsSource();
@@ -319,8 +288,7 @@ public class GatherCodeOper extends AppOper {
       String name = f.toString();
       File sourceFile = Files.assertExists(new File(source, name), "file within secrets");
       log("...adding secret:", name);
-      z.addEntry(name, Files.toByteArray(sourceFile, "file within secrets"));
-//      z.addEntry(sourceFile, name);
+      z.addEntry(name, sourceFile);
     }
     z.close();
 
@@ -427,7 +395,6 @@ public class GatherCodeOper extends AppOper {
   }
 
   private void copyOther(InstallFileEntry ent) {
-    todo("perform macro substitution on source_path, e.g. [home]/xxx/yyy -> /Users/etc/xxx/yyy");
     // do it early so it becomes an absolute path
     log("copying:", INDENT, ent);
     File src = ent.sourcePath();
@@ -435,7 +402,7 @@ public class GatherCodeOper extends AppOper {
     String s = src.toString();
     checkArgument(!s.contains("[") && !s.contains("~"), ent);
     Files.assertExists(src, "copyOther");
-    mZip.addEntry(othersSubdir(ent.key()), Files.toByteArray(ent.sourcePath(), "copyOther"));
+    mZip.addEntry(othersSubdir(ent.key()), ent.sourcePath());
   }
 
   private String othersSubdir(String path) {
@@ -535,10 +502,7 @@ public class GatherCodeOper extends AppOper {
     return result;
   }
 
-  private Map<String, List<File>> mProgramClassLists = hashMap();
-  //  private File mOutputDir;
-  //  private File mClassesDir;
-  //  private File mProgramsDir;
+  private Map<String, List<String>> mProgramClassLists = hashMap();
   private File mMaven;
 
   private static Cipher cipher;
@@ -590,6 +554,26 @@ public class GatherCodeOper extends AppOper {
     return decryptedText;
   }
 
+  private void openZip() {
+    checkState(mZip == null);
+    File output = config().output();
+    if (Files.empty(output) || !Files.getExtension(output).equals(Files.EXT_ZIP)) {
+      badArg("output should have a .zip extension:", output);
+    }
+    File zipFile = output;
+    Zipper z = new Zipper(files());
+    z.open(zipFile);
+    mZip = z;
+  }
+
+  private void closeZip() {
+    if (mZip == null)
+      return;
+    mZip.close();
+    mZip = null;
+  }
+  
+  private Zipper mZip;
   private Map<String, InstallFileEntry> mFileEntries;
   private Map<String, String> mVarMap;
   private DeployInfo.Builder mDeployInfo;
