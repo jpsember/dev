@@ -33,6 +33,10 @@ import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
+import java.util.TreeSet;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
@@ -40,17 +44,22 @@ import javax.crypto.Cipher;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 
+import dev.gen.DeployInfo;
 import dev.gen.GatherCodeConfig;
 import dev.gen.InstallFileEntry;
 import dev.gen.OthersState;
 import js.app.AppOper;
+import js.data.DataUtil;
 import js.file.DirWalk;
 import js.file.Files;
 import js.json.JSList;
 import js.json.JSMap;
 import js.parsing.MacroParser;
+import js.parsing.RegExp;
 
 public class GatherCodeOper extends AppOper {
+
+  private File mProjectDirectory;
 
   @Override
   public String userCommand() {
@@ -69,8 +78,13 @@ public class GatherCodeOper extends AppOper {
 
   @Override
   public GatherCodeConfig config() {
-    return (GatherCodeConfig) super.config();
+    if (mConfig == null) {
+      mConfig = (GatherCodeConfig) super.config();
+    }
+    return mConfig;
   }
+
+  private GatherCodeConfig mConfig;
 
   @Override
   public void perform() {
@@ -78,6 +92,10 @@ public class GatherCodeOper extends AppOper {
       experiment();
       return;
     }
+
+    mDeployInfo = DeployInfo.newBuilder().version(config().versionNumber());
+
+    prepareVariables();
 
     writeConfig();
 
@@ -95,6 +113,9 @@ public class GatherCodeOper extends AppOper {
 
     writeOthers();
 
+    // Write info 
+    files().writePretty(outputFile("deploy_info.json"), mDeployInfo);
+
     if (config().generateZip()) {
       createZip();
       if (config().deleteUnzipped()) {
@@ -105,6 +126,34 @@ public class GatherCodeOper extends AppOper {
     todo("ability to create directories (without copying things to them)");
   }
 
+  private void prepareVariables() {
+    mVarMap = hashMap();
+    mVarMap.putAll(config().variables());
+
+    File projDir = config().projectDirectory();
+    if (Files.empty(projDir))
+      projDir = files().projectDirectory();
+    mProjectDirectory = Files.assertDirectoryExists(Files.absolute(projDir), "project directory");
+    provideVar("project", mProjectDirectory);
+    provideVar("home", Files.homeDirectory());
+
+    // Apply variable substitution to the entire config object now that we've defined the variables
+    String s = DataUtil.toString(config());
+    s = applyVariableSubstitution(s);
+    mConfig = config().parse(new JSMap(s));
+  }
+
+  private void provideVar(String key, Object obj) {
+    String value = obj.toString();
+    String existing = mVarMap.get(key);
+    if (existing != null) {
+      log("provide variable", key, "currently:", existing, "not replacing with", value);
+      return;
+    }
+    log("provide variable", key, "=>", value);
+    mVarMap.put(key, value);
+  }
+
   private File outputDir() {
     if (mOutputDir == null) {
       mOutputDir = interpretFile(config().outputDir(), "output_dir");
@@ -112,7 +161,6 @@ public class GatherCodeOper extends AppOper {
       mClassesDir = files().mkdirs(outputFile("classes"));
       mProgramsDir = files().mkdirs(outputFile("programs"));
       mOthersDir = files().mkdirs(outputFile("others"));
-      todo("not doing anything with othersdir:", mOthersDir);
     }
     return mOutputDir;
   }
@@ -348,48 +396,104 @@ public class GatherCodeOper extends AppOper {
     files().write(encrypted, outputFile("secrets.bin"));
     tempZipFile.delete();
   }
-  
+
   private void writeOthers() {
     log("writeOthers");
     mFileEntries = hashMap();
 
-    // Determine the initial source directory
-    File sourceDir = config().projectRoot();
-    if (Files.empty(sourceDir))
-      sourceDir = files().projectDirectory();
-    sourceDir = interpretFile(sourceDir, "project_root");
-    Files.assertDirectoryExists(sourceDir, "sourceDir");
+    File sourceDir = mProjectDirectory;
 
     JSList lst = config().othersList();
+
+    lst = new JSList(applyVariableSubstitution(lst.toString()));
+
     OthersState state = OthersState.newBuilder() //
         .sourceDir(sourceDir) //
-        .targetDir(new File("[target]")) //
+        .targetDir(new File("$[target]")) //
         .build();
-    auxRewrite(lst, state);
+    rewriteFileEntries(lst, state);
 
     // Process the rewritten list
 
     List<String> sortedKeys = arrayList();
+    Set<String> vars = new TreeSet<String>();
+
     sortedKeys.addAll(mFileEntries.keySet());
     sortedKeys.sort(null);
-    //halt(sortedKeys);
+    List<InstallFileEntry> ents = arrayList();
     for (String key : sortedKeys) {
       InstallFileEntry ent = mFileEntries.get(key);
-      pr(ent);
+      copyOther(ent);
+      ents.add(ent);
+      extractVars(ent.targetPath().toString(), vars);
     }
-    halt("not finished");
-    //
-    //    InstallFileEntry b = InstallFileEntry.newBuilder().sourcePath(sourceDir).build();
-    //
-    //    auxWriteOthers(b, lst);
+    List<String> asList = arrayList();
+    asList.addAll(vars);
 
-    // Write the script
+    mDeployInfo //
+        .others(ents) //
+        .variables(asList) //
+    ;
+  }
 
-    JSMap m = map();
-    for (InstallFileEntry ent : mFileEntries.values())
-      m.put(ent.key(), ent.toJson());
-    files().writePretty(outputFile("others_info.json"), m);
-    log("others_info.json:", INDENT, m);
+  // Variables used by the compiler have the form ${ ... }
+  private static final Pattern SOURCE_PATTERN_EXPRESSION = RegExp.pattern("\\$\\{\\w+\\}");
+  // Variables used by installer have the form $[ ... ]
+  private static final Pattern TARGET_PATTERN_EXPRESSION = RegExp.pattern("\\$\\[\\w+\\]");
+
+  private String applyVariableSubstitution(String content) {
+    Matcher m = SOURCE_PATTERN_EXPRESSION.matcher(content);
+
+    StringBuilder sb = new StringBuilder();
+    int i = 0;
+    while (m.find()) {
+      String macro = m.group();
+
+      int i2 = m.start();
+      if (i2 > i) {
+        sb.append(content.substring(i, i2));
+        i = m.end();
+      }
+
+      String macroId = varTextPortion(macro);
+      String replacement = mVarMap.get(macroId);
+      if (replacement == null) {
+        replacement = macro;
+        badArg("undefined variable:", macro, macroId, mVarMap);
+      }
+      sb.append(replacement);
+    }
+    int i2 = content.length();
+    if (i2 > i) {
+      sb.append(content.substring(i));
+    }
+    return sb.toString();
+  }
+
+  // This assumes the first two and last one character are delimiters, e.g. "${", "}"
+  //
+  private String varTextPortion(String macro) {
+    return macro.substring(2, macro.length() - 1);
+  }
+
+  private void extractVars(String expr, Set<String> vars) {
+    Matcher m = TARGET_PATTERN_EXPRESSION.matcher(expr);
+    while (m.find()) {
+      vars.add(varTextPortion(m.group()));
+    }
+  }
+
+  private void copyOther(InstallFileEntry ent) {
+    todo("perform macro substitution on source_path, e.g. [home]/xxx/yyy -> /Users/etc/xxx/yyy");
+    // do it early so it becomes an absolute path
+    log("copying:", INDENT, ent);
+    File src = ent.sourcePath();
+    checkArgument(Files.nonEmpty(src));
+    String s = src.toString();
+    checkArgument(!s.contains("[") && !s.contains("~"), ent);
+    Files.assertExists(src, "copyOther");
+    File dest = new File(mOthersDir, ent.key());
+    files().copyFile(ent.sourcePath(), dest);
   }
 
   private InstallFileEntry.Builder builderWithKey(File sourceFile) {
@@ -397,10 +501,6 @@ public class GatherCodeOper extends AppOper {
         .sourcePath(sourceFile);
     int i = 0;
     String baseKey = sourceFile.getName();
-    if (alert("experiment")) {
-      if (mFileEntries.isEmpty())
-        baseKey = "alpha.txt";
-    }
     String key = baseKey;
     while (mFileEntries.containsKey(key)) {
       i++;
@@ -412,7 +512,7 @@ public class GatherCodeOper extends AppOper {
     return b;
   }
 
-  private void auxRewrite(Object fileSet, OthersState state) {
+  private void rewriteFileEntries(Object fileSet, OthersState state) {
     if (fileSet instanceof String) {
       String filePath = (String) fileSet;
       File sourceFile = extendFile(state.sourceDir(), filePath);
@@ -423,7 +523,7 @@ public class GatherCodeOper extends AppOper {
         log("...writing dir:", sourceFile);
         DirWalk w = new DirWalk(state.sourceDir()).withRecurse(true).omitNames(".DS_Store");
         for (File f : w.files()) {
-          auxRewrite(f.getName(), state);
+          rewriteFileEntries(f.getName(), state);
         }
       } else {
         InstallFileEntry.Builder b = builderWithKey(sourceFile);
@@ -432,7 +532,7 @@ public class GatherCodeOper extends AppOper {
     } else if (fileSet instanceof JSList) {
       JSList fileSets = (JSList) fileSet;
       for (Object fs : fileSets.wrappedList()) {
-        auxRewrite(fs, state);
+        rewriteFileEntries(fs, state);
       }
     } else if (fileSet instanceof JSMap) {
       JSMap m = (JSMap) fileSet;
@@ -450,7 +550,7 @@ public class GatherCodeOper extends AppOper {
         applyMissingFields(b, state);
       } else {
         state = state.toBuilder().sourceDir(extendFile(state.sourceDir(), sourceExpr)).build();
-        auxRewrite(auxFileSet, state);
+        rewriteFileEntries(auxFileSet, state);
       }
     } else
       throw notSupported("don't know how to handle fileset:", INDENT, fileSet);
@@ -474,21 +574,19 @@ public class GatherCodeOper extends AppOper {
   // abc        /xyz/def    /xyz/def
   //
   private File extendFile(File file, String suffix) {
-    File result = auxExtendRoot(file, suffix);
-    log("extendRoot:", file, "with:", suffix, INDENT, spaces(26), result);
+    File result;
+    if (Files.empty(file)) {
+      checkArgument(nonEmpty(suffix));
+      result = new File(suffix);
+    } else if (suffix.isEmpty())
+      result = file;
+    else if (suffix.startsWith("/"))
+      result = new File(suffix);
+    else
+      result = new File(file, suffix);
+    if (false)
+      log("extendRoot:", file, "with:", suffix, INDENT, spaces(26), result);
     return result;
-  }
-
-  private File auxExtendRoot(File root, String aux) {
-    if (Files.empty(root)) {
-      checkArgument(nonEmpty(aux));
-      return new File(aux);
-    }
-    if (aux.isEmpty())
-      return root;
-    if (aux.startsWith("/"))
-      return new File(aux);
-    return new File(root, aux);
   }
 
   private Map<String, List<File>> mProgramClassLists = hashMap();
@@ -548,4 +646,6 @@ public class GatherCodeOper extends AppOper {
   }
 
   private Map<String, InstallFileEntry> mFileEntries;
+  private Map<String, String> mVarMap;
+  private DeployInfo.Builder mDeployInfo;
 }

@@ -1,0 +1,15 @@
+// This is written into the deploy zip file, and
+// is intended to be read by the installer
+//
+
+class {
+
+  string version;
+
+  * InstallFileEntry others;
+
+  // Variables appearing in the install_file_entry filenames
+  //
+  * string variables;
+}
+

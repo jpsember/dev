@@ -20,7 +20,7 @@ class {
   //    :
   // others/<files with same path relative to repo root>
   //
-  File outputDir;
+  File output_dir;
 
   bool generate_zip;
 
@@ -36,9 +36,11 @@ class {
   // String to use to encrypt the secrets
   string secret_passphrase;
 
-  // Root directory of project; if empty, sets it to Files.projectDirectory()
+  map string string variables;
+
+  // Project directory; if empty, uses Files.projectDirectory()
   //
-  File project_root;
+  File project_directory;
 
   JSList others_list;
 }
