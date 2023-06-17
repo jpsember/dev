@@ -109,7 +109,7 @@ public class GatherCodeOper extends AppOper {
       mClassesDir = files().mkdirs(outputFile("classes"));
       mProgramsDir = files().mkdirs(outputFile("programs"));
       mOthersDir = files().mkdirs(outputFile("others"));
-      todo("not doing anything with othersdir:",mOthersDir);
+      todo("not doing anything with othersdir:", mOthersDir);
     }
     return mOutputDir;
   }
@@ -346,6 +346,17 @@ public class GatherCodeOper extends AppOper {
     tempZipFile.delete();
   }
 
+  private static class OthersState {
+    File sourceDir;
+    File targetDir;
+
+    OthersState dup() {
+      OthersState x = new OthersState();
+      x.sourceDir = sourceDir;
+      return x;
+    }
+  }
+
   private void writeOthers() {
     log("writeOthers");
     mFileEntries = hashMap();
@@ -358,7 +369,9 @@ public class GatherCodeOper extends AppOper {
     Files.assertDirectoryExists(sourceDir, "sourceDir");
 
     JSList lst = config().othersList();
-    auxRewrite(lst, sourceDir);
+    OthersState state = new OthersState();
+    state.sourceDir = sourceDir;
+    auxRewrite(lst, state);
 
     // Process the rewritten list
 
@@ -405,34 +418,51 @@ public class GatherCodeOper extends AppOper {
     return b;
   }
 
-  private void auxRewrite(Object fileSet, /* List<InstallFileEntry> result, */ File sourceDir) {
+  private void auxRewrite(Object fileSet, OthersState state) {
     if (fileSet instanceof String) {
       String filePath = (String) fileSet;
-      File sourceFile = extendRoot(sourceDir, filePath);
+      File sourceFile = extendRoot(state.sourceDir, filePath);
       InstallFileEntry.Builder b = builderWithKey(sourceFile);
       todo("when to init targetPath?", b);
-
+      applyMissingFields(b, state);
     } else if (fileSet instanceof JSList) {
       JSList fileSets = (JSList) fileSet;
       for (Object fs : fileSets.wrappedList()) {
-        auxRewrite(fs, sourceDir);
+        auxRewrite(fs, state);
       }
     } else if (fileSet instanceof JSMap) {
+      
+      state = state.dup();
+      
       JSMap m = (JSMap) fileSet;
       String sourceExpr = m.opt("source", "");
+      String targetDirExpr = m.opt("targetdir","");
+      if (nonEmpty(targetDirExpr)) {
+        if (state.targetDir != null)
+          state.targetDir = extendRoot(state.targetDir, targetDirExpr);
+      }
       Object auxFileSet = m.optUnsafe("items");
       if (auxFileSet == null) {
         // The name is included in sourceExpr
         checkArgument(nonEmpty(sourceExpr), "probably shouldn't be empty");
-        File sourceFile = extendRoot(sourceDir, sourceExpr);
+        File sourceFile = extendRoot(state.sourceDir, sourceExpr);
         InstallFileEntry.Builder b = builderWithKey(sourceFile);
+        applyMissingFields(b, state);
         todo("when to init targetPath here?", b);
       } else {
-        File newSourceDir = extendRoot(sourceDir, sourceExpr);
-        auxRewrite(auxFileSet, newSourceDir);
+         state.sourceDir = extendRoot(state.sourceDir, sourceExpr);
+        auxRewrite(auxFileSet, state);
       }
     } else
       throw notSupported("don't know how to handle fileset:", INDENT, fileSet);
+  }
+
+  private void applyMissingFields(InstallFileEntry.Builder b, OthersState state) {
+     if (Files.empty(b.targetPath())) {
+       if (state.targetDir != null) {
+         
+       }
+     }
   }
 
   //root       aux         new root
