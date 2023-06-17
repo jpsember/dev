@@ -27,7 +27,6 @@ package dev;
 import static js.base.Tools.*;
 
 import java.io.File;
-import java.io.IOException;
 import java.security.Key;
 import java.util.Base64;
 import java.util.List;
@@ -37,8 +36,6 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipOutputStream;
 
 import javax.crypto.Cipher;
 import javax.crypto.spec.IvParameterSpec;
@@ -101,17 +98,15 @@ public class GatherCodeOper extends AppOper {
 
     writeConfig();
 
-    if (!alert("skipping programs, secrets")) {
-      // Process the set of programs, collecting required classes, generate run scripts
-      for (Entry<String, String> ent : config().programs().entrySet()) {
-        String programName = ent.getKey();
-        String mainClass = ent.getValue();
-        collectProgramClasses(programName);
-        generateRunScript(programName, mainClass);
-      }
-
-      writeSecrets();
+    // Process the set of programs, collecting required classes, generate run scripts
+    for (Entry<String, String> ent : config().programs().entrySet()) {
+      String programName = ent.getKey();
+      String mainClass = ent.getValue();
+      collectProgramClasses(programName);
+      generateRunScript(programName, mainClass);
     }
+
+    writeSecrets();
 
     writeOthers();
 
@@ -138,6 +133,8 @@ public class GatherCodeOper extends AppOper {
     String s = DataUtil.toString(config());
     s = applyVariableSubstitution(s);
     mConfig = config().parse(new JSMap(s));
+
+    //    halt("config now:",INDENT,mConfig);
   }
 
   private void provideVar(String key, Object obj) {
@@ -155,6 +152,7 @@ public class GatherCodeOper extends AppOper {
     log("collectScriptClasses", programName);
     List<File> classList = arrayList();
     mProgramClassLists.put(programName, classList);
+    //halt("scriptsdir:",config().scriptsDir());
     File scriptFile = Files
         .assertExists(new File(interpretFile(config().scriptsDir(), "scripts_dir"), programName));
     String txt = Files.readString(scriptFile);
@@ -264,7 +262,7 @@ public class GatherCodeOper extends AppOper {
     List<File> classFiles = mProgramClassLists.get(programName);
     {
       StringBuilder sb = new StringBuilder();
-      String outputDirPrefix = mClassesDir.toString();
+      String outputDirPrefix = "classes"; //mClassesDir.toString();
       for (File f : classFiles) {
         if (sb.length() != 0)
           sb.append(':');
@@ -278,74 +276,14 @@ public class GatherCodeOper extends AppOper {
     MacroParser parser = new MacroParser();
     parser.withTemplate(frag("gather_driver_template.txt")).withMapper(m);
     String script = parser.content();
-    File dest = new File(mProgramsDir, programName + ".sh");
-    halt("write to zip file!");
-    files().writeString(dest, script);
+    mZip.addEntry("programs/" + programName + ".sh", script.getBytes());
+//    File dest = new File(mProgramsDir, programName + ".sh");
+//    halt("write to zip file!");
+//    files().writeString(dest, script);
   }
 
   private void writeConfig() {
     mZip.addEntry("params.json", config().toString().getBytes());
-  }
-
-  private static class Zipper {
-
-    public Zipper(Files f) {
-      todo("move outside of GatherCodeOper?");
-      if (f == null)
-        f = Files.S;
-      mFiles = f;
-    }
-
-    public void openForWriting(File zipFile) {
-      checkState(mZipFile == null);
-      checkArgument(Files.getExtension(Files.assertNonEmpty(zipFile, "zipFile arg")).equals(Files.EXT_ZIP),
-          zipFile, "not a zip file");
-      mZipFile = zipFile;
-      mFiles.deletePeacefully(zipFile);
-      mOutputStream = new ZipOutputStream(mFiles.outputStream(zipFile));
-    }
-
-    public void addEntry(File file, String name) {
-      checkState(mOutputStream != null);
-      byte[] bytes = Files.toByteArray(file, "zipping");
-      if (nullOrEmpty(name))
-        name = file.toString();
-
-      ZipEntry zipEntry = new ZipEntry(name);
-      try {
-        mOutputStream.putNextEntry(zipEntry);
-        mOutputStream.write(bytes);
-        mOutputStream.closeEntry();
-      } catch (IOException e) {
-        throw Files.asFileException(e);
-      }
-    }
-
-    public void addEntry(String name, byte[] bytes) {
-      checkState(mOutputStream != null);
-      ZipEntry zipEntry = new ZipEntry(name);
-      try {
-        mOutputStream.putNextEntry(zipEntry);
-        mOutputStream.write(bytes);
-        mOutputStream.closeEntry();
-      } catch (IOException e) {
-        throw Files.asFileException(e);
-      }
-    }
-
-    public void close() {
-      checkState(mOutputStream != null);
-      try {
-        mOutputStream.close();
-      } catch (IOException e) {
-        throw Files.asFileException(e);
-      }
-      mOutputStream = null;
-    }
-
-    private final Files mFiles;
-    private File mZipFile;
-    private ZipOutputStream mOutputStream;
   }
 
   private void openZip() {
@@ -356,7 +294,7 @@ public class GatherCodeOper extends AppOper {
     }
     File zipFile = output;
     Zipper z = new Zipper(files());
-    z.openForWriting(zipFile);
+    z.open(zipFile);
     mZip = z;
   }
 
@@ -376,12 +314,13 @@ public class GatherCodeOper extends AppOper {
     Files.assertDirectoryExists(source, "secrets_source");
     File tempZipFile = Files.createTempFile("writeSecrets", ".zip");
     Zipper z = new Zipper(files());
-    z.openForWriting(tempZipFile);
+    z.open(tempZipFile);
     for (File f : config().secretFiles()) {
       String name = f.toString();
       File sourceFile = Files.assertExists(new File(source, name), "file within secrets");
       log("...adding secret:", name);
-      z.addEntry(sourceFile, name);
+      z.addEntry(name, Files.toByteArray(sourceFile, "file within secrets"));
+//      z.addEntry(sourceFile, name);
     }
     z.close();
 
@@ -598,9 +537,8 @@ public class GatherCodeOper extends AppOper {
 
   private Map<String, List<File>> mProgramClassLists = hashMap();
   //  private File mOutputDir;
-  private File mClassesDir;
-  private File mProgramsDir;
-  private File mOthersDir;
+  //  private File mClassesDir;
+  //  private File mProgramsDir;
   private File mMaven;
 
   private static Cipher cipher;

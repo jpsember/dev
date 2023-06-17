@@ -8,7 +8,7 @@ class {
 
   // Parent directory for scripts
   //
-  File scriptsDir;
+  File scripts_dir;
 
   // The zip file to produce.
   // Contents: (maybe outdated)
