@@ -36,12 +36,9 @@ class {
   // String to use to encrypt the secrets
   string secret_passphrase;
 
-  // Root directory of deployed project; used as base for others_map relative files
-  File project_root_deployed;
-
-  // Root directory of project as created by gather_code operation
+  // Root directory of project; if empty, sets it to Files.projectDirectory()
   //
-  File project_root_creator = "!";  // this default means set it to Files.projectDirectory()
+  File project_root;
 
   JSList others_list;
 }

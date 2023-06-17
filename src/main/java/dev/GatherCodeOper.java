@@ -155,8 +155,6 @@ public class GatherCodeOper extends AppOper {
   /**
    * Convert a file ~.... as being in the current directory;
    * 
-   * and !.... as being within the project directory
-   * 
    * Return an absolute form of the resulting file
    * 
    */
@@ -169,11 +167,6 @@ public class GatherCodeOper extends AppOper {
       String prefix = "~";
       if (s.startsWith(prefix)) {
         result = new File(Files.homeDirectory(), chompPrefix(s, prefix));
-        break;
-      }
-      prefix = "!";
-      if (s.startsWith(prefix)) {
-        result = new File(files().projectDirectory(), chompPrefix(s, prefix));
         break;
       }
     } while (false);
@@ -354,13 +347,13 @@ public class GatherCodeOper extends AppOper {
   }
 
   private void writeOthers() {
-    // "project_root_creator" : initial directory that others_map entries will be relative to; 
-    //   can be ~xxxx => ~/xxxx, !xxxx => <project dir>/xxxx
-    //
     log("writeOthers");
     mFileEntries = hashMap();
-    File root = interpretFile(config().projectRootCreator(), "project_root_creator");
-    Files.assertDirectoryExists(root, "project_root_creator");
+    File root = config().projectRoot();
+    if (Files.empty(root))
+      root = files().projectDirectory();
+    root = interpretFile(root, "project_root");
+    Files.assertDirectoryExists(root, "project_root");
 
     JSList lst = config().othersList();
     auxWriteOthers(root, lst, null);
@@ -408,7 +401,7 @@ public class GatherCodeOper extends AppOper {
 
     todo("how to handle specifying directories on install system?");
     b.targetPath(ext);
-//    b.targetDir(ext.getParentFile());
+    //    b.targetDir(ext.getParentFile());
     return b;
   }
 
