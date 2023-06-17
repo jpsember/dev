@@ -10,7 +10,8 @@ class {
   //
   File scriptsDir;
 
-  // The directory to produce.
+  // The zip file to produce.
+  // Contents: (maybe outdated)
   //
   // params.json
   // secrets.bin
@@ -20,11 +21,7 @@ class {
   //    :
   // others/<files with same path relative to repo root>
   //
-  File output_dir;
-
-  bool generate_zip;
-
-  bool delete_unzipped;
+  File output;
 
   // Secrets directory to include
   //

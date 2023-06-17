@@ -97,6 +97,8 @@ public class GatherCodeOper extends AppOper {
 
     prepareVariables();
 
+    openZip();
+
     writeConfig();
 
     if (!alert("skipping programs, secrets")) {
@@ -114,14 +116,9 @@ public class GatherCodeOper extends AppOper {
     writeOthers();
 
     // Write info 
-    files().writePretty(outputFile("deploy_info.json"), mDeployInfo);
+    mZip.addEntry("deploy_info.json", DataUtil.toByteArray(mDeployInfo));
 
-    if (config().generateZip()) {
-      createZip();
-      if (config().deleteUnzipped()) {
-        deleteUnzipped();
-      }
-    }
+    closeZip();
 
     todo("ability to create directories (without copying things to them)");
   }
@@ -152,17 +149,6 @@ public class GatherCodeOper extends AppOper {
     }
     log("provide variable", key, "=>", value);
     mVarMap.put(key, value);
-  }
-
-  private File outputDir() {
-    if (mOutputDir == null) {
-      mOutputDir = interpretFile(config().outputDir(), "output_dir");
-      files().remakeDirs(mOutputDir);
-      mClassesDir = files().mkdirs(outputFile("classes"));
-      mProgramsDir = files().mkdirs(outputFile("programs"));
-      mOthersDir = files().mkdirs(outputFile("others"));
-    }
-    return mOutputDir;
   }
 
   private void collectProgramClasses(String programName) {
@@ -254,12 +240,16 @@ public class GatherCodeOper extends AppOper {
     String outputFile = sourceFile.getName();
     if (nonEmpty(outputSubdir))
       outputFile = outputSubdir + "/" + outputFile;
-    File target = new File(mClassesDir, outputFile);
-    long sourceTime = sourceFile.lastModified();
-    if (!(target.exists() && target.lastModified() >= sourceTime)) {
-      log("copying", outputFile);
-      files().copyFile(sourceFile, target, true);
-    }
+    //    File target = new File(mClassesDir, outputFile);
+    //    long sourceTime = sourceFile.lastModified();
+    //    if (!(target.exists() && target.lastModified() >= sourceTime)) {
+    //      log("copying", outputFile);
+
+    File target = new File("classes/" + outputFile);
+    mZip.addEntry(target.toString(), Files.toByteArray(sourceFile, "class file"));
+
+    //      files().copyFile(sourceFile, target, true);
+    //   }
     return target;
   }
 
@@ -289,20 +279,18 @@ public class GatherCodeOper extends AppOper {
     parser.withTemplate(frag("gather_driver_template.txt")).withMapper(m);
     String script = parser.content();
     File dest = new File(mProgramsDir, programName + ".sh");
+    halt("write to zip file!");
     files().writeString(dest, script);
   }
 
   private void writeConfig() {
-    files().writePretty(outputFile("params.json"), config());
-  }
-
-  private File outputFile(String path) {
-    return new File(outputDir(), path);
+    mZip.addEntry("params.json", config().toString().getBytes());
   }
 
   private static class Zipper {
 
     public Zipper(Files f) {
+      todo("move outside of GatherCodeOper?");
       if (f == null)
         f = Files.S;
       mFiles = f;
@@ -333,6 +321,18 @@ public class GatherCodeOper extends AppOper {
       }
     }
 
+    public void addEntry(String name, byte[] bytes) {
+      checkState(mOutputStream != null);
+      ZipEntry zipEntry = new ZipEntry(name);
+      try {
+        mOutputStream.putNextEntry(zipEntry);
+        mOutputStream.write(bytes);
+        mOutputStream.closeEntry();
+      } catch (IOException e) {
+        throw Files.asFileException(e);
+      }
+    }
+
     public void close() {
       checkState(mOutputStream != null);
       try {
@@ -348,22 +348,26 @@ public class GatherCodeOper extends AppOper {
     private ZipOutputStream mOutputStream;
   }
 
-  private void createZip() {
-    File zipFile = Files.setExtension(outputDir(), Files.EXT_ZIP);
+  private void openZip() {
+    checkState(mZip == null);
+    File output = config().output();
+    if (Files.empty(output) || !Files.getExtension(output).equals(Files.EXT_ZIP)) {
+      badArg("output should have a .zip extension:", output);
+    }
+    File zipFile = output;
     Zipper z = new Zipper(files());
     z.openForWriting(zipFile);
-    DirWalk d = new DirWalk(outputDir());
-    d.withRecurse(true);
-    for (File f : d.filesRelative()) {
-      File sourceFile = d.abs(f);
-      z.addEntry(sourceFile, f.toString());
-    }
-    z.close();
+    mZip = z;
   }
 
-  private void deleteUnzipped() {
-    files().deleteDirectory(outputDir(), outputDir().getName());
+  private void closeZip() {
+    if (mZip == null)
+      return;
+    mZip.close();
+    mZip = null;
   }
+
+  private Zipper mZip;
 
   private void writeSecrets() {
     File source = config().secretsSource();
@@ -393,7 +397,7 @@ public class GatherCodeOper extends AppOper {
     }
     if (todo("add support for Java and Go compatible encryption"))
       encrypted = bytes;
-    files().write(encrypted, outputFile("secrets.bin"));
+    mZip.addEntry("secrets.bin", encrypted);
     tempZipFile.delete();
   }
 
@@ -492,8 +496,11 @@ public class GatherCodeOper extends AppOper {
     String s = src.toString();
     checkArgument(!s.contains("[") && !s.contains("~"), ent);
     Files.assertExists(src, "copyOther");
-    File dest = new File(mOthersDir, ent.key());
-    files().copyFile(ent.sourcePath(), dest);
+    mZip.addEntry(othersSubdir(ent.key()), Files.toByteArray(ent.sourcePath(), "copyOther"));
+  }
+
+  private String othersSubdir(String path) {
+    return "others/" + path;
   }
 
   private InstallFileEntry.Builder builderWithKey(File sourceFile) {
@@ -590,7 +597,7 @@ public class GatherCodeOper extends AppOper {
   }
 
   private Map<String, List<File>> mProgramClassLists = hashMap();
-  private File mOutputDir;
+  //  private File mOutputDir;
   private File mClassesDir;
   private File mProgramsDir;
   private File mOthersDir;
