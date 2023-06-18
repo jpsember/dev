@@ -115,7 +115,7 @@ public class GatherCodeOper extends AppOper {
 
     closeZip();
 
-    todo("ability to create directories (without copying things to them)");
+    log("deploy_info:",INDENT,mDeployInfo);
   }
 
   private void prepareVariables() {
@@ -133,8 +133,6 @@ public class GatherCodeOper extends AppOper {
     String s = DataUtil.toString(config());
     s = applyVariableSubstitution(s);
     mConfig = config().parse(new JSMap(s));
-
-    //    halt("config now:",INDENT,mConfig);
   }
 
   private void provideVar(String key, Object obj) {
@@ -152,7 +150,6 @@ public class GatherCodeOper extends AppOper {
     log("collectScriptClasses", programName);
     List<String> classList = arrayList();
     mProgramClassLists.put(programName, classList);
-    //halt("scriptsdir:",config().scriptsDir());
     File scriptFile = Files
         .assertExists(new File(interpretFile(config().scriptsDir(), "scripts_dir"), programName));
     String txt = Files.readString(scriptFile);
@@ -311,6 +308,7 @@ public class GatherCodeOper extends AppOper {
   private void writeOthers() {
     log("writeOthers");
     mFileEntries = hashMap();
+    mCreateDirEntries = treeMap();
 
     File sourceDir = mProjectDirectory;
 
@@ -341,9 +339,13 @@ public class GatherCodeOper extends AppOper {
     List<String> asList = arrayList();
     asList.addAll(vars);
 
+    List<InstallFileEntry> created = arrayList();
+    created.addAll(mCreateDirEntries.values());
+
     mDeployInfo //
         .others(ents) //
         .variables(asList) //
+        .createDirs(created) //
     ;
   }
 
@@ -451,10 +453,25 @@ public class GatherCodeOper extends AppOper {
       JSMap m = (JSMap) fileSet;
       String sourceExpr = m.opt("source", "");
       String targetDirExpr = m.opt("targetdir", "");
+      boolean createDirFlag = m.opt("create");
+
       if (nonEmpty(targetDirExpr)) {
         state = state.toBuilder().targetDir(extendFile(state.targetDir(), targetDirExpr)).build();
       }
+
       Object auxFileSet = m.optUnsafe("items");
+
+      if (createDirFlag) {
+        checkState(nonEmpty(targetDirExpr));
+        checkState(auxFileSet == null);
+        checkState(!mCreateDirEntries.containsKey(state.targetDir()));
+        InstallFileEntry.Builder b = InstallFileEntry.newBuilder() //
+            .targetPath(state.targetDir());
+        mCreateDirEntries.put(state.targetDir(), b);
+        pr(DASHES, CR, "creating dir:", b);
+        return;
+      }
+
       if (auxFileSet == null) {
         // The name is included in sourceExpr
         checkArgument(nonEmpty(sourceExpr), "probably shouldn't be empty");
@@ -572,9 +589,10 @@ public class GatherCodeOper extends AppOper {
     mZip.close();
     mZip = null;
   }
-  
+
   private Zipper mZip;
   private Map<String, InstallFileEntry> mFileEntries;
   private Map<String, String> mVarMap;
   private DeployInfo.Builder mDeployInfo;
+  private Map<File, InstallFileEntry> mCreateDirEntries;
 }

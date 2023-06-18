@@ -8,6 +8,8 @@ class {
 
   * InstallFileEntry others;
 
+  * InstallFileEntry create_dirs;
+
   // Variables appearing in the install_file_entry filenames
   //
   * string variables;
