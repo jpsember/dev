@@ -19,7 +19,7 @@ class {
   // alternate target filename?
   string target_name;
 
-  bool encrypted;
+  bool encrypt;
 
   ? int permissions;
 }

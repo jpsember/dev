@@ -406,10 +406,11 @@ public class GatherCodeOper extends AppOper {
     checkArgument(!s.contains("[") && !s.contains("~"), ent);
     Files.assertExists(src, "copyOther");
     String zipKey = "files/" + ent.key();
-    if (ent.encrypted()) {
+    if (ent.encrypt()) {
       byte[] clearBytes = Files.toByteArray(ent.sourcePath(), "encrypting file");
       byte[] encrypted = Encryption.encrypt(clearBytes, config().secretPassphrase());
       mZip.addEntry(zipKey, encrypted);
+      //halt("added encrypted value for:", ent.sourcePath(), INDENT, DataUtil.hexDump(encrypted),CR,DataUtil.hexDump(clearBytes));
     } else
       mZip.addEntry(zipKey, ent.sourcePath());
   }
@@ -430,6 +431,14 @@ public class GatherCodeOper extends AppOper {
     mFileEntries.put(key, b);
     return b;
   }
+
+  private static final String KEY_ENCRYPT = "encrypt";
+  private static final String KEY_CREATE = "create";
+  private static final String KEY_SOURCE = "source";
+  private static final String KEY_TARGET = "targetdir";
+  private static final String KEY_ITEMS = "items";
+
+  private static Set<String> allowedKeys = Set.of(KEY_SOURCE, KEY_TARGET, KEY_CREATE, KEY_ENCRYPT, KEY_ITEMS);
 
   private void rewriteFileEntries(Object fileSet, FileState state) {
     state = state.build();
@@ -458,14 +467,18 @@ public class GatherCodeOper extends AppOper {
       }
     } else if (fileSet instanceof JSMap) {
       JSMap m = (JSMap) fileSet;
-      String sourceExpr = m.opt("source", "");
-      String targetDirExpr = m.opt("targetdir", "");
 
-      boolean createDirFlag = m.opt("create");
-      String ek = "encrypted";
+      Set<String> keys = m.keySet();
+      for (String k : keys) {
+        checkArgument(allowedKeys.contains(k), "unsupported key:", k);
+      }
+      String sourceExpr = m.opt(KEY_SOURCE, "");
+      String targetDirExpr = m.opt(KEY_TARGET, "");
+
+      boolean createDirFlag = m.opt(KEY_CREATE);
       Boolean encrypted = null;
-      if (m.containsKey(ek)) {
-        encrypted = m.opt(ek);
+      if (m.containsKey(KEY_ENCRYPT)) {
+        encrypted = m.opt(KEY_ENCRYPT);
       }
 
       int count = 0;
@@ -479,10 +492,10 @@ public class GatherCodeOper extends AppOper {
         newState.targetDir(extendFile(newState.targetDir(), targetDirExpr));
       }
 
-      Object auxFileSet = m.optUnsafe("items");
+      Object auxFileSet = m.optUnsafe(KEY_ITEMS);
 
       if (encrypted != null) {
-        newState.encrypted(encrypted);
+        newState.encrypt(encrypted);
       }
 
       if (createDirFlag) {
@@ -516,7 +529,7 @@ public class GatherCodeOper extends AppOper {
     if (Files.empty(b.targetPath())) {
       b.targetPath(new File(state.targetDir(), b.targetName()));
     }
-    b.encrypted(state.encrypted());
+    b.encrypt(state.encrypt());
   }
 
   // file       suffix      new
