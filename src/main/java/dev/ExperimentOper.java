@@ -29,10 +29,19 @@ import static js.base.Tools.*;
 import java.security.SecureRandom;
 
 import javax.crypto.Cipher;
-import javax.crypto.KeyGenerator;
-import javax.crypto.SecretKey;
-import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
+
+import java.security.InvalidAlgorithmParameterException;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
+import java.security.spec.InvalidKeySpecException;
+
+import javax.crypto.BadPaddingException;
+import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.NoSuchPaddingException;
+import javax.crypto.SecretKeyFactory;
+import javax.crypto.spec.GCMParameterSpec;
+import javax.crypto.spec.PBEKeySpec;
 
 import dev.gen.ExperimentConfig;
 import js.app.AppOper;
@@ -69,74 +78,128 @@ public class ExperimentOper extends AppOper {
       // PKCS5Padding : pads data so its length is a multiple of 8 bytes
       //
 
-      // Derived from: https://www.baeldung.com/java-aes-encryption-decryption
-      byte[] input = MESSAGE.getBytes();
-      SecretKey key = generateKey(128);
-      
-      IvParameterSpec ivParameterSpec = generateIv();
-      String algorithm = "AES/CBC/PKCS5Padding";
-      byte[] encrypted = encryptBytes(algorithm, input, key, ivParameterSpec);
+      // Derived from:
+      //  https://github.com/luke-park/SecureCompatibleEncryptionExamples/tree/master
 
-      byte[] otherKey = { 109, 121, 51, 50, 100, 105, 103, 105, 116, 107, 101, 121, 49, 50, 51, 52, //
-          53, 54, 55, 56, 57, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 48 };
-      byte[] otherIv = { 109, 121, 49, 54, 100, 105, 103, 105, 116, 73, 118, 75, 101, 121, 49, 50 };
+      byte[] inputBytes = MESSAGE.getBytes();
+      String password = "thatwaseasy";
 
-      IvParameterSpec ivsp = ivParameterSpec;
-      SecretKey othKey = key;
-
-      if (false) {
-        ivsp = new IvParameterSpec(otherIv);
-        othKey = new SecretKeySpec(otherKey, "AES");
-      }
-
-      byte[] ourKey = new byte[16];
-      for (int i = 0; i < ourKey.length; i++) {
-        ourKey[i] = (byte) (i * 17);
-      }
-      othKey = new SecretKeySpec(ourKey, 0, ourKey.length, "AES");
-
-      byte[] output = decryptBytes(algorithm, encrypted, othKey, ivsp);
+      byte[] encrypted = encrypt(inputBytes, password);
+      byte[] output = decrypt(encrypted, password);
       pr("input :", MESSAGE);
+      pr("password:", password);
+      pr("encrypted:", INDENT, toSourceCode(encrypted));
       pr("output:", new String(output));
     } catch (Throwable t) {
       throw asRuntimeException(t);
     }
   }
 
-  private static SecretKey generateKey(int n) {
-    try {
-      KeyGenerator keyGenerator = KeyGenerator.getInstance("AES");
-      keyGenerator.init(n);
-      SecretKey key = keyGenerator.generateKey();
-      return key;
-    } catch (Throwable t) {
-      throw asRuntimeException(t);
-    }
+  private final static String ALGORITHM_NAME = "AES/GCM/NoPadding";
+  private final static int ALGORITHM_NONCE_SIZE = 12;
+  private final static int ALGORITHM_TAG_SIZE = 128;
+  private final static int ALGORITHM_KEY_SIZE = 128;
+  private final static String PBKDF2_NAME = "PBKDF2WithHmacSHA256";
+  private final static int PBKDF2_SALT_SIZE = 16;
+  private final static int PBKDF2_ITERATIONS = 32767;
+
+  private static byte[] encrypt(byte[] plainText, String password) throws NoSuchAlgorithmException,
+      InvalidKeySpecException, InvalidKeyException, InvalidAlgorithmParameterException,
+      NoSuchPaddingException, IllegalBlockSizeException, BadPaddingException {
+    // Generate a 128-bit salt using a CSPRNG.
+    SecureRandom rand = new SecureRandom();
+    byte[] salt = new byte[PBKDF2_SALT_SIZE];
+    rand.nextBytes(salt);
+
+    // Create an instance of PBKDF2 and derive a key.
+    PBEKeySpec pwSpec = new PBEKeySpec(password.toCharArray(), salt, PBKDF2_ITERATIONS, ALGORITHM_KEY_SIZE);
+    SecretKeyFactory keyFactory = SecretKeyFactory.getInstance(PBKDF2_NAME);
+    byte[] key = keyFactory.generateSecret(pwSpec).getEncoded();
+
+    // Encrypt and prepend salt.
+    byte[] ciphertextAndNonce = encrypt(plainText, key);
+    byte[] ciphertextAndNonceAndSalt = new byte[salt.length + ciphertextAndNonce.length];
+    System.arraycopy(salt, 0, ciphertextAndNonceAndSalt, 0, salt.length);
+    System.arraycopy(ciphertextAndNonce, 0, ciphertextAndNonceAndSalt, salt.length,
+        ciphertextAndNonce.length);
+
+    return ciphertextAndNonceAndSalt;
   }
 
-  private static IvParameterSpec generateIv() {
-    byte[] iv = new byte[16];
-    new SecureRandom().nextBytes(iv);
-    return new IvParameterSpec(iv);
+  private static byte[] encrypt(byte[] plaintext, byte[] key)
+      throws InvalidKeyException, InvalidAlgorithmParameterException, NoSuchAlgorithmException,
+      NoSuchPaddingException, IllegalBlockSizeException, BadPaddingException {
+    // Generate a 96-bit nonce using a CSPRNG.
+    SecureRandom rand = new SecureRandom();
+    byte[] nonce = new byte[ALGORITHM_NONCE_SIZE];
+    rand.nextBytes(nonce);
+
+    // Create the cipher instance and initialize.
+    Cipher cipher = Cipher.getInstance(ALGORITHM_NAME);
+    cipher.init(Cipher.ENCRYPT_MODE, new SecretKeySpec(key, "AES"),
+        new GCMParameterSpec(ALGORITHM_TAG_SIZE, nonce));
+
+    // Encrypt and prepend nonce.
+    byte[] ciphertext = cipher.doFinal(plaintext);
+    byte[] ciphertextAndNonce = new byte[nonce.length + ciphertext.length];
+    System.arraycopy(nonce, 0, ciphertextAndNonce, 0, nonce.length);
+    System.arraycopy(ciphertext, 0, ciphertextAndNonce, nonce.length, ciphertext.length);
+
+    return ciphertextAndNonce;
   }
 
-  private static byte[] encryptBytes(String algorithm, byte[] input, SecretKey key, IvParameterSpec iv) {
-    try {
-      Cipher cipher = Cipher.getInstance(algorithm);
-      cipher.init(Cipher.ENCRYPT_MODE, key, iv);
-      return cipher.doFinal(input);
-    } catch (Throwable t) {
-      throw asRuntimeException(t);
-    }
+  public static byte[] decrypt(byte[] ciphertextAndNonceAndSalt, String password)
+      throws NoSuchAlgorithmException, InvalidKeySpecException, InvalidKeyException,
+      InvalidAlgorithmParameterException, IllegalBlockSizeException, BadPaddingException,
+      NoSuchPaddingException {
+
+    // Retrieve the salt and ciphertextAndNonce.
+    byte[] salt = new byte[PBKDF2_SALT_SIZE];
+    byte[] ciphertextAndNonce = new byte[ciphertextAndNonceAndSalt.length - PBKDF2_SALT_SIZE];
+    System.arraycopy(ciphertextAndNonceAndSalt, 0, salt, 0, salt.length);
+    System.arraycopy(ciphertextAndNonceAndSalt, salt.length, ciphertextAndNonce, 0,
+        ciphertextAndNonce.length);
+
+    // Create an instance of PBKDF2 and derive the key.
+    PBEKeySpec pwSpec = new PBEKeySpec(password.toCharArray(), salt, PBKDF2_ITERATIONS, ALGORITHM_KEY_SIZE);
+    SecretKeyFactory keyFactory = SecretKeyFactory.getInstance(PBKDF2_NAME);
+    byte[] key = keyFactory.generateSecret(pwSpec).getEncoded();
+
+    // Decrypt and return result.
+    return decrypt(ciphertextAndNonce, key);
   }
 
-  private static byte[] decryptBytes(String algorithm, byte[] encrypted, SecretKey key, IvParameterSpec iv) {
-    try {
-      Cipher cipher = Cipher.getInstance(algorithm);
-      cipher.init(Cipher.DECRYPT_MODE, key, iv);
-      return cipher.doFinal(encrypted);
-    } catch (Throwable t) {
-      throw asRuntimeException(t);
-    }
+  public static byte[] decrypt(byte[] ciphertextAndNonce, byte[] key)
+      throws InvalidKeyException, InvalidAlgorithmParameterException, IllegalBlockSizeException,
+      BadPaddingException, NoSuchAlgorithmException, NoSuchPaddingException {
+
+    // Retrieve the nonce and ciphertext.
+    byte[] nonce = new byte[ALGORITHM_NONCE_SIZE];
+    byte[] ciphertext = new byte[ciphertextAndNonce.length - ALGORITHM_NONCE_SIZE];
+    System.arraycopy(ciphertextAndNonce, 0, nonce, 0, nonce.length);
+    System.arraycopy(ciphertextAndNonce, nonce.length, ciphertext, 0, ciphertext.length);
+
+    // Create the cipher instance and initialize.
+    Cipher cipher = Cipher.getInstance(ALGORITHM_NAME);
+    cipher.init(Cipher.DECRYPT_MODE, new SecretKeySpec(key, "AES"),
+        new GCMParameterSpec(ALGORITHM_TAG_SIZE, nonce));
+
+    // Decrypt and return result.
+    return cipher.doFinal(ciphertext);
   }
+
+  public static String toSourceCode(byte[] bytes) {
+    StringBuilder sb = new StringBuilder();
+    int i = INIT_INDEX;
+    for (byte b : bytes) {
+      i++;
+      if ((i + 1) % 16 == 0) {
+        sb.append('\n');
+      }
+      sb.append(((int) b) & 0xff);
+      sb.append(',');
+    }
+    return sb.toString();
+  }
+
 }
