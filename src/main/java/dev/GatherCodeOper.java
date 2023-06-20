@@ -413,10 +413,11 @@ public class GatherCodeOper extends AppOper {
     int i = 0;
     String baseKey = sourceFile.getName();
     String key = baseKey;
+    String basename = Files.basename(key);
+    String ext = Files.getExtension(key);
     while (mFileEntries.containsKey(key)) {
       i++;
-      key = baseKey + "_" + i;
-      todo("insert number before extension if any?");
+      key = Files.setExtension(basename + "_" + i, ext);
     }
     b.key(key);
     mFileEntries.put(key, b);
