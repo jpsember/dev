@@ -30,7 +30,9 @@ class {
   // List of files within secrets_source to include
   //
   *File secret_files;
-  // String to use to encrypt the secrets
+
+  // String to use for encrypted files
+  //
   string secret_passphrase;
 
   map string string variables;
@@ -40,4 +42,5 @@ class {
   File project_directory;
 
   JSList file_list;
+
 }

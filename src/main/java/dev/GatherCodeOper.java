@@ -47,6 +47,7 @@ import dev.gen.InstallFileEntry;
 import dev.gen.FileState;
 import js.app.AppOper;
 import js.data.DataUtil;
+import js.data.Encryption;
 import js.file.DirWalk;
 import js.file.Files;
 import js.json.JSList;
@@ -106,7 +107,7 @@ public class GatherCodeOper extends AppOper {
       generateRunScript(programName, mainClass);
     }
 
-    writeSecrets();
+    //    writeSecrets();
 
     writeFiles();
 
@@ -273,37 +274,37 @@ public class GatherCodeOper extends AppOper {
     mZip.addEntry("params.json", config());
   }
 
-  private void writeSecrets() {
-    File source = config().secretsSource();
-    if (Files.empty(source))
-      return;
-    Files.assertDirectoryExists(source, "secrets_source");
-    File tempZipFile = Files.createTempFile("writeSecrets", ".zip");
-    Zipper z = new Zipper(files());
-    z.open(tempZipFile);
-    for (File f : config().secretFiles()) {
-      String name = f.toString();
-      File sourceFile = Files.assertExists(new File(source, name), "file within secrets");
-      log("...adding secret:", name);
-      z.addEntry(name, sourceFile);
-    }
-    z.close();
-
-    // Encrypt the secrets zip file
-    byte[] bytes = Files.toByteArray(tempZipFile, "zip file before encryption");
-
-    byte[] encrypted;
-    if (todo("add support for Java and Go compatible encryption"))
-      encrypted = bytes;
-    else {
-      checkArgument(nonEmpty(config().secretPassphrase()), "no secret_passphrase");
-      encrypted = SecretsOper.encryptData(config().secretPassphrase(), bytes);
-    }
-    if (todo("add support for Java and Go compatible encryption"))
-      encrypted = bytes;
-    mZip.addEntry("secrets.bin", encrypted);
-    tempZipFile.delete();
-  }
+  //  private void writeSecrets() {
+  //    File source = config().secretsSource();
+  //    if (Files.empty(source))
+  //      return;
+  //    Files.assertDirectoryExists(source, "secrets_source");
+  //    File tempZipFile = Files.createTempFile("writeSecrets", ".zip");
+  //    Zipper z = new Zipper(files());
+  //    z.open(tempZipFile);
+  //    for (File f : config().secretFiles()) {
+  //      String name = f.toString();
+  //      File sourceFile = Files.assertExists(new File(source, name), "file within secrets");
+  //      log("...adding secret:", name);
+  //      z.addEntry(name, sourceFile);
+  //    }
+  //    z.close();
+  //
+  //    // Encrypt the secrets zip file
+  //    byte[] bytes = Files.toByteArray(tempZipFile, "zip file before encryption");
+  //
+  //    byte[] encrypted;
+  //    if (todo("add support for Java and Go compatible encryption"))
+  //      encrypted = bytes;
+  //    else {
+  //      checkArgument(nonEmpty(config().secretPassphrase()), "no secret_passphrase");
+  //      encrypted = SecretsOper.encryptData(config().secretPassphrase(), bytes);
+  //    }
+  //    if (todo("add support for Java and Go compatible encryption"))
+  //      encrypted = bytes;
+  //    mZip.addEntry("secrets.bin", encrypted);
+  //    tempZipFile.delete();
+  //  }
 
   private void writeFiles() {
     log("writeFiles");
@@ -404,7 +405,13 @@ public class GatherCodeOper extends AppOper {
     String s = src.toString();
     checkArgument(!s.contains("[") && !s.contains("~"), ent);
     Files.assertExists(src, "copyOther");
-    mZip.addEntry("files/" + ent.key(), ent.sourcePath());
+    String zipKey = "files/" + ent.key();
+    if (ent.encrypted()) {
+      byte[] clearBytes = Files.toByteArray(ent.sourcePath(), "encrypting file");
+      byte[] encrypted = Encryption.encrypt(clearBytes, config().secretPassphrase());
+      mZip.addEntry(zipKey, encrypted);
+    } else
+      mZip.addEntry(zipKey, ent.sourcePath());
   }
 
   private InstallFileEntry.Builder builderWithKey(File sourceFile) {
@@ -425,59 +432,78 @@ public class GatherCodeOper extends AppOper {
   }
 
   private void rewriteFileEntries(Object fileSet, FileState state) {
+    state = state.build();
+    FileState.Builder newState = state.toBuilder();
+
     if (fileSet instanceof String) {
       String filePath = (String) fileSet;
-      File sourceFile = extendFile(state.sourceDir(), filePath);
+      File sourceFile = extendFile(newState.sourceDir(), filePath);
 
       // If this is a directory, process recursively
       if (sourceFile.isDirectory()) {
-        state = state.toBuilder().sourceDir(sourceFile).build();
+        newState.sourceDir(sourceFile);
         log("...writing dir:", sourceFile);
-        DirWalk w = new DirWalk(state.sourceDir()).withRecurse(true).omitNames(".DS_Store");
+        DirWalk w = new DirWalk(newState.sourceDir()).withRecurse(true).omitNames(".DS_Store");
         for (File f : w.files()) {
-          rewriteFileEntries(f.getName(), state);
+          rewriteFileEntries(f.getName(), newState);
         }
       } else {
         InstallFileEntry.Builder b = builderWithKey(sourceFile);
-        applyMissingFields(b, state);
+        applyMissingFields(b, newState);
       }
     } else if (fileSet instanceof JSList) {
       JSList fileSets = (JSList) fileSet;
       for (Object fs : fileSets.wrappedList()) {
-        rewriteFileEntries(fs, state);
+        rewriteFileEntries(fs, newState);
       }
     } else if (fileSet instanceof JSMap) {
       JSMap m = (JSMap) fileSet;
       String sourceExpr = m.opt("source", "");
       String targetDirExpr = m.opt("targetdir", "");
+
       boolean createDirFlag = m.opt("create");
+      String ek = "encrypted";
+      Boolean encrypted = null;
+      if (m.containsKey(ek)) {
+        encrypted = m.opt(ek);
+      }
+
+      int count = 0;
+      if (createDirFlag)
+        count++;
+      if (encrypted != null)
+        count++;
+      checkState(count <= 1, "mutually exclusive options: create, encrypt");
 
       if (nonEmpty(targetDirExpr)) {
-        state = state.toBuilder().targetDir(extendFile(state.targetDir(), targetDirExpr)).build();
+        newState.targetDir(extendFile(newState.targetDir(), targetDirExpr));
       }
 
       Object auxFileSet = m.optUnsafe("items");
 
+      if (encrypted != null) {
+        newState.encrypted(encrypted);
+      }
+
       if (createDirFlag) {
         checkState(nonEmpty(targetDirExpr));
         checkState(auxFileSet == null);
-        checkState(!mCreateDirEntries.containsKey(state.targetDir()));
+        checkState(!mCreateDirEntries.containsKey(newState.targetDir()));
         InstallFileEntry.Builder b = InstallFileEntry.newBuilder() //
-            .targetPath(state.targetDir());
-        mCreateDirEntries.put(state.targetDir(), b);
-        pr(DASHES, CR, "creating dir:", b);
+            .targetPath(newState.targetDir());
+        mCreateDirEntries.put(newState.targetDir(), b);
         return;
       }
 
       if (auxFileSet == null) {
         // The name is included in sourceExpr
         checkArgument(nonEmpty(sourceExpr), "probably shouldn't be empty");
-        File sourceFile = extendFile(state.sourceDir(), sourceExpr);
+        File sourceFile = extendFile(newState.sourceDir(), sourceExpr);
         InstallFileEntry.Builder b = builderWithKey(sourceFile);
-        applyMissingFields(b, state);
+        applyMissingFields(b, newState);
       } else {
-        state = state.toBuilder().sourceDir(extendFile(state.sourceDir(), sourceExpr)).build();
-        rewriteFileEntries(auxFileSet, state);
+        newState.sourceDir(extendFile(newState.sourceDir(), sourceExpr));
+        rewriteFileEntries(auxFileSet, newState);
       }
     } else
       throw notSupported("don't know how to handle fileset:", INDENT, fileSet);
@@ -490,6 +516,7 @@ public class GatherCodeOper extends AppOper {
     if (Files.empty(b.targetPath())) {
       b.targetPath(new File(state.targetDir(), b.targetName()));
     }
+    b.encrypted(state.encrypted());
   }
 
   // file       suffix      new

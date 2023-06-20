@@ -1,4 +1,6 @@
 class {
   File source_dir;
   File target_dir;
+   bool encrypted;
+
 }
