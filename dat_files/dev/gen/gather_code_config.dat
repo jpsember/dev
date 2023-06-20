@@ -39,5 +39,5 @@ class {
   //
   File project_directory;
 
-  JSList others_list;
+  JSList file_list;
 }

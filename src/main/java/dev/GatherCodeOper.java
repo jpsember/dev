@@ -44,7 +44,7 @@ import javax.crypto.spec.SecretKeySpec;
 import dev.gen.DeployInfo;
 import dev.gen.GatherCodeConfig;
 import dev.gen.InstallFileEntry;
-import dev.gen.OthersState;
+import dev.gen.FileState;
 import js.app.AppOper;
 import js.data.DataUtil;
 import js.file.DirWalk;
@@ -108,14 +108,14 @@ public class GatherCodeOper extends AppOper {
 
     writeSecrets();
 
-    writeOthers();
+    writeFiles();
 
     // Write info 
     mZip.addEntry("deploy_info.json", mDeployInfo);
 
     closeZip();
 
-    log("deploy_info:",INDENT,mDeployInfo);
+    log("deploy_info:", INDENT, mDeployInfo);
   }
 
   private void prepareVariables() {
@@ -305,18 +305,18 @@ public class GatherCodeOper extends AppOper {
     tempZipFile.delete();
   }
 
-  private void writeOthers() {
-    log("writeOthers");
+  private void writeFiles() {
+    log("writeFiles");
     mFileEntries = hashMap();
     mCreateDirEntries = treeMap();
 
     File sourceDir = mProjectDirectory;
 
-    JSList lst = config().othersList();
+    JSList lst = config().fileList();
 
     lst = new JSList(applyVariableSubstitution(lst.toString()));
 
-    OthersState state = OthersState.newBuilder() //
+    FileState state = FileState.newBuilder() //
         .sourceDir(sourceDir) //
         .targetDir(new File("$[target]")) //
         .build();
@@ -332,7 +332,7 @@ public class GatherCodeOper extends AppOper {
     List<InstallFileEntry> ents = arrayList();
     for (String key : sortedKeys) {
       InstallFileEntry ent = mFileEntries.get(key);
-      copyOther(ent);
+      processFileEntry(ent);
       ents.add(ent);
       extractVars(ent.targetPath().toString(), vars);
     }
@@ -343,7 +343,7 @@ public class GatherCodeOper extends AppOper {
     created.addAll(mCreateDirEntries.values());
 
     mDeployInfo //
-        .others(ents) //
+        .files(ents) //
         .variables(asList) //
         .createDirs(created) //
     ;
@@ -396,7 +396,7 @@ public class GatherCodeOper extends AppOper {
     }
   }
 
-  private void copyOther(InstallFileEntry ent) {
+  private void processFileEntry(InstallFileEntry ent) {
     // do it early so it becomes an absolute path
     log("copying:", INDENT, ent);
     File src = ent.sourcePath();
@@ -404,11 +404,7 @@ public class GatherCodeOper extends AppOper {
     String s = src.toString();
     checkArgument(!s.contains("[") && !s.contains("~"), ent);
     Files.assertExists(src, "copyOther");
-    mZip.addEntry(othersSubdir(ent.key()), ent.sourcePath());
-  }
-
-  private String othersSubdir(String path) {
-    return "others/" + path;
+    mZip.addEntry("files/" + ent.key(), ent.sourcePath());
   }
 
   private InstallFileEntry.Builder builderWithKey(File sourceFile) {
@@ -427,7 +423,7 @@ public class GatherCodeOper extends AppOper {
     return b;
   }
 
-  private void rewriteFileEntries(Object fileSet, OthersState state) {
+  private void rewriteFileEntries(Object fileSet, FileState state) {
     if (fileSet instanceof String) {
       String filePath = (String) fileSet;
       File sourceFile = extendFile(state.sourceDir(), filePath);
@@ -486,7 +482,7 @@ public class GatherCodeOper extends AppOper {
       throw notSupported("don't know how to handle fileset:", INDENT, fileSet);
   }
 
-  private void applyMissingFields(InstallFileEntry.Builder b, OthersState state) {
+  private void applyMissingFields(InstallFileEntry.Builder b, FileState state) {
     if (nullOrEmpty(b.targetName())) {
       b.targetName(b.sourcePath().getName());
     }

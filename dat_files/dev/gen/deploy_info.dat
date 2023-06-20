@@ -6,7 +6,7 @@ class {
 
   string version;
 
-  * InstallFileEntry others;
+  * InstallFileEntry files;
 
   * InstallFileEntry create_dirs;
 
