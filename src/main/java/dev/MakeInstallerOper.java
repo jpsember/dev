@@ -37,7 +37,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import dev.gen.DeployInfo;
-import dev.gen.GatherCodeConfig;
+import dev.gen.MakeInstallerConfig;
 import dev.gen.FileEntry;
 import dev.gen.FileState;
 import js.app.AppOper;
@@ -65,19 +65,19 @@ public class MakeInstallerOper extends AppOper {
   }
 
   @Override
-  public GatherCodeConfig defaultArgs() {
-    return GatherCodeConfig.DEFAULT_INSTANCE;
+  public MakeInstallerConfig defaultArgs() {
+    return MakeInstallerConfig.DEFAULT_INSTANCE;
   }
 
   @Override
-  public GatherCodeConfig config() {
+  public MakeInstallerConfig config() {
     if (mConfig == null) {
-      mConfig = (GatherCodeConfig) super.config();
+      mConfig = (MakeInstallerConfig) super.config();
     }
     return mConfig;
   }
 
-  private GatherCodeConfig mConfig;
+  private MakeInstallerConfig mConfig;
 
   @Override
   public void perform() {
