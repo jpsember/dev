@@ -101,7 +101,10 @@ public class MakeInstallerOper extends AppOper {
     writeFiles();
 
     // Write info 
-    mZip.addEntry("deploy_info.json", mDeployInfo);
+    if (alert("writing pretty printed")) {
+      mZip.addEntry("deploy_info.json", mDeployInfo.toJson().prettyPrint());
+    } else
+      mZip.addEntry("deploy_info.json", mDeployInfo);
 
     closeZip();
 
@@ -141,8 +144,7 @@ public class MakeInstallerOper extends AppOper {
     log("collectScriptClasses", programName);
     List<String> classList = arrayList();
     mProgramClassLists.put(programName, classList);
-    File scriptFile = Files
-        .assertExists(new File(interpretFile(config().scriptsDir(), "scripts_dir"), programName));
+    File scriptFile = Files.assertExists(new File(config().scriptsDir(), programName));
     String txt = Files.readString(scriptFile);
     List<String> lines = split(txt, '\n');
 
@@ -172,30 +174,6 @@ public class MakeInstallerOper extends AppOper {
       File jarFile = new File(s2);
       classList.add(copyClassesFile(jarFile));
     }
-  }
-
-  /**
-   * Convert a file ~.... as being in the current directory;
-   * 
-   * Return an absolute form of the resulting file
-   * 
-   */
-  private File interpretFile(File file, String context) {
-    Files.assertNonEmpty(file, context);
-    String s = file.toString();
-    File result = file;
-
-    do {
-      String prefix = "~";
-      if (s.startsWith(prefix)) {
-        result = new File(Files.homeDirectory(), chompPrefix(s, prefix));
-        break;
-      }
-    } while (false);
-
-    result = result.getAbsoluteFile();
-    log("interpret:", file, "=>", result);
-    return result;
   }
 
   private File mavenRepoDir() {
@@ -363,23 +341,28 @@ public class MakeInstallerOper extends AppOper {
     }
   }
 
+  private File resolveFile(File f) {
+
+    String s = Files.assertNonEmpty(f).toString();
+    if (s.startsWith("^")) {
+      s = s.substring(1);
+    }
+    checkArgument(!s.contains("[") && !s.contains("~"), f);
+    return new File(s);
+  }
+
   private void processFileEntry(FileEntry ent) {
-    // do it early so it becomes an absolute path
     log("copying:", INDENT, ent);
-    File src = ent.sourcePath();
-    checkArgument(Files.nonEmpty(src));
-    String s = src.toString();
-    checkArgument(!s.contains("[") && !s.contains("~"), ent);
+    File src = resolveFile(ent.sourcePath());
     Files.assertExists(src, "copyOther");
     String zipKey = "files/" + ent.key();
     if (ent.encrypt()) {
       checkNonEmpty(config().secretPassphrase(), "no secret_passphrase given");
-      byte[] clearBytes = Files.toByteArray(ent.sourcePath(), "encrypting file");
+      byte[] clearBytes = Files.toByteArray(src, "encrypting file");
       byte[] encrypted = Encryption.encrypt(clearBytes, config().secretPassphrase());
       mZip.addEntry(zipKey, encrypted);
-      //halt("added encrypted value for:", ent.sourcePath(), INDENT, DataUtil.hexDump(encrypted),CR,DataUtil.hexDump(clearBytes));
     } else
-      mZip.addEntry(zipKey, ent.sourcePath());
+      mZip.addEntry(zipKey, src);
   }
 
   private static final String KEY_ENCRYPT = "encrypt";
@@ -533,6 +516,7 @@ public class MakeInstallerOper extends AppOper {
   // abc                    abc                
   // abc        xyz/def     abc/xyz/def
   // abc        /xyz/def    /xyz/def
+  // ^abc       ^xyz        ^xyz
   //
   private File extendFile(File file, String suffix) {
     File result;
@@ -541,7 +525,7 @@ public class MakeInstallerOper extends AppOper {
       result = new File(suffix);
     } else if (suffix.isEmpty())
       result = file;
-    else if (suffix.startsWith("/"))
+    else if (suffix.startsWith("/") || suffix.startsWith("^"))
       result = new File(suffix);
     else
       result = new File(file, suffix);
