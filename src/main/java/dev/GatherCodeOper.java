@@ -27,6 +27,7 @@ package dev;
 import static js.base.Tools.*;
 
 import java.io.File;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -378,31 +379,10 @@ public class GatherCodeOper extends AppOper {
       mZip.addEntry(zipKey, ent.sourcePath());
   }
 
-  private InstallFileEntry.Builder builderWithKey(File sourceFile) {
-    InstallFileEntry.Builder b = InstallFileEntry.newBuilder() //
-        .sourcePath(sourceFile);
-    int i = 0;
-    String baseKey = sourceFile.getName();
-    String key = baseKey;
-    String basename = Files.basename(key);
-    String ext = Files.getExtension(key);
-    while (mFileEntries.containsKey(key)) {
-      i++;
-      key = Files.setExtension(basename + "_" + i, ext);
-    }
-    b.key(key);
-    mFileEntries.put(key, b);
-    return b;
-  }
-
   private static final String KEY_ENCRYPT = "encrypt";
-  private static final String KEY_CREATE = "create";
   private static final String KEY_SOURCE = "source";
   private static final String KEY_TARGET = "target";
   private static final String KEY_ITEMS = "items";
-
-  private static Set<String> sAllowedKeys = Set.of(KEY_SOURCE, KEY_TARGET, KEY_CREATE, KEY_ENCRYPT,
-      KEY_ITEMS);
 
   // InstallFileEntry <f> is one of:
   //
@@ -411,14 +391,21 @@ public class GatherCodeOper extends AppOper {
   // | [ <f>* ]
   //
   //
-
   private void parseFileEntries(Object argument, FileState state) {
-
+    log("parseFileEntries; state:", INDENT, state, CR, "arg:", CR, argument, DASHES);
     // Make sure we are dealing with an immutable FileState,
     // and construct a new builder from it to apply to subsequent entries
     //
     state = state.build();
     FileState.Builder newState = state.toBuilder();
+
+    // This is the canonical form of argument
+    //
+    if (argument instanceof JSMap) {
+      JSMap m = (JSMap) argument;
+      parseFileEntry(m, newState);
+      return;
+    }
 
     if (argument instanceof JSList) {
       JSList jsonList = (JSList) argument;
@@ -430,79 +417,17 @@ public class GatherCodeOper extends AppOper {
 
     if (argument instanceof String) {
       String filePath = (String) argument;
-      File sourceFile = extendFile(newState.sourceDir(), filePath);
-
+      newState.sourceDir(extendFile(newState.sourceDir(), filePath));
+      newState.targetDir(extendFile(newState.targetDir(), filePath));
       // If this is a directory, process recursively
-      if (sourceFile.isDirectory()) {
-        newState.sourceDir(sourceFile);
-        log("...writing dir:", sourceFile);
+      if (newState.sourceDir().isDirectory()) {
+        log("...writing dir:", newState.sourceDir());
         DirWalk w = new DirWalk(newState.sourceDir()).withRecurse(true).omitNames(".DS_Store");
         for (File f : w.files()) {
           parseFileEntries(f.getName(), newState);
         }
       } else {
-        InstallFileEntry.Builder b = builderWithKey(sourceFile);
-        applyMissingFields(b, newState);
-      }
-      return;
-    }
-
-    if (argument instanceof JSMap) {
-      JSMap m = (JSMap) argument;
-
-      Set<String> keys = m.keySet();
-      for (String k : keys) {
-        checkArgument(sAllowedKeys.contains(k), "unsupported key:", k);
-      }
-      String sourceExpr = m.opt(KEY_SOURCE, "");
-      String targetExpr = m.opt(KEY_TARGET, "");
-
-      boolean createDirFlag = m.opt(KEY_CREATE);
-      Boolean encrypted = null;
-      if (m.containsKey(KEY_ENCRYPT)) {
-        encrypted = m.opt(KEY_ENCRYPT);
-      }
-
-      int count = 0;
-      if (createDirFlag)
-        count++;
-      if (encrypted != null)
-        count++;
-      checkState(count <= 1, "mutually exclusive options: create, encrypt");
-
-      boolean inferTarget = true;
-      if (nonEmpty(targetExpr)) {
-        inferTarget = false;
-        newState.targetDir(extendFile(newState.targetDir(), targetExpr));
-      }
-
-      Object auxFileSet = m.optUnsafe(KEY_ITEMS);
-
-      if (encrypted != null) {
-        newState.encrypt(encrypted);
-      }
-
-      if (createDirFlag) {
-        checkState(!inferTarget);
-        checkState(auxFileSet == null);
-        checkState(!mCreateDirEntries.containsKey(newState.targetDir()));
-        InstallFileEntry.Builder b = InstallFileEntry.newBuilder() //
-            .targetPath(newState.targetDir());
-        mCreateDirEntries.put(newState.targetDir(), b);
-        return;
-      }
-
-      if (auxFileSet == null) {
-        // The name is included in sourceExpr
-        checkArgument(nonEmpty(sourceExpr), "probably shouldn't be empty");
-        File sourceFile = extendFile(newState.sourceDir(), sourceExpr);
-        InstallFileEntry.Builder b = builderWithKey(sourceFile);
-        applyMissingFields(b, newState);
-        die("infer target?");
-      } else {
-        die("infer target?");
-        newState.sourceDir(extendFile(newState.sourceDir(), sourceExpr));
-        parseFileEntries(auxFileSet, newState);
+        addEntry(newState);
       }
       return;
     }
@@ -510,14 +435,92 @@ public class GatherCodeOper extends AppOper {
     throw notSupported("don't know how to parse InstallFileEntry from:", INDENT, argument);
   }
 
-  private void applyMissingFields(InstallFileEntry.Builder b, FileState state) {
-    if (nullOrEmpty(b.targetName())) {
-      b.targetName(b.sourcePath().getName());
+  private void addEntry(FileState state) {
+    InstallFileEntry.Builder b = InstallFileEntry.newBuilder() //
+        .sourcePath(state.sourceDir());
+    int i = 0;
+    String baseKey = b.sourcePath().getName();
+    checkNonEmpty(baseKey, "can't extract key from source_path:", INDENT, b);
+    String key = baseKey;
+    String basename = Files.basename(key);
+    String ext = Files.getExtension(key);
+    while (mFileEntries.containsKey(key)) {
+      i++;
+      key = Files.setExtension(basename + "__" + i, ext);
     }
+    b.key(key);
+    b.encrypt(state.encrypt());
+
     if (Files.empty(b.targetPath())) {
-      b.targetPath(new File(state.targetDir(), b.targetName()));
+      b.targetPath(state.targetDir());
     }
     b.encrypt(state.encrypt());
+    mFileEntries.put(key, b);
+    log(VERT_SP, "created file entry:", key, "=>", INDENT, b, VERT_SP);
+  }
+
+  public static void assertLegalSet(Collection<String> collection, Set<String> allowedItems) {
+    for (String k : collection) {
+      if (!allowedItems.contains(k)) {
+        throw badArg("Illegal key in set:", k);
+      }
+    }
+  }
+
+  public static int countUniqueKeys(Collection<String> collection, Set<String> keys) {
+    Set<String> uniqueCollection = hashSet();
+    uniqueCollection.addAll(collection);
+    uniqueCollection.retainAll(keys);
+    return uniqueCollection.size();
+  }
+
+  private static Set<String> sAllowedKeys = Set.of(KEY_SOURCE, KEY_TARGET, KEY_ENCRYPT, KEY_ITEMS);
+  private static Set<String> sExclusiveKeys = Set.of(KEY_ENCRYPT);
+
+  private void parseFileEntry(JSMap m, FileState.Builder newState) {
+    assertLegalSet(m.keySet(), sAllowedKeys);
+    // Not necessary at present, as there is only one key in the exclusive set:
+    if (countUniqueKeys(m.keySet(), sExclusiveKeys) > 1)
+      badArg("violation of mutually exclusive options:", INDENT, m);
+
+    String sourceExpr = m.opt(KEY_SOURCE, "");
+    String targetExpr = m.opt(KEY_TARGET, "");
+
+    newState.encrypt(m.opt(KEY_ENCRYPT));
+
+    // If has "target" key, update target_dir
+    //
+    if (nonEmpty(targetExpr))
+      newState.targetDir(extendFile(newState.targetDir(), targetExpr));
+    else
+      newState.targetDir(extendFile(newState.targetDir(), sourceExpr));
+
+    newState.sourceDir(extendFile(newState.sourceDir(), sourceExpr));
+
+    Object itemsExpr = m.optUnsafe(KEY_ITEMS);
+
+    if (itemsExpr == null) {
+      // If no source key given, but target has been given, create target
+      //
+      if (sourceExpr.isEmpty() && !targetExpr.isEmpty()) {
+        checkState(!mCreateDirEntries.containsKey(newState.targetDir()));
+        InstallFileEntry.Builder b = InstallFileEntry.newBuilder() //
+            .targetPath(newState.targetDir());
+        mCreateDirEntries.put(newState.targetDir(), b);
+        return;
+      }
+      throw badArg("no items specified:", INDENT, m);
+    }
+    if (itemsExpr instanceof String) {
+      String filename = (String) itemsExpr;
+      newState.sourceDir(extendFile(newState.sourceDir(), filename));
+      addEntry(newState);
+      return;
+    }
+    if (!(itemsExpr instanceof JSList)) {
+      throw badArg("unexpected 'items' argument:", INDENT, m);
+    }
+    parseFileEntries(itemsExpr, newState);
   }
 
   // file       suffix      new
@@ -539,8 +542,6 @@ public class GatherCodeOper extends AppOper {
       result = new File(suffix);
     else
       result = new File(file, suffix);
-    if (false)
-      log("extendRoot:", file, "with:", suffix, INDENT, spaces(26), result);
     return result;
   }
 
