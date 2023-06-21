@@ -50,18 +50,18 @@ import js.json.JSMap;
 import js.parsing.MacroParser;
 import js.parsing.RegExp;
 
-public class GatherCodeOper extends AppOper {
+public class MakeInstallerOper extends AppOper {
 
   private File mProjectDirectory;
 
   @Override
   public String userCommand() {
-    return "gathercode";
+    return "makeinstaller";
   }
 
   @Override
   public String getHelpDescription() {
-    return "gathers code referenced from an executable script to a central location for later zipping";
+    return "creates an installer zip file from a script";
   }
 
   @Override
