@@ -15,9 +15,6 @@ class {
   //
   File target_path;
 
-  // alternate target filename?
-  - string target_name;
-
   // If true, the encrypted file is zipped
   //
   bool encrypt;

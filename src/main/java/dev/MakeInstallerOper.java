@@ -27,6 +27,7 @@ package dev;
 import static js.base.Tools.*;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -109,7 +110,8 @@ public class MakeInstallerOper extends AppOper {
 
   private void prepareVariables() {
     mVarMap = hashMap();
-    mVarMap.putAll(config().variables());
+    if (config().sourceVariables() != null)
+      mVarMap.putAll(config().sourceVariables());
 
     File projDir = config().projectDirectory();
     if (Files.empty(projDir))
@@ -262,7 +264,8 @@ public class MakeInstallerOper extends AppOper {
     // Strip some fields from the params, namely the secret passphrase, and
     // the files_list 
     mZip.addEntry("params.json", config().toBuilder() //
-        .secretPassphrase("") //
+        .secretPassphrase(null) //
+        .sourceVariables(null) //
         .fileList(null) //
     );
   }
@@ -289,10 +292,8 @@ public class MakeInstallerOper extends AppOper {
 
     // Process the rewritten list
 
-    List<String> sortedKeys = arrayList();
+    List<String> sortedKeys = toArray(mFileEntries.keySet());
     Set<String> vars = new TreeSet<String>();
-
-    sortedKeys.addAll(mFileEntries.keySet());
     sortedKeys.sort(null);
     List<FileEntry> ents = arrayList();
     for (String key : sortedKeys) {
@@ -301,17 +302,18 @@ public class MakeInstallerOper extends AppOper {
       ents.add(ent);
       extractVars(ent.targetPath().toString(), vars);
     }
-    List<String> asList = arrayList();
-    asList.addAll(vars);
-
-    List<FileEntry> created = arrayList();
-    created.addAll(mCreateDirEntries.values());
 
     mDeployInfo //
         .files(ents) //
-        .variables(asList) //
-        .createDirs(created) //
+        .variables(toArray(vars)) //
+        .createDirs(toArray(mCreateDirEntries.values())) //
     ;
+  }
+
+  public static <T> List<T> toArray(Collection<T> collection) {
+    ArrayList<T> lst = new ArrayList<>();
+    lst.addAll(collection);
+    return lst;
   }
 
   // Variables used by the compiler have the form ${ ... }
@@ -371,6 +373,7 @@ public class MakeInstallerOper extends AppOper {
     Files.assertExists(src, "copyOther");
     String zipKey = "files/" + ent.key();
     if (ent.encrypt()) {
+      checkNonEmpty(config().secretPassphrase(), "no secret_passphrase given");
       byte[] clearBytes = Files.toByteArray(ent.sourcePath(), "encrypting file");
       byte[] encrypted = Encryption.encrypt(clearBytes, config().secretPassphrase());
       mZip.addEntry(zipKey, encrypted);

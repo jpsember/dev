@@ -23,11 +23,13 @@ class {
   //
   File output;
 
-  // String to use for encrypted files
+  // String to use for encrypted files; should not be sent to target
   //
   string secret_passphrase;
 
-  map string string variables;
+  // Source-side variables; should not be sent to target
+  //
+  ? map string string source_variables;
 
   // Project directory; if empty, uses Files.projectDirectory()
   //
