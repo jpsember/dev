@@ -2,24 +2,27 @@ class {
 
   // Where file is located on compile machine.
   // This can be stripped from the information written to the
-  // deploy artifact, as it is only used in the gathering state.
+  // deploy artifact, as it is only used in the compilation stage.
   //
   File source_path;
 
   // Name of file (no path) as it appears in the install zip file
+  //
   string key;
 
   // Where file is to be installed on target machine.
-  // May contain macros of the form [xxx], e.g.
-  //
-  // /[home]/xxx/yyy
+  // May contain variables, e.g. "$[home]/xxx/yyy"
   //
   File target_path;
 
   // alternate target filename?
-  string target_name;
+  - string target_name;
 
+  // If true, the encrypted file is zipped
+  //
   bool encrypt;
 
+  // Not used at present
+  //
   ? int permissions;
 }
