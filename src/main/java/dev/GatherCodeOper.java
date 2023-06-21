@@ -38,7 +38,7 @@ import java.util.regex.Pattern;
 
 import dev.gen.DeployInfo;
 import dev.gen.GatherCodeConfig;
-import dev.gen.InstallFileEntry;
+import dev.gen.FileEntry;
 import dev.gen.FileState;
 import js.app.AppOper;
 import js.data.DataUtil;
@@ -294,9 +294,9 @@ public class GatherCodeOper extends AppOper {
 
     sortedKeys.addAll(mFileEntries.keySet());
     sortedKeys.sort(null);
-    List<InstallFileEntry> ents = arrayList();
+    List<FileEntry> ents = arrayList();
     for (String key : sortedKeys) {
-      InstallFileEntry ent = mFileEntries.get(key);
+      FileEntry ent = mFileEntries.get(key);
       processFileEntry(ent);
       ents.add(ent);
       extractVars(ent.targetPath().toString(), vars);
@@ -304,7 +304,7 @@ public class GatherCodeOper extends AppOper {
     List<String> asList = arrayList();
     asList.addAll(vars);
 
-    List<InstallFileEntry> created = arrayList();
+    List<FileEntry> created = arrayList();
     created.addAll(mCreateDirEntries.values());
 
     mDeployInfo //
@@ -361,7 +361,7 @@ public class GatherCodeOper extends AppOper {
     }
   }
 
-  private void processFileEntry(InstallFileEntry ent) {
+  private void processFileEntry(FileEntry ent) {
     // do it early so it becomes an absolute path
     log("copying:", INDENT, ent);
     File src = ent.sourcePath();
@@ -384,7 +384,7 @@ public class GatherCodeOper extends AppOper {
   private static final String KEY_TARGET = "target";
   private static final String KEY_ITEMS = "items";
 
-  // InstallFileEntry <f> is one of:
+  // FileEntry <f> is one of:
   //
   //   { "key" : "value" ... }
   // | "file or directory"
@@ -432,11 +432,11 @@ public class GatherCodeOper extends AppOper {
       return;
     }
 
-    throw notSupported("don't know how to parse InstallFileEntry from:", INDENT, argument);
+    throw notSupported("don't know how to parse:", INDENT, argument);
   }
 
   private void addEntry(FileState state) {
-    InstallFileEntry.Builder b = InstallFileEntry.newBuilder() //
+    FileEntry.Builder b = FileEntry.newBuilder() //
         .sourcePath(state.sourceDir());
     int i = 0;
     String baseKey = b.sourcePath().getName();
@@ -504,7 +504,7 @@ public class GatherCodeOper extends AppOper {
       //
       if (sourceExpr.isEmpty() && !targetExpr.isEmpty()) {
         checkState(!mCreateDirEntries.containsKey(newState.targetDir()));
-        InstallFileEntry.Builder b = InstallFileEntry.newBuilder() //
+        FileEntry.Builder b = FileEntry.newBuilder() //
             .targetPath(newState.targetDir());
         mCreateDirEntries.put(newState.targetDir(), b);
         return;
@@ -568,8 +568,8 @@ public class GatherCodeOper extends AppOper {
   }
 
   private Zipper mZip;
-  private Map<String, InstallFileEntry> mFileEntries;
+  private Map<String, FileEntry> mFileEntries;
   private Map<String, String> mVarMap;
   private DeployInfo.Builder mDeployInfo;
-  private Map<File, InstallFileEntry> mCreateDirEntries;
+  private Map<File, FileEntry> mCreateDirEntries;
 }
