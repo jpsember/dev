@@ -23,14 +23,6 @@ class {
   //
   File output;
 
-  // Secrets directory to include
-  //
-  File secrets_source;
-
-  // List of files within secrets_source to include
-  //
-  *File secret_files;
-
   // String to use for encrypted files
   //
   string secret_passphrase;

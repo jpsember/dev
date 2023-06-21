@@ -258,7 +258,12 @@ public class GatherCodeOper extends AppOper {
   }
 
   private void writeConfig() {
-    mZip.addEntry("params.json", config());
+    // Strip some fields from the params, namely the secret passphrase, and
+    // the files_list 
+    mZip.addEntry("params.json", config().toBuilder() //
+        .secretPassphrase("") //
+        .fileList(null) //
+    );
   }
 
   private void writeFiles() {
