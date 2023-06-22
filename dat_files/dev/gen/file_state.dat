@@ -2,4 +2,5 @@ class {
   File source_dir;
   File target_dir;
   bool encrypt;
+  bool vars;
 }

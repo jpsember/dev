@@ -53,8 +53,6 @@ import js.parsing.RegExp;
 
 public class MakeInstallerOper extends AppOper {
 
-  private File mProjectDirectory;
-
   @Override
   public String userCommand() {
     return "makeinstaller";
@@ -239,9 +237,8 @@ public class MakeInstallerOper extends AppOper {
   }
 
   private void writeConfig() {
-    // Strip some fields from the params, namely the secret passphrase, and
-    // the files_list 
-    mZip.addEntry("params.json", config().toBuilder() //
+    // Strip some fields from the config that are not required by the installer
+    mZip.addEntry("make_installer_config.json", config().toBuilder() //
         .secretPassphrase(null) //
         .sourceVariables(null) //
         .fileList(null) //
@@ -251,6 +248,7 @@ public class MakeInstallerOper extends AppOper {
   private void writeFiles() {
     log("writeFiles");
     mFileEntries = hashMap();
+    mTargetMap = hashMap();
     mCreateDirEntries = treeMap();
 
     File sourceDir = mProjectDirectory;
@@ -275,12 +273,23 @@ public class MakeInstallerOper extends AppOper {
     sortedKeys.sort(null);
     List<FileEntry> ents = arrayList();
     for (String key : sortedKeys) {
-      FileEntry ent = mFileEntries.get(key);
+      // Now that we're done joining paths together, strip out the '^' prefixes;
+      FileEntry.Builder ent = mFileEntries.get(key).toBuilder();
+      ent.sourcePath(resolveFile(ent.sourcePath(), false));
+      ent.targetPath(resolveFile(ent.targetPath(), true));
       processFileEntry(ent);
-      ents.add(ent);
       extractVars(ent.targetPath().toString(), vars);
+      // Remove the source path, as it is not needed on the target
+      ents.add(ent.sourcePath(null).build());
     }
 
+    if (mRequirePassphraseValidation) {
+      String msg = "hello";
+      byte[] clearBytes = msg.getBytes();
+      byte[] encrypted = Encryption.encrypt(clearBytes, config().secretPassphrase());
+      mDeployInfo.checkPassphrase(encrypted);
+    }
+    
     mDeployInfo //
         .files(ents) //
         .variables(toArray(vars)) //
@@ -341,19 +350,20 @@ public class MakeInstallerOper extends AppOper {
     }
   }
 
-  private File resolveFile(File f) {
-
+  private File resolveFile(File f, boolean varAllowed) {
     String s = Files.assertNonEmpty(f).toString();
     if (s.startsWith("^")) {
       s = s.substring(1);
     }
-    checkArgument(!s.contains("[") && !s.contains("~"), f);
+    checkArgument(!s.contains("~"), f);
+    if (!varAllowed)
+      checkArgument(!s.contains("["), f);
     return new File(s);
   }
 
   private void processFileEntry(FileEntry ent) {
     log("copying:", INDENT, ent);
-    File src = resolveFile(ent.sourcePath());
+    File src = ent.sourcePath();
     Files.assertExists(src, "copyOther");
     String zipKey = "files/" + ent.key();
     if (ent.encrypt()) {
@@ -361,6 +371,7 @@ public class MakeInstallerOper extends AppOper {
       byte[] clearBytes = Files.toByteArray(src, "encrypting file");
       byte[] encrypted = Encryption.encrypt(clearBytes, config().secretPassphrase());
       mZip.addEntry(zipKey, encrypted);
+      mRequirePassphraseValidation = true;
     } else
       mZip.addEntry(zipKey, src);
   }
@@ -369,6 +380,7 @@ public class MakeInstallerOper extends AppOper {
   private static final String KEY_SOURCE = "source";
   private static final String KEY_TARGET = "target";
   private static final String KEY_ITEMS = "items";
+  private static final String KEY_VARS = "vars";
 
   // FileEntry <f> is one of:
   //
@@ -436,12 +448,24 @@ public class MakeInstallerOper extends AppOper {
     }
     b.key(key);
     b.encrypt(state.encrypt());
+    b.vars(state.vars());
+
+    //don't start in directory other than current?
 
     if (Files.empty(b.targetPath())) {
       b.targetPath(state.targetDir());
     }
     b.encrypt(state.encrypt());
-    mFileEntries.put(key, b);
+    mFileEntries.put(key, b.build());
+
+    // If en entry with this target already exists, remove it
+    String currentTargetKey = mTargetMap.get(b.targetPath());
+    if (currentTargetKey != null) {
+      log("replacing target with new:", b.targetPath());
+      mFileEntries.remove(currentTargetKey);
+    }
+    mTargetMap.put(b.targetPath(), key);
+
     log(VERT_SP, "created file entry:", key, "=>", INDENT, b, VERT_SP);
   }
 
@@ -460,7 +484,7 @@ public class MakeInstallerOper extends AppOper {
     return uniqueCollection.size();
   }
 
-  private static Set<String> sAllowedKeys = Set.of(KEY_SOURCE, KEY_TARGET, KEY_ENCRYPT, KEY_ITEMS);
+  private static Set<String> sAllowedKeys = Set.of(KEY_SOURCE, KEY_TARGET, KEY_ENCRYPT, KEY_ITEMS, KEY_VARS);
   private static Set<String> sExclusiveKeys = Set.of(KEY_ENCRYPT);
 
   private void parseFileEntry(JSMap m, FileState.Builder newState) {
@@ -473,6 +497,7 @@ public class MakeInstallerOper extends AppOper {
     String targetExpr = m.opt(KEY_TARGET, "");
 
     newState.encrypt(m.opt(KEY_ENCRYPT));
+    newState.vars(m.opt(KEY_VARS));
 
     // If has "target" key, update target_dir
     //
@@ -499,7 +524,10 @@ public class MakeInstallerOper extends AppOper {
     }
     if (itemsExpr instanceof String) {
       String filename = (String) itemsExpr;
-      newState.sourceDir(extendFile(newState.sourceDir(), filename));
+      newState //
+          .sourceDir(extendFile(newState.sourceDir(), filename)) //
+          .targetDir(extendFile(newState.targetDir(), filename)) //
+      ;
       addEntry(newState);
       return;
     }
@@ -554,9 +582,12 @@ public class MakeInstallerOper extends AppOper {
     mZip = null;
   }
 
+  private File mProjectDirectory;
   private Zipper mZip;
   private Map<String, FileEntry> mFileEntries;
+  private Map<File, String> mTargetMap;
   private Map<String, String> mVarMap;
   private DeployInfo.Builder mDeployInfo;
   private Map<File, FileEntry> mCreateDirEntries;
+  private boolean mRequirePassphraseValidation;
 }

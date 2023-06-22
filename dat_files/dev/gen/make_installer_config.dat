@@ -10,16 +10,7 @@ class {
   //
   File scripts_dir;
 
-  // The zip file to produce.
-  // Contents: (maybe outdated)
-  //
-  // params.json
-  // secrets.bin
-  // programs/<program_name>.sh
-  //    :
-  // classes/<jar files>
-  //    :
-  // others/<files with same path relative to repo root>
+  // The zip file to produce
   //
   File output;
 

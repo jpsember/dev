@@ -6,12 +6,14 @@ class {
 
   string version;
 
-  * InstallFileEntry files;
+  * FileEntry files;
 
-  * InstallFileEntry create_dirs;
+  * FileEntry create_dirs;
 
-  // Variables appearing in the install_file_entry filenames
+  // Variables appearing in the file_entry filenames
   //
   * string variables;
+
+  * byte checkPassphrase;
 }
 

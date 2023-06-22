@@ -19,6 +19,10 @@ class {
   //
   bool encrypt;
 
+  // If true, the file should be parsed to replace variables
+  //
+  bool vars;
+
   // Not used at present
   //
   ? int permissions;
