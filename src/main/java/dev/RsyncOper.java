@@ -228,8 +228,7 @@ public abstract class RsyncOper extends AppOper {
           mResolvedTarget = targetDir;
         else
           mResolvedTarget = Files.join(remoteProjectDir(), targetDir);
-        todo(
-            "Issue #32: haven't yet dealt with the copy directory contents vs copy directory (i.e. by adding '/')");
+        // TODO "Issue #32: haven't yet dealt with the copy directory contents vs copy directory (i.e. by adding '/')");
       }
     }
   }

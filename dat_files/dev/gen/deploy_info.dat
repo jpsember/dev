@@ -14,6 +14,6 @@ class {
   //
   * string variables;
 
-  * byte checkPassphrase;
+  * byte check_passphrase;
 }
 

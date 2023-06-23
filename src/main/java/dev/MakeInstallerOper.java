@@ -279,17 +279,30 @@ public class MakeInstallerOper extends AppOper {
       ent.targetPath(resolveFile(ent.targetPath(), true));
       processFileEntry(ent);
       extractVars(ent.targetPath().toString(), vars);
+
+      // If the permissions are unusual, add them
+      {
+        File f = Files.assertExists(ent.sourcePath(), "examining permissions");
+        String perm = "";
+        if (f.canExecute())
+          perm += "x";
+        ent.permissions(perm);
+      }
+
       // Remove the source path, as it is not needed on the target
-      ents.add(ent.sourcePath(null).build());
+      ent.sourcePath(null);
+      ents.add(ent.build());
     }
 
-    if (mRequirePassphraseValidation) {
+    if (mRequirePassphraseValidation)
+
+    {
       String msg = "hello";
       byte[] clearBytes = msg.getBytes();
       byte[] encrypted = Encryption.encrypt(clearBytes, config().secretPassphrase());
       mDeployInfo.checkPassphrase(encrypted);
     }
-    
+
     mDeployInfo //
         .files(ents) //
         .variables(toArray(vars)) //

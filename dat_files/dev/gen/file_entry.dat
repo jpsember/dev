@@ -23,7 +23,7 @@ class {
   //
   bool vars;
 
-  // Not used at present
+  // If nonempty, contains one or more of "x" : executable
   //
-  ? int permissions;
+  string permissions;
 }
