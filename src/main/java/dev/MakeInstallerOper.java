@@ -557,16 +557,18 @@ public class MakeInstallerOper extends AppOper {
   }
 
   private void processFileOrDir(FileState.Builder state) {
+    todo("write zip to temp extension, then rename once we are sure it is problem free");
     // If this is a directory, process recursively
     File source = resolveFile(state.sourceDir(), false);
     if (source.isDirectory()) {
       log("...writing dir:", source);
       DirWalk w = new DirWalk(source).withRecurse(true).omitNames(".DS_Store");
-      List<File> files = w.files();
+      List<File> files = w.filesRelative();
       if (state.limit() > 0)
         removeAllButFirstN(files, state.limit());
       for (File f : files) {
-        parseFileEntries(f.getName(), state);
+        log("...processing relative file:",f);
+        parseFileEntries(f.toString(), state);
       }
     } else {
       addEntry(state);
