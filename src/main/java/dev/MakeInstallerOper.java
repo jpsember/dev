@@ -39,6 +39,7 @@ import java.util.regex.Pattern;
 
 import dev.gen.DeployInfo;
 import dev.gen.MakeInstallerConfig;
+import dev.gen.ProgramType;
 import dev.gen.FileEntry;
 import dev.gen.FileState;
 import js.app.AppOper;
@@ -88,13 +89,16 @@ public class MakeInstallerOper extends AppOper {
 
     writeConfig();
 
-    // Process the set of programs, collecting required classes, generate run scripts
-    for (Entry<String, String> ent : config().programs().entrySet()) {
-      String programName = ent.getKey();
-      String mainClass = ent.getValue();
-      collectProgramClasses(programName);
-      generateRunScript(programName, mainClass);
-    }
+    //    if (false) {
+    //
+    //      // Process the set of programs, collecting required classes, generate run scripts
+    //      for (Entry<String, String> ent : config().programs().entrySet()) {
+    //        String programName = ent.getKey();
+    //        String mainClass = ent.getValue();
+    //        collectProgramClasses(programName);
+    //        generateRunScript(programName, mainClass);
+    //      }
+    //    }
 
     writeFiles();
 
@@ -138,11 +142,11 @@ public class MakeInstallerOper extends AppOper {
     mVarMap.put(key, value);
   }
 
-  private void collectProgramClasses(String programName) {
+  private void collectProgramClasses(String programName, File scriptFile) {
     log("collectScriptClasses", programName);
     List<String> classList = arrayList();
     mProgramClassLists.put(programName, classList);
-    File scriptFile = Files.assertExists(new File(config().scriptsDir(), programName));
+    Files.assertExists(scriptFile, programName);
     String txt = Files.readString(scriptFile);
     List<String> lines = split(txt, '\n');
 
@@ -213,14 +217,14 @@ public class MakeInstallerOper extends AppOper {
     return Files.readString(getClass(), resourceName);
   }
 
-  private void generateRunScript(String programName, String mainClass) {
+  private String generateRunScript(String programName, String mainClass) {
     JSMap m = map();
     m.put("program_name", programName);
     m.put("main_class", mainClass);
     List<String> classFiles = mProgramClassLists.get(programName);
     {
       StringBuilder sb = new StringBuilder();
-      String outputDirPrefix = "classes"; //mClassesDir.toString();
+      String outputDirPrefix = "classes";
       for (String s : classFiles) {
         if (sb.length() != 0)
           sb.append(':');
@@ -233,7 +237,7 @@ public class MakeInstallerOper extends AppOper {
     MacroParser parser = new MacroParser();
     parser.withTemplate(frag("gather_driver_template.txt")).withMapper(m);
     String script = parser.content();
-    mZip.addEntry("programs/" + programName + ".sh", script);
+    return script;
   }
 
   private void writeConfig() {
@@ -380,7 +384,12 @@ public class MakeInstallerOper extends AppOper {
     return new File(s);
   }
 
-  private void processFileEntry(FileEntry ent) {
+  private void processFileEntry(FileEntry.Builder ent) {
+    if (ent.program() != ProgramType.NONE) {
+      compileProgram(ent);
+      return;
+    }
+
     log("copying:", INDENT, ent);
     File src = ent.sourcePath();
     Files.assertExists(src, "copyOther");
@@ -395,12 +404,36 @@ public class MakeInstallerOper extends AppOper {
       mZip.addEntry(zipKey, src);
   }
 
+  private void compileProgram(FileEntry.Builder ent) {
+    checkArgument(ent.program() == ProgramType.MAVEN, "unsupported program type:", INDENT, ent);
+    String[] args = splitIntoColonSeparatedArgs(ent.sourcePath().toString());
+    checkArgument(args != null, "can't parse <program>:<class> from:", ent.sourcePath());
+    File trueSourcePath = new File(args[0]);
+    String programName = trueSourcePath.getName(); //arguments.substring(0, c);
+    String mainClass = args[1];
+    collectProgramClasses(programName, trueSourcePath);
+    String script = generateRunScript(programName, mainClass);
+
+    // Now that we've used the class argument, fix up the entry
+    ent.sourcePath(trueSourcePath);
+    {
+      String[] args2 = splitIntoColonSeparatedArgs(ent.targetPath().toString());
+      checkArgument(args2 != null);
+      ent.targetPath(new File(args2[0]));
+    }
+
+    mZip.addEntry(ent.key(), script);
+    pr("added entry:", ent.key(), INDENT, ent);
+
+  }
+
   private static final String KEY_ENCRYPT = "encrypt";
   private static final String KEY_SOURCE = "source";
   private static final String KEY_TARGET = "target";
   private static final String KEY_ITEMS = "items";
   private static final String KEY_VARS = "vars";
   private static final String KEY_LIMIT = "limit";
+  private static final String KEY_PROGRAM_TYPE = "program";
 
   // FileEntry <f> is one of:
   //
@@ -444,11 +477,36 @@ public class MakeInstallerOper extends AppOper {
     throw notSupported("don't know how to parse:", INDENT, argument);
   }
 
+  private String[] splitIntoColonSeparatedArgs(String expr) {
+    int c = expr.indexOf(':');
+    if (c < 0)
+      return null;
+    if (expr.lastIndexOf(':') != c)
+      return null;
+    String[] result = new String[2];
+    result[0] = expr.substring(0, c);
+    result[1] = expr.substring(c + 1);
+    return result;
+  }
+
   private void addEntry(FileState state) {
     FileEntry.Builder b = FileEntry.newBuilder() //
         .sourcePath(state.sourceDir());
+
+    // Determine a unique key from the source_path
+    //
+    // Be prepared for a source path that has a suffix ":" + <args>
+    //
     int i = 0;
-    String baseKey = b.sourcePath().getName();
+    File sourcePath = b.sourcePath();
+    String sourceName = sourcePath.toString();
+    String[] args = splitIntoColonSeparatedArgs(sourceName);
+    if (args != null) {
+      sourceName = args[0];
+      sourcePath = new File(sourceName);
+    }
+
+    String baseKey = sourcePath.getName();
     checkNonEmpty(baseKey, "can't extract key from source_path:", INDENT, b);
     String key = baseKey;
     String basename = Files.basename(key);
@@ -460,6 +518,7 @@ public class MakeInstallerOper extends AppOper {
     b.key(key);
     b.encrypt(state.encrypt());
     b.vars(state.vars());
+    b.program(state.program());
 
     //don't start in directory other than current?
 
@@ -496,20 +555,20 @@ public class MakeInstallerOper extends AppOper {
   }
 
   private static Set<String> sAllowedKeys = Set.of(KEY_SOURCE, KEY_TARGET, KEY_ENCRYPT, KEY_ITEMS, KEY_VARS,
-      KEY_LIMIT);
-  private static Set<String> sExclusiveKeys = Set.of(KEY_ENCRYPT);
+      KEY_LIMIT, KEY_PROGRAM_TYPE);
 
   private void parseFileEntry(JSMap m, FileState.Builder newState) {
     assertLegalSet(m.keySet(), sAllowedKeys);
-    // Not necessary at present, as there is only one key in the exclusive set:
-    if (countUniqueKeys(m.keySet(), sExclusiveKeys) > 1)
-      badArg("violation of mutually exclusive options:", INDENT, m);
 
     String sourceExpr = m.opt(KEY_SOURCE, "");
     String targetExpr = m.opt(KEY_TARGET, "");
 
     newState.encrypt(m.opt(KEY_ENCRYPT));
     newState.vars(m.opt(KEY_VARS));
+
+    String progType = m.opt(KEY_PROGRAM_TYPE, ProgramType.NONE.toString());
+
+    newState.program(ProgramType.valueOf(DataUtil.convertUnderscoresToCamelCase(progType).toUpperCase()));
 
     // If has "target" key, update target_dir
     //
@@ -542,6 +601,10 @@ public class MakeInstallerOper extends AppOper {
 
       throw badArg("no items specified:", INDENT, m);
     }
+    if (itemsExpr instanceof File) {
+      itemsExpr = itemsExpr.toString();
+    }
+
     if (itemsExpr instanceof String) {
       String filename = (String) itemsExpr;
       newState //

@@ -4,11 +4,13 @@ class {
   // Map of program names and the class file that contains its main method.
   // Each program name <foo> is expected to match a bash script at <scriptsDir>/<foo>
   //
-  map string string programs;
+  - map string string programs;
+
+  // *string program_names;
 
   // Parent directory for scripts
   //
-  File scripts_dir;
+  - File scripts_dir;
 
   // The zip file to produce
   //

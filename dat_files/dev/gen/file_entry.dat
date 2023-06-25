@@ -23,6 +23,11 @@ class {
   //
   bool vars;
 
+  // If not none, source_path is location of program to be transformed
+  // to target_path
+  //
+  enum ProgramType program;
+
   // If nonempty, contains one or more of "x" : executable
   //
   string permissions;
