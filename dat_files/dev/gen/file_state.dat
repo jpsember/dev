@@ -3,4 +3,6 @@ class {
   File target_dir;
   bool encrypt;
   bool vars;
+  // If nonzero, limit on the number of files to include from a directory
+  int limit;
 }

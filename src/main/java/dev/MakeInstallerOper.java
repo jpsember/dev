@@ -99,7 +99,7 @@ public class MakeInstallerOper extends AppOper {
     writeFiles();
 
     // Write info 
-    if (alert("writing pretty printed")) {
+    if (verbose() || true) {
       mZip.addEntry("deploy_info.json", mDeployInfo.toJson().prettyPrint());
     } else
       mZip.addEntry("deploy_info.json", mDeployInfo);
@@ -363,6 +363,12 @@ public class MakeInstallerOper extends AppOper {
     }
   }
 
+  /* private */ File assertResolved(File f) {
+    String s = Files.assertNonEmpty(f).toString();
+    checkArgument(!s.startsWith("^"), "unresolved file:", f);
+    return f;
+  }
+
   private File resolveFile(File f, boolean varAllowed) {
     String s = Files.assertNonEmpty(f).toString();
     if (s.startsWith("^")) {
@@ -394,6 +400,7 @@ public class MakeInstallerOper extends AppOper {
   private static final String KEY_TARGET = "target";
   private static final String KEY_ITEMS = "items";
   private static final String KEY_VARS = "vars";
+  private static final String KEY_LIMIT = "limit";
 
   // FileEntry <f> is one of:
   //
@@ -430,16 +437,7 @@ public class MakeInstallerOper extends AppOper {
       String filePath = (String) argument;
       newState.sourceDir(extendFile(newState.sourceDir(), filePath));
       newState.targetDir(extendFile(newState.targetDir(), filePath));
-      // If this is a directory, process recursively
-      if (newState.sourceDir().isDirectory()) {
-        log("...writing dir:", newState.sourceDir());
-        DirWalk w = new DirWalk(newState.sourceDir()).withRecurse(true).omitNames(".DS_Store");
-        for (File f : w.files()) {
-          parseFileEntries(f.getName(), newState);
-        }
-      } else {
-        addEntry(newState);
-      }
+      processFileOrDir(newState);
       return;
     }
 
@@ -497,7 +495,7 @@ public class MakeInstallerOper extends AppOper {
     return uniqueCollection.size();
   }
 
-  private static Set<String> sAllowedKeys = Set.of(KEY_SOURCE, KEY_TARGET, KEY_ENCRYPT, KEY_ITEMS, KEY_VARS);
+  private static Set<String> sAllowedKeys = Set.of(KEY_SOURCE, KEY_TARGET, KEY_ENCRYPT, KEY_ITEMS, KEY_VARS, KEY_LIMIT);
   private static Set<String> sExclusiveKeys = Set.of(KEY_ENCRYPT);
 
   private void parseFileEntry(JSMap m, FileState.Builder newState) {
@@ -521,6 +519,8 @@ public class MakeInstallerOper extends AppOper {
 
     newState.sourceDir(extendFile(newState.sourceDir(), sourceExpr));
 
+    int limit = m.opt(KEY_LIMIT, 0);
+    newState.limit(limit);
     Object itemsExpr = m.optUnsafe(KEY_ITEMS);
 
     if (itemsExpr == null) {
@@ -533,6 +533,12 @@ public class MakeInstallerOper extends AppOper {
         mCreateDirEntries.put(newState.targetDir(), b);
         return;
       }
+
+      if (!sourceExpr.isEmpty()) {
+        processFileOrDir(newState);
+        return;
+      }
+
       throw badArg("no items specified:", INDENT, m);
     }
     if (itemsExpr instanceof String) {
@@ -548,6 +554,23 @@ public class MakeInstallerOper extends AppOper {
       throw badArg("unexpected 'items' argument:", INDENT, m);
     }
     parseFileEntries(itemsExpr, newState);
+  }
+
+  private void processFileOrDir(FileState.Builder state) {
+    // If this is a directory, process recursively
+    File source = resolveFile(state.sourceDir(), false);
+    if (source.isDirectory()) {
+      log("...writing dir:", source);
+      DirWalk w = new DirWalk(source).withRecurse(true).omitNames(".DS_Store");
+      List<File> files = w.files();
+      if (state.limit() > 0)
+        removeAllButFirstN(files, state.limit());
+      for (File f : files) {
+        parseFileEntries(f.getName(), state);
+      }
+    } else {
+      addEntry(state);
+    }
   }
 
   // file       suffix      new
