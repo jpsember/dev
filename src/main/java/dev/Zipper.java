@@ -24,12 +24,13 @@ public final class Zipper extends BaseObject {
 
   public void open(File zipFile) {
     log("open:", zipFile);
-    checkState(mZipFile == null);
+    checkState(mTempZipFile == null);
     checkArgument(Files.getExtension(Files.assertNonEmpty(zipFile, "zipFile arg")).equals(Files.EXT_ZIP),
         zipFile, "not a zip file");
-    mZipFile = zipFile;
-    mFiles.deletePeacefully(zipFile);
-    mOutputStream = new ZipOutputStream(mFiles.outputStream(zipFile));
+    mFinalZipFile = zipFile;
+    mTempZipFile = Files.createTempFile("zipper_", ".zip");
+    mFiles.deletePeacefully(mFinalZipFile);
+    mOutputStream = new ZipOutputStream(mFiles.outputStream(mTempZipFile));
   }
 
   public void addEntry(String name, String string) {
@@ -41,9 +42,9 @@ public final class Zipper extends BaseObject {
   }
 
   public void addEntry(String name, AbstractData data) {
-    addEntry(name,DataUtil.toByteArray(data));
+    addEntry(name, DataUtil.toByteArray(data));
   }
-  
+
   public void addEntry(String name, byte[] bytes) {
     log("addEntry:", name);
     checkState(!mEntries.contains(name));
@@ -63,6 +64,7 @@ public final class Zipper extends BaseObject {
     checkState(mOutputStream != null);
     try {
       mOutputStream.close();
+      mFiles.moveFile(mTempZipFile, mFinalZipFile);
     } catch (IOException e) {
       throw Files.asFileException(e);
     }
@@ -74,7 +76,7 @@ public final class Zipper extends BaseObject {
   }
 
   private final Files mFiles;
-  private File mZipFile;
+  private File mTempZipFile, mFinalZipFile;
   private ZipOutputStream mOutputStream;
   private Set<String> mEntries = hashSet();
 }

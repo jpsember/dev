@@ -495,7 +495,8 @@ public class MakeInstallerOper extends AppOper {
     return uniqueCollection.size();
   }
 
-  private static Set<String> sAllowedKeys = Set.of(KEY_SOURCE, KEY_TARGET, KEY_ENCRYPT, KEY_ITEMS, KEY_VARS, KEY_LIMIT);
+  private static Set<String> sAllowedKeys = Set.of(KEY_SOURCE, KEY_TARGET, KEY_ENCRYPT, KEY_ITEMS, KEY_VARS,
+      KEY_LIMIT);
   private static Set<String> sExclusiveKeys = Set.of(KEY_ENCRYPT);
 
   private void parseFileEntry(JSMap m, FileState.Builder newState) {
@@ -557,7 +558,6 @@ public class MakeInstallerOper extends AppOper {
   }
 
   private void processFileOrDir(FileState.Builder state) {
-    todo("write zip to temp extension, then rename once we are sure it is problem free");
     // If this is a directory, process recursively
     File source = resolveFile(state.sourceDir(), false);
     if (source.isDirectory()) {
@@ -567,7 +567,7 @@ public class MakeInstallerOper extends AppOper {
       if (state.limit() > 0)
         removeAllButFirstN(files, state.limit());
       for (File f : files) {
-        log("...processing relative file:",f);
+        log("...processing relative file:", f);
         parseFileEntries(f.toString(), state);
       }
     } else {
