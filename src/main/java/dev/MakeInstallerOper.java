@@ -352,6 +352,7 @@ public class MakeInstallerOper extends AppOper {
       if (prevChecksum == 0) {
         checksumMap.put("", checksum);
         files().writePretty(checksumFile, checksumMap);
+        files().writePretty(new File("_SKIP_FileEntries_REF.json"), m);
       }
     }
     return;
