@@ -550,36 +550,24 @@ public class MakeInstallerOper extends AppOper {
     }
   }
 
-  public static int countUniqueKeys(Collection<String> collection, Set<String> keys) {
-    Set<String> uniqueCollection = hashSet();
-    uniqueCollection.addAll(collection);
-    uniqueCollection.retainAll(keys);
-    return uniqueCollection.size();
-  }
-
-  private static Boolean optBool(JSMap m, String key) {
-    return (Boolean) m.optUnsafe(key);
+  private static boolean optBool(JSMap m, String key, boolean defaultValue) {
+    Boolean r = (Boolean) m.optUnsafe(key);
+    if (r == null)
+      r = defaultValue;
+    return defaultValue;
   }
 
   private static Set<String> sAllowedKeys = Set.of(KEY_SOURCE, KEY_TARGET, KEY_ENCRYPT, KEY_ITEMS, KEY_VARS,
       KEY_LIMIT);
-  private static Set<String> sExclusiveKeys = Set.of(KEY_ENCRYPT);
 
   private void parseFileEntry(JSMap m, FileParseState.Builder newState) {
     assertLegalSet(m.keySet(), sAllowedKeys);
-    // Not necessary at present, as there is only one key in the exclusive set:
-    if (countUniqueKeys(m.keySet(), sExclusiveKeys) > 1)
-      badArg("violation of mutually exclusive options:", INDENT, m);
 
     String sourceExpr = m.opt(KEY_SOURCE, "");
     String targetExpr = m.opt(KEY_TARGET, "");
 
-    Boolean newEncrypt = optBool(m, KEY_ENCRYPT);
-    Boolean newVars = optBool(m, KEY_VARS);
-    if (newEncrypt != null)
-      newState.encrypt(newEncrypt);
-    if (newVars != null)
-      newState.vars(newVars);
+    newState.encrypt(optBool(m, KEY_ENCRYPT, newState.encrypt()));
+    newState.vars(optBool(m, KEY_VARS, newState.vars()));
 
     newState.sourceDir(extendFile(newState.sourceDir(), sourceExpr));
     newState.targetDir(extendFile(newState.targetDir(), targetExpr));
