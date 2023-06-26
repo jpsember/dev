@@ -334,9 +334,12 @@ public class MakeInstallerOper extends AppOper {
     pr(DASHES);
     pr("Examining -debug- keys:", DASHES);
     JSMap m = map();
+    for (FileEntry ent : mFileEntries.values()) {
+      m.put(ent.key(), ent);
+    }
     for (String key : mDebugKeys) {
       FileEntry ent = mFileEntries.get(key);
-      m.put(key, ent);
+      // m.put(key, ent);
       if (ent == null)
         continue;
       pr(ent);
@@ -462,7 +465,6 @@ public class MakeInstallerOper extends AppOper {
     //
     // Extend both source and target by <x> and process the resulting FileParseState
     //
-
     if (argument instanceof File || argument instanceof String) {
       String filePath = argument.toString();
       state.sourceDir(extendFile(state.sourceDir(), filePath));
