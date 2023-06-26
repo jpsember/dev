@@ -20,7 +20,7 @@ class {
 
   // Source-side variables; should not be sent to target
   //
-  ? map string string source_variables;
+  map string string source_variables;
 
   // Project directory; if empty, uses Files.projectDirectory()
   //

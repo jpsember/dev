@@ -40,7 +40,7 @@ import java.util.regex.Pattern;
 import dev.gen.DeployInfo;
 import dev.gen.MakeInstallerConfig;
 import dev.gen.FileEntry;
-import dev.gen.FileState;
+import dev.gen.FileParseState;
 import js.app.AppOper;
 import js.data.DataUtil;
 import js.data.Encryption;
@@ -80,12 +80,25 @@ public class MakeInstallerOper extends AppOper {
 
   private MakeInstallerConfig mConfig;
 
+  private List<String> mDebugKeys;
+
   @Override
   public void perform() {
     mDeployInfo = DeployInfo.newBuilder().version(config().versionNumber());
+    {
+      String debugStr = config().sourceVariables().get("-debug-");
+      if (nonEmpty(debugStr)) {
+        mDebugKeys = split(debugStr, ' ');
+      }
+    }
+
     prepareVariables();
+    if (mDebugKeys != null) {
+      writeFiles(true);
+      return;
+    }
     openZip();
-    writeFiles();
+    writeFiles(false);
     writePrograms();
     writeDeployInfo();
     writeConfig();
@@ -114,8 +127,7 @@ public class MakeInstallerOper extends AppOper {
 
   private void prepareVariables() {
     mVarMap = hashMap();
-    if (config().sourceVariables() != null)
-      mVarMap.putAll(config().sourceVariables());
+    mVarMap.putAll(config().sourceVariables());
 
     File projDir = config().projectDirectory();
     if (Files.empty(projDir))
@@ -248,7 +260,7 @@ public class MakeInstallerOper extends AppOper {
     );
   }
 
-  private void writeFiles() {
+  private void writeFiles(boolean devMode) {
     log("writeFiles");
     mFileEntries = hashMap();
     mTargetMap = hashMap();
@@ -262,7 +274,7 @@ public class MakeInstallerOper extends AppOper {
 
     // Construct the initial FileState object
     //
-    FileState state = FileState.newBuilder() //
+    FileParseState state = FileParseState.newBuilder() //
         .sourceDir(sourceDir) //
         .targetDir(new File("$[target]")) //
         .build();
@@ -270,11 +282,16 @@ public class MakeInstallerOper extends AppOper {
     parseFileEntries(jsonList, state);
 
     // Process the rewritten list
-
     List<String> sortedKeys = toArray(mFileEntries.keySet());
     Set<String> vars = new TreeSet<String>();
     sortedKeys.sort(null);
+    if (devMode) {
+      performDevMode();
+      return;
+    }
+
     List<FileEntry> ents = arrayList();
+
     for (String key : sortedKeys) {
       // Now that we're done joining paths together, strip out the '^' prefixes;
       FileEntry.Builder ent = mFileEntries.get(key).toBuilder();
@@ -311,6 +328,33 @@ public class MakeInstallerOper extends AppOper {
         .variables(toArray(vars)) //
         .createDirs(toArray(mCreateDirEntries.values())) //
     ;
+  }
+
+  private void performDevMode() {
+    pr(DASHES);
+    pr("Examining -debug- keys:", DASHES);
+    JSMap m = map();
+    for (String key : mDebugKeys) {
+      FileEntry ent = mFileEntries.get(key);
+      m.put(key, ent);
+      if (ent == null)
+        continue;
+      pr(ent);
+    }
+    File targ = new File("_SKIP_FileEntries.json");
+    files().writePretty(targ, m);
+    int checksum = (DataUtil.checksum(targ) & 0xffff) % 9000 + 1000;
+    File checksumFile = new File("_SKIP_cs.json");
+    JSMap checksumMap = JSMap.fromFileIfExists(checksumFile);
+    int prevChecksum = checksumMap.opt("", 0);
+    if (prevChecksum != checksum) {
+      pr("**** Checksum has changed to:", checksum);
+      if (prevChecksum == 0) {
+        checksumMap.put("", checksum);
+        files().writePretty(checksumFile, checksumMap);
+      }
+    }
+    return;
   }
 
   public static <T> List<T> toArray(Collection<T> collection) {
@@ -405,52 +449,50 @@ public class MakeInstallerOper extends AppOper {
   private static final String KEY_VARS = "vars";
   private static final String KEY_LIMIT = "limit";
 
-  // FileEntry <f> is one of:
-  //
-  //   { "key" : "value" ... }
-  // | "file or directory"
-  // | [ <f>* ]
-  //
-  //
-  private void parseFileEntries(Object argument, FileState state) {
-    log("parseFileEntries; state:", INDENT, state, CR, "arg:", CR, argument, DASHES);
-    // Make sure we are dealing with an immutable FileState,
+  private void parseFileEntries(Object argument, FileParseState parentState) {
+    log("parseFileEntries; state:", INDENT, parentState, CR, "arg:", CR, argument, DASHES);
+
+    // Make sure we are dealing with an immutable FileParseState,
     // and construct a new builder from it to apply to subsequent entries
     //
-    state = state.build();
-    FileState.Builder newState = state.toBuilder();
+    FileParseState.Builder state = parentState.build().toBuilder();
 
-    // This is the canonical form of argument
+    // If File or string <x>,
     //
-    if (argument instanceof JSMap) {
-      JSMap m = (JSMap) argument;
-      parseFileEntry(m, newState);
+    // Extend both source and target by <x> and process the resulting FileParseState
+    //
+
+    if (argument instanceof File || argument instanceof String) {
+      String filePath = argument.toString();
+      state.sourceDir(extendFile(state.sourceDir(), filePath));
+      state.targetDir(extendFile(state.targetDir(), filePath));
+      todo("can we replace processFileOrDir by a base case somehow?");
+      processFileOrDir(state);
       return;
     }
 
+    // If [ <elem> ...], parse each element recursively
+    //
     if (argument instanceof JSList) {
       JSList jsonList = (JSList) argument;
       for (Object fs : jsonList.wrappedList()) {
-        parseFileEntries(fs, newState);
+        parseFileEntries(fs, state);
       }
       return;
     }
 
-    if (argument instanceof File)
-      argument = argument.toString();
-
-    if (argument instanceof String) {
-      String filePath = (String) argument;
-      newState.sourceDir(extendFile(newState.sourceDir(), filePath));
-      newState.targetDir(extendFile(newState.targetDir(), filePath));
-      processFileOrDir(newState);
+    // This is the canonical form of argument, essentially the 'base case'
+    //
+    if (argument instanceof JSMap) {
+      JSMap m = (JSMap) argument;
+      parseFileEntry(m, state);
       return;
     }
 
     throw notSupported("don't know how to parse:", INDENT, argument);
   }
 
-  private void addEntry(FileState state) {
+  private void addEntry(FileParseState state) {
     FileEntry.Builder b = FileEntry.newBuilder() //
         .sourcePath(state.sourceDir());
     int i = 0;
@@ -515,11 +557,15 @@ public class MakeInstallerOper extends AppOper {
     return uniqueCollection.size();
   }
 
+  private static Boolean optBool(JSMap m, String key) {
+    return (Boolean) m.optUnsafe(key);
+  }
+
   private static Set<String> sAllowedKeys = Set.of(KEY_SOURCE, KEY_TARGET, KEY_ENCRYPT, KEY_ITEMS, KEY_VARS,
       KEY_LIMIT);
   private static Set<String> sExclusiveKeys = Set.of(KEY_ENCRYPT);
 
-  private void parseFileEntry(JSMap m, FileState.Builder newState) {
+  private void parseFileEntry(JSMap m, FileParseState.Builder newState) {
     assertLegalSet(m.keySet(), sAllowedKeys);
     // Not necessary at present, as there is only one key in the exclusive set:
     if (countUniqueKeys(m.keySet(), sExclusiveKeys) > 1)
@@ -528,20 +574,15 @@ public class MakeInstallerOper extends AppOper {
     String sourceExpr = m.opt(KEY_SOURCE, "");
     String targetExpr = m.opt(KEY_TARGET, "");
 
-    // These only get turned on, never off:
-    newState.encrypt(m.opt(KEY_ENCRYPT) || newState.encrypt());
-    newState.vars(m.opt(KEY_VARS) || newState.vars());
-
-    // If has "target" key, update target_dir
-    //
-    if (nonEmpty(targetExpr))
-      newState.targetDir(extendFile(newState.targetDir(), targetExpr));
-    else {
-      File dir = extendFile(newState.targetDir(), sourceExpr);
-      newState.targetDir(dir);
-    }
+    Boolean newEncrypt = optBool(m, KEY_ENCRYPT);
+    Boolean newVars = optBool(m, KEY_VARS);
+    if (newEncrypt != null)
+      newState.encrypt(newEncrypt);
+    if (newVars != null)
+      newState.vars(newVars);
 
     newState.sourceDir(extendFile(newState.sourceDir(), sourceExpr));
+    newState.targetDir(extendFile(newState.targetDir(), targetExpr));
 
     int limit = m.opt(KEY_LIMIT, 0);
     newState.limit(limit);
@@ -577,10 +618,11 @@ public class MakeInstallerOper extends AppOper {
     if (!(itemsExpr instanceof JSList)) {
       throw badArg("unexpected 'items' argument:", INDENT, m);
     }
+
     parseFileEntries(itemsExpr, newState);
   }
 
-  private void processFileOrDir(FileState.Builder state) {
+  private void processFileOrDir(FileParseState.Builder state) {
     // If this is a directory, process recursively
     File source = resolveFile(state.sourceDir(), false);
     if (source.isDirectory()) {
