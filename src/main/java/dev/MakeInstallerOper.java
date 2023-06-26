@@ -83,34 +83,33 @@ public class MakeInstallerOper extends AppOper {
   @Override
   public void perform() {
     mDeployInfo = DeployInfo.newBuilder().version(config().versionNumber());
-
     prepareVariables();
-
     openZip();
-
+    writeFiles();
+    writePrograms();
+    writeDeployInfo();
     writeConfig();
+    closeZip();
+    log("deploy_info:", INDENT, mDeployInfo);
+  }
 
-    // Process the set of programs, collecting required classes, generate run scripts
+  /**
+   * Process the set of programs, collecting required classes, generate run
+   * scripts
+   */
+  private void writePrograms() {
     for (Entry<String, String> ent : config().programs().entrySet()) {
       String programName = ent.getKey();
       String mainClass = ent.getValue();
       collectProgramClasses(programName);
       generateRunScript(programName, mainClass);
     }
+  }
 
-    writeFiles();
-
-    // Write info 
-    if (verbose() || true) {
-      String content = mDeployInfo.toJson().prettyPrint();
-      mZip.addEntry("deploy_info.json", content);
-      files().writeString(new File("_SKIP_deploy_info.json"), content);
-    } else
-      mZip.addEntry("deploy_info.json", mDeployInfo);
-
-    closeZip();
-
-    log("deploy_info:", INDENT, mDeployInfo);
+  private void writeDeployInfo() {
+    String content = mDeployInfo.toJson().prettyPrint();
+    mZip.addEntry("deploy_info.json", content);
+    files().writeString(new File("_SKIP_deploy_info.json"), content);
   }
 
   private void prepareVariables() {
@@ -459,7 +458,7 @@ public class MakeInstallerOper extends AppOper {
     checkNonEmpty(baseKey, "can't extract key from source_path:", INDENT, b);
 
     String key = baseKey;
-    
+
     // Determine root name to store file within the zip file.
     // Use the basename; if it fails to determine that, try again
     // after replacing all '.' with '_'.
@@ -470,7 +469,7 @@ public class MakeInstallerOper extends AppOper {
       basename = key.replace('.', '_');
       log("key was:", key, "basename is now:", basename);
     }
-    
+
     String ext = Files.getExtension(key);
     while (mFileEntries.containsKey(key)) {
       i++;
