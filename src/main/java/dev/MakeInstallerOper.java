@@ -484,15 +484,63 @@ public class MakeInstallerOper extends AppOper {
       return;
     }
 
+    if (!(argument instanceof JSMap))
+      throw notSupported("don't know how to parse:", INDENT, argument);
+
     // This is the canonical form of argument, essentially the 'base case'
     //
-    if (argument instanceof JSMap) {
-      JSMap m = (JSMap) argument;
-      parseFileEntry(m, state);
+
+    JSMap m = (JSMap) argument;
+    assertLegalSet(m.keySet(), sAllowedKeys);
+
+    String sourceExpr = m.opt(KEY_SOURCE, "");
+    String targetExpr = m.opt(KEY_TARGET, "");
+
+    state.encrypt(optBool(m, KEY_ENCRYPT, state.encrypt()));
+    state.vars(optBool(m, KEY_VARS, state.vars()));
+
+    state.sourceDir(extendFile(state.sourceDir(), sourceExpr));
+    state.targetDir(extendFile(state.targetDir(), targetExpr));
+
+    int limit = m.opt(KEY_LIMIT, 0);
+    state.limit(limit);
+    Object itemsExpr = m.optUnsafe(KEY_ITEMS);
+
+    if (itemsExpr == null) {
+      // If no source key given, but target has been given, create target
+      //
+      if (sourceExpr.isEmpty() && !targetExpr.isEmpty()) {
+       // die("figure out another way to create directories", parentState,INDENT,m);
+        checkState(!mCreateDirEntries.containsKey(state.targetDir()));
+        FileEntry.Builder b = FileEntry.newBuilder() //
+            .targetPath(state.targetDir());
+        mCreateDirEntries.put(state.targetDir(), b);
+        return;
+      }
+
+      if (!sourceExpr.isEmpty()) {
+        processFileOrDir(state);
+        return;
+      }
+
+      throw badArg("no items specified:", INDENT, m);
+    }
+    if (itemsExpr instanceof String) {
+      String filename = (String) itemsExpr;
+      state //
+          .sourceDir(extendFile(state.sourceDir(), filename)) //
+          .targetDir(extendFile(state.targetDir(), filename)) //
+      ;
+      addEntry(state);
       return;
     }
+    if (!(itemsExpr instanceof JSList)) {
+      throw badArg("unexpected 'items' argument:", INDENT, m);
+    }
 
-    throw notSupported("don't know how to parse:", INDENT, argument);
+    halt("why this? argument:",INDENT,argument,CR,"itemsExpr:",itemsExpr,CR,"state:",state);
+    parseFileEntries(itemsExpr, state);
+
   }
 
   private void addEntry(FileParseState state) {
@@ -563,35 +611,35 @@ public class MakeInstallerOper extends AppOper {
   private static Set<String> sAllowedKeys = Set.of(KEY_SOURCE, KEY_TARGET, KEY_ENCRYPT, KEY_ITEMS, KEY_VARS,
       KEY_LIMIT);
 
-  private void parseFileEntry(JSMap m, FileParseState.Builder newState) {
+  private void parseFileEntry(JSMap m, FileParseState.Builder state) {
     assertLegalSet(m.keySet(), sAllowedKeys);
 
     String sourceExpr = m.opt(KEY_SOURCE, "");
     String targetExpr = m.opt(KEY_TARGET, "");
 
-    newState.encrypt(optBool(m, KEY_ENCRYPT, newState.encrypt()));
-    newState.vars(optBool(m, KEY_VARS, newState.vars()));
+    state.encrypt(optBool(m, KEY_ENCRYPT, state.encrypt()));
+    state.vars(optBool(m, KEY_VARS, state.vars()));
 
-    newState.sourceDir(extendFile(newState.sourceDir(), sourceExpr));
-    newState.targetDir(extendFile(newState.targetDir(), targetExpr));
+    state.sourceDir(extendFile(state.sourceDir(), sourceExpr));
+    state.targetDir(extendFile(state.targetDir(), targetExpr));
 
     int limit = m.opt(KEY_LIMIT, 0);
-    newState.limit(limit);
+    state.limit(limit);
     Object itemsExpr = m.optUnsafe(KEY_ITEMS);
 
     if (itemsExpr == null) {
       // If no source key given, but target has been given, create target
       //
       if (sourceExpr.isEmpty() && !targetExpr.isEmpty()) {
-        checkState(!mCreateDirEntries.containsKey(newState.targetDir()));
+        checkState(!mCreateDirEntries.containsKey(state.targetDir()));
         FileEntry.Builder b = FileEntry.newBuilder() //
-            .targetPath(newState.targetDir());
-        mCreateDirEntries.put(newState.targetDir(), b);
+            .targetPath(state.targetDir());
+        mCreateDirEntries.put(state.targetDir(), b);
         return;
       }
 
       if (!sourceExpr.isEmpty()) {
-        processFileOrDir(newState);
+        processFileOrDir(state);
         return;
       }
 
@@ -599,18 +647,18 @@ public class MakeInstallerOper extends AppOper {
     }
     if (itemsExpr instanceof String) {
       String filename = (String) itemsExpr;
-      newState //
-          .sourceDir(extendFile(newState.sourceDir(), filename)) //
-          .targetDir(extendFile(newState.targetDir(), filename)) //
+      state //
+          .sourceDir(extendFile(state.sourceDir(), filename)) //
+          .targetDir(extendFile(state.targetDir(), filename)) //
       ;
-      addEntry(newState);
+      addEntry(state);
       return;
     }
     if (!(itemsExpr instanceof JSList)) {
       throw badArg("unexpected 'items' argument:", INDENT, m);
     }
 
-    parseFileEntries(itemsExpr, newState);
+    parseFileEntries(itemsExpr, state);
   }
 
   private void processFileOrDir(FileParseState.Builder state) {
