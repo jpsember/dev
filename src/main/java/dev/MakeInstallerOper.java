@@ -53,6 +53,8 @@ import js.parsing.RegExp;
 
 public class MakeInstallerOper extends AppOper {
 
+  public static final String DEBUG_KEY = "";// "start.sh" //
+
   @Override
   public String userCommand() {
     return "makeinstaller";
@@ -100,7 +102,9 @@ public class MakeInstallerOper extends AppOper {
 
     // Write info 
     if (verbose() || true) {
-      mZip.addEntry("deploy_info.json", mDeployInfo.toJson().prettyPrint());
+      String content = mDeployInfo.toJson().prettyPrint();
+      mZip.addEntry("deploy_info.json", content);
+      files().writeString(new File("_SKIP_deploy_info.json"), content);
     } else
       mZip.addEntry("deploy_info.json", mDeployInfo);
 
@@ -220,7 +224,7 @@ public class MakeInstallerOper extends AppOper {
     List<String> classFiles = mProgramClassLists.get(programName);
     {
       StringBuilder sb = new StringBuilder();
-      String outputDirPrefix = "classes"; //mClassesDir.toString();
+      String outputDirPrefix = "classes";
       for (String s : classFiles) {
         if (sb.length() != 0)
           sb.append(':');
@@ -433,6 +437,9 @@ public class MakeInstallerOper extends AppOper {
       return;
     }
 
+    if (argument instanceof File)
+      argument = argument.toString();
+
     if (argument instanceof String) {
       String filePath = (String) argument;
       newState.sourceDir(extendFile(newState.sourceDir(), filePath));
@@ -450,8 +457,20 @@ public class MakeInstallerOper extends AppOper {
     int i = 0;
     String baseKey = b.sourcePath().getName();
     checkNonEmpty(baseKey, "can't extract key from source_path:", INDENT, b);
+
     String key = baseKey;
-    String basename = Files.basename(key);
+    
+    // Determine root name to store file within the zip file.
+    // Use the basename; if it fails to determine that, try again
+    // after replacing all '.' with '_'.
+    String basename = null;
+    try {
+      basename = Files.basename(key);
+    } catch (IllegalArgumentException e) {
+      basename = key.replace('.', '_');
+      log("key was:", key, "basename is now:", basename);
+    }
+    
     String ext = Files.getExtension(key);
     while (mFileEntries.containsKey(key)) {
       i++;
@@ -467,6 +486,8 @@ public class MakeInstallerOper extends AppOper {
       b.targetPath(state.targetDir());
     }
     b.encrypt(state.encrypt());
+    if (key.equals(DEBUG_KEY))
+      die(b);
     mFileEntries.put(key, b.build());
 
     // If en entry with this target already exists, remove it
@@ -508,15 +529,18 @@ public class MakeInstallerOper extends AppOper {
     String sourceExpr = m.opt(KEY_SOURCE, "");
     String targetExpr = m.opt(KEY_TARGET, "");
 
-    newState.encrypt(m.opt(KEY_ENCRYPT));
-    newState.vars(m.opt(KEY_VARS));
+    // These only get turned on, never off:
+    newState.encrypt(m.opt(KEY_ENCRYPT) || newState.encrypt());
+    newState.vars(m.opt(KEY_VARS) || newState.vars());
 
     // If has "target" key, update target_dir
     //
     if (nonEmpty(targetExpr))
       newState.targetDir(extendFile(newState.targetDir(), targetExpr));
-    else
-      newState.targetDir(extendFile(newState.targetDir(), sourceExpr));
+    else {
+      File dir = extendFile(newState.targetDir(), sourceExpr);
+      newState.targetDir(dir);
+    }
 
     newState.sourceDir(extendFile(newState.sourceDir(), sourceExpr));
 
@@ -568,7 +592,7 @@ public class MakeInstallerOper extends AppOper {
         removeAllButFirstN(files, state.limit());
       for (File f : files) {
         log("...processing relative file:", f);
-        parseFileEntries(f.toString(), state);
+        parseFileEntries(f, state);
       }
     } else {
       addEntry(state);
