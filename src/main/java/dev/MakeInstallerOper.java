@@ -93,9 +93,7 @@ public class MakeInstallerOper extends AppOper {
 
     prepareVariables();
     if (mDebugKeys != null) {
-      pr("calling write files");
       writeFiles(true);
-      pr("done write");
       return;
     }
     openZip();
@@ -296,7 +294,7 @@ public class MakeInstallerOper extends AppOper {
       FileEntry.Builder ent = mFileEntries.get(key).toBuilder();
       ent.sourcePath(resolveFile(ent.sourcePath(), false));
       ent.targetPath(resolveFile(ent.targetPath(), true));
-      processFileEntry(ent);
+      addFileToZip(ent);
       extractVars(ent.targetPath().toString(), vars);
 
       // If the permissions are unusual, add them
@@ -338,7 +336,6 @@ public class MakeInstallerOper extends AppOper {
     }
     for (String key : mDebugKeys) {
       FileEntry ent = mFileEntries.get(key);
-      // m.put(key, ent);
       if (ent == null)
         continue;
       pr(ent);
@@ -430,7 +427,7 @@ public class MakeInstallerOper extends AppOper {
     return new File(s);
   }
 
-  private void processFileEntry(FileEntry ent) {
+  private void addFileToZip(FileEntry ent) {
     log("copying:", INDENT, ent);
     File src = ent.sourcePath();
     Files.assertExists(src, "copyOther");
@@ -452,55 +449,60 @@ public class MakeInstallerOper extends AppOper {
   private static final String KEY_VARS = "vars";
   private static final String KEY_LIMIT = "limit";
 
-  private void checkInf(Object... msg) {
-    if (mInf++ > 300) {
-      die(insertStringToFront("infinite loop!", msg));
-    }
-    pr(insertStringToFront("checking inf: " + mInf, msg));
-  }
-
-  private int mInf;
-
   /**
    * <pre>
    * 
    * Parse an argument into a FileEntry <fe>
    * 
-   * Argument can be of one of these forms:
+   * An argument, <arg>, can be of one of these forms:
    * 
-   * {
-   *    "source" : <path>     // file or directory to be copied (rel. to state.source)
-   *    "target" : <path>     // target location of file (rel. to state.target) (includes filename)
-   * }
-   * 
-   * {  "source" : <path>     // as above, excluding filename
-   *    "target" : <path>     // as above, excluding filename
-   *    "items"  : <filename>*
-   * }
-  
-   * {
-   *    "target"  : <path>     // directory to be created on target machine (rel. to state.target)
-   * }
-   * 
-   * Each of the above forms can include zero or more of these keys as well:
-   * 
-   *   "vars"   : <bool>
-   *  "encrypt" : <bool>
-   *   "items"  : <integer>
-   * 
-   * An additional legal form:
-   * 
-   * <path>                   // path that combines with state.source and state.target to form source and target
-   *                          // file or directory
-   * 
-   * 
+   *  1) path
+   *  
+   *  "<path>"     // path that combines with state.source and state.target to form 
+   *               // source and target file or directory 
+   *  
+   *  2) list             
+   *               
+   *  [<arg>, ... ]    // recursively process each <arg> in sequence
+   *  
+   *  
+   *  3) map
+   *  
+   *  Here, '[' denotes optionality, not a json list:
+   *  
+   *  {
+   *    [ "source" : <path> ]   // path that combines with state.source   
+   *    [ "target" : <path> ]   // path that combines with state.target
+   *    [ "vars"   : <bool> ]   // if set, file should have variable substitution applied by deployer
+   *    [ "encrypt": <bool> ]   // if set, file is encrypted using the passphrase
+   *    [ "items"  : <arg>  ]   // recursively process argument 
+   *  }
+   *  
+   *  Notes
+   *  ================================================================================================
+   *  
+   *  1. To create a directory, use a map that has a "target" key, but does not contain "source" 
+   *  or "items" keys, i.e.
+   *  
+   *  {
+   *     "target" : <path>
+   *  }
+   *  
+   *  2. If a map does not contain a "target" key, it is treated as if "target" was set to the same
+   *  value as "source".
+   *  
+   *  3. Paths may be prefixed with the character '^' to indicate that the path should be treated
+   *     as an absolute path by the extendPath() method.  In other words:  
+   *     
+   *        extendPath("foo", "$[bar]") => "foo/$[bar]"
+   *        
+   *        extendPath("foo", "^$[bar]") => "^$[bar]"
+   *        
+   *     The '^' prefix is removed before the results are generated.
    * 
    * </pre>
    */
   private void parseFileEntries(Object argument, FileEntry parentState) {
-
-    checkInf("parseFileEntries");
-
     log("parseFileEntries; state:", INDENT, parentState, CR, "arg:", CR, argument, DASHES);
 
     // Make sure we are dealing with an immutable FileParseState,
@@ -510,26 +512,11 @@ public class MakeInstallerOper extends AppOper {
 
     if (argument instanceof String || argument instanceof File) {
       String filePath = argument.toString();
-      state.sourcePath(extendFile(state.sourcePath(), filePath));
-      state.targetPath(extendFile(state.targetPath(), filePath));
-      todo("can we replace processFileOrDir by a base case somehow?");
-      processFileOrDir(state);
+      state.sourcePath(extendPath(state.sourcePath(), filePath));
+      state.targetPath(extendPath(state.targetPath(), filePath));
+      parseFileOrDir(state);
       return;
     }
-
-    //    // If File or string <x>,
-    //    //
-    //    // Extend both source and target by <x> and process the resulting FileParseState
-    //    //
-    //    if (argument instanceof String) {
-    //      // argument instanceof File || 
-    //      String filePath = argument.toString();
-    //      state.sourcePath(extendFile(state.sourcePath(), filePath));
-    //      state.targetPath(extendFile(state.targetPath(), filePath));
-    //      todo("can we replace processFileOrDir by a base case somehow?");
-    //      processFileOrDir(state);
-    //      return;
-    //    }
 
     // If [ <elem> ...], parse each element recursively
     //
@@ -546,7 +533,6 @@ public class MakeInstallerOper extends AppOper {
 
     // This is the canonical form of argument, essentially the 'base case'
     //
-
     JSMap m = (JSMap) argument;
     assertLegalSet(m.keySet(), sAllowedKeys);
 
@@ -564,42 +550,84 @@ public class MakeInstallerOper extends AppOper {
         expr = sourceExpr;
       }
       checkArgument(nonEmpty(expr), "both src and tgt empty", INDENT, m);
-      state.targetPath(extendFile(state.targetPath(), expr));
+      state.targetPath(extendPath(state.targetPath(), expr));
     }
 
     if (sourceExpr.isEmpty() && itemsExpr == null) {
       state.sourcePath(null);
       state.encrypt(false).limit(0);
-      pr("..........adding create dir entry:", INDENT, m, CR, state);
-      addEntry(state);
+      FileEntry prevMapping = mCreateDirEntries.put(state.targetPath(), state);
+      checkState(prevMapping == null, "duplicate create directory argument:", state.targetPath(), CR,
+          "previous:", INDENT, prevMapping, OUTDENT, "new:", INDENT, state);
       return;
     }
 
-    state.sourcePath(extendFile(state.sourcePath(), sourceExpr));
+    state.sourcePath(extendPath(state.sourcePath(), sourceExpr));
 
     if (itemsExpr == null) {
-      addEntry(state);
+      parseFileOrDir(state);
       return;
     }
 
     if (itemsExpr instanceof String) {
-      String filename = (String) itemsExpr;
-      state.sourcePath(extendFile(state.sourcePath(), filename)) //
-          .targetPath(extendFile(state.targetPath(), filename)) //
+      String filename = itemsExpr.toString();
+      state.sourcePath(extendPath(state.sourcePath(), filename)) //
+          .targetPath(extendPath(state.targetPath(), filename)) //
       ;
-      addEntry(state);
+      parseFileOrDir(state);
       return;
     }
     if (!(itemsExpr instanceof JSList)) {
       throw badArg("unexpected 'items' argument:", INDENT, m);
     }
-
     parseFileEntries(itemsExpr, state);
   }
 
-  private void addEntry(FileEntry state) {
-    checkInf("addEntry");
-    FileEntry.Builder b = state.build().toBuilder();
+  public static void assertLegalSet(Collection<String> collection, Set<String> allowedItems) {
+    for (String k : collection) {
+      if (!allowedItems.contains(k)) {
+        throw badArg("Illegal key in set:", k);
+      }
+    }
+  }
+
+  private static boolean optBool(JSMap m, String key, boolean defaultValue) {
+    Boolean r = (Boolean) m.optUnsafe(key);
+    if (r == null)
+      r = defaultValue;
+    return defaultValue;
+  }
+
+  private static Set<String> sAllowedKeys = Set.of(KEY_SOURCE, KEY_TARGET, KEY_ENCRYPT, KEY_ITEMS, KEY_VARS,
+      KEY_LIMIT);
+
+  /**
+   * Add FileEntry to zip file, unless source points to a directory, in which
+   * case add entries for every file within the source's directory
+   */
+  private void parseFileOrDir(FileEntry state) {
+    state = state.build();
+    // If this is a directory, process recursively
+    File source = resolveFile(state.sourcePath(), false);
+    if (source.isDirectory()) {
+
+      log("...writing dir:", source);
+      DirWalk w = new DirWalk(source).withRecurse(true).omitNames(".DS_Store");
+      List<File> files = w.filesRelative();
+      if (state.limit() > 0)
+        removeAllButFirstN(files, state.limit());
+
+      FileEntry.Builder newState = state.toBuilder();
+      for (File f : files) {
+        log("...processing relative file:", f);
+        newState.sourcePath(extendPath(state.sourcePath(), f.toString()));
+        newState.targetPath(extendPath(state.targetPath(), f.toString()));
+        parseFileOrDir(newState);
+      }
+      return;
+    }
+
+    FileEntry.Builder b = state.toBuilder();
     File f = b.sourcePath();
     if (Files.empty(f))
       f = b.targetPath();
@@ -610,6 +638,10 @@ public class MakeInstallerOper extends AppOper {
     // Its name is not important as long as it is unique
     //
     String key = String.format("%03d_%s", mZipFileNumber, baseKey);
+    // If it's a key we wish to examine, use the baseKey unmodified.
+    if (mDebugKeys != null && mDebugKeys.contains(baseKey)) {
+      key = baseKey;
+    }
     mZipFileNumber++;
 
     b.key(key);
@@ -637,47 +669,6 @@ public class MakeInstallerOper extends AppOper {
     log(VERT_SP, "created file entry:", key, "=>", INDENT, b, VERT_SP);
   }
 
-  public static void assertLegalSet(Collection<String> collection, Set<String> allowedItems) {
-    for (String k : collection) {
-      if (!allowedItems.contains(k)) {
-        throw badArg("Illegal key in set:", k);
-      }
-    }
-  }
-
-  private static boolean optBool(JSMap m, String key, boolean defaultValue) {
-    Boolean r = (Boolean) m.optUnsafe(key);
-    if (r == null)
-      r = defaultValue;
-    return defaultValue;
-  }
-
-  private static Set<String> sAllowedKeys = Set.of(KEY_SOURCE, KEY_TARGET, KEY_ENCRYPT, KEY_ITEMS, KEY_VARS,
-      KEY_LIMIT);
-
-  private void processFileOrDir(FileEntry.Builder state) {
-    checkInf("processFileOrDir");
-    // If this is a directory, process recursively
-    File source = resolveFile(state.sourcePath(), false);
-    if (source.isDirectory()) {
-      log("...writing dir:", source);
-      DirWalk w = new DirWalk(source).withRecurse(true).omitNames(".DS_Store");
-      List<File> files = w.filesRelative();
-      if (state.limit() > 0)
-        removeAllButFirstN(files, state.limit());
-
-      FileEntry.Builder newState = state.build().toBuilder();
-      for (File f : files) {
-        log("...processing relative file:", f);
-        newState.sourcePath(extendFile(newState.sourcePath(), f.toString()));
-        newState.targetPath(extendFile(newState.targetPath(), f.toString()));
-        processFileOrDir(newState);
-      }
-    } else {
-      addEntry(state);
-    }
-  }
-
   // file       suffix      new
   // ---------------------------------------------
   //            abc         abc
@@ -687,7 +678,7 @@ public class MakeInstallerOper extends AppOper {
   // abc        /xyz/def    /xyz/def
   // ^abc       ^xyz        ^xyz
   //
-  private File extendFile(File file, String suffix) {
+  private File extendPath(File file, String suffix) {
     File result;
     if (Files.empty(file)) {
       checkArgument(nonEmpty(suffix));
