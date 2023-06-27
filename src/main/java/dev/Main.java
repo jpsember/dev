@@ -50,6 +50,7 @@ public class Main extends App {
     registerOper(new CreateMakeOper());
     registerOper(new ResetTestOper());
     registerOper(new CopyrightOper());
+    registerOper(new GitHashOper());
     registerOper(new ExperimentOper());
     registerOper(new EntityOper());
     registerOper(new PushOper());
