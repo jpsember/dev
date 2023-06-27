@@ -26,4 +26,8 @@ class {
   // If nonempty, contains one or more of "x" : executable
   //
   string permissions;
+
+  // If nonzero, limit on the number of files to copy within a directory
+  //
+  int limit;
 }
