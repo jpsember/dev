@@ -68,6 +68,8 @@ public class Main extends App {
     registerOper(new MakeScriptOper());
     registerOper(new DFAOper());
     registerOper(new MakeInstallerOper());
+    registerOper(new NewOperOper());
+    // --- insertion point for new operations (used by NewOperOper)
   }
 
 }

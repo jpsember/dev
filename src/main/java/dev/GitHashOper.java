@@ -59,6 +59,7 @@ public class GitHashOper extends AppOper {
       if (!newHash.equals(currentHash))
         log("updated hash for:", depName);
     }
+    adv(mSourceText.length());
     files().writeIfChanged(src, mSb.toString());
   }
 

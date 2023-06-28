@@ -1,0 +1,9 @@
+class {
+  string name; // e.g. SortImagesOper
+
+  string config_name;
+
+  string help_description = "no help is available for operation";
+
+  string user_command = "";
+}

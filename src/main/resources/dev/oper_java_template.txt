@@ -1,0 +1,40 @@
+package dev;
+
+import static js.base.Tools.*;
+
+import dev.gen.[!config_class_name];
+import js.app.AppOper;
+
+public class [!class_name] extends AppOper {
+
+  @Override
+  public String userCommand() {
+    return "[!user_command]";
+  }
+
+  @Override
+  public String getHelpDescription() {
+    return "[!help_description]";
+  }
+
+  @Override
+  public [!config_class_name] defaultArgs() {
+    return [!config_class_name].DEFAULT_INSTANCE;
+  }
+
+  @Override
+  public [!config_class_name] config() {
+    if (mConfig == null) {
+      mConfig = ([!config_class_name]) super.config();
+    }
+    return mConfig;
+  }
+
+  @Override
+  public void perform() {
+    todo("This operation isn't implemented yet");
+  }
+
+  private [!config_class_name] mConfig;
+
+}

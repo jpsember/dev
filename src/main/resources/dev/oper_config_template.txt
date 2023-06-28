@@ -1,0 +1,3 @@
+- // Uncomment this deprecation flag and add some fields.
+class {
+}
