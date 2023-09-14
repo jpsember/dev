@@ -19,7 +19,7 @@ public class NewDatOper extends AppOper {
 
   @Override
   public String getHelpDescription() {
-    return "no help is available for operation";
+    return "name <gen.xyz.foo.dat>";
   }
 
   @Override
