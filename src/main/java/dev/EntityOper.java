@@ -78,11 +78,9 @@ public class EntityOper extends AppOper {
 
   @Override
   public void perform() {
-    Ngrok ngrok = Ngrok.sharedInstance();
-    if (verbose()) {
+    if (verbose())
       manager().setVerbose();
-      ngrok.setVerbose();
-    }
+
     if (mOperName == null)
       mOperName = "display";
 
@@ -105,7 +103,7 @@ public class EntityOper extends AppOper {
     }
       break;
     case "ngrok":
-      pr(ngrok.refresh().ngrokTunnelMap());
+      pr(ngrok().refresh().ngrokTunnelMap());
       break;
     }
     if (mIdArg != null)
@@ -132,16 +130,16 @@ public class EntityOper extends AppOper {
   private void setEntity(String id) {
     RemoteEntityInfo ent = manager().entity(id);
 
-    // RemoteEntityInfo foundEnt = manager().optionalEntryFor(id);
     if (ent == null) {
       setError("no entity found for:", quote(id), "; use 'list' to available ones");
     }
-
-    RemoteEntityInfo modified = Ngrok.sharedInstance().addNgrokInfo(ent, false);
-    if (modified == null)
-      setError("no ngrok info found for:", quote(id));
+    if (!ent.staticUrl()) {
+      ent = Ngrok.sharedInstance().addNgrokInfo(ent, false);
+      if (ent == null)
+        setError("no ngrok info found for:", quote(id));
+    }
     manager().setActive(id);
-    createSSHScript(modified);
+    createSSHScript(ent);
     displayEntity();
   }
 
@@ -179,6 +177,17 @@ public class EntityOper extends AppOper {
     return mEntityManager;
   }
 
+  private Ngrok ngrok() {
+    if (mNgrok == null) {
+      mNgrok = Ngrok.sharedInstance();
+      if (verbose()) {
+        mNgrok.setVerbose();
+      }
+    }
+    return mNgrok;
+  }
+
+  private Ngrok mNgrok;
   private EntityManager mEntityManager;
   private String mIdArg;
   private String mOperName;
