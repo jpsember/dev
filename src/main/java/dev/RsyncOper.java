@@ -148,7 +148,9 @@ public abstract class RsyncOper extends AppOper {
       s.arg(resolvedPath);
     else {
       RemoteEntityInfo ent = remoteEntity();
-      ent = Ngrok.sharedInstance().addNgrokInfo(ent, true);
+      if (!ent.staticUrl()) {
+        ent = Ngrok.sharedInstance().addNgrokInfo(ent, true);
+      }
       checkArgument(ent.port() != null, "bad port:", INDENT, ent);
 
       // I don't think we need to add quotes around the (single) argument [ssh -p]; in fact,
