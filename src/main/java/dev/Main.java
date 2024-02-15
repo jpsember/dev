@@ -24,9 +24,9 @@
  **/
 package dev;
 
-import js.app.App;
-
 import static js.base.Tools.*;
+
+import js.app.App;
 
 public class Main extends App {
 
@@ -34,6 +34,10 @@ public class Main extends App {
 
   public static void main(String[] args) {
     loadTools();
+if (alert("setting default args for linode")) {
+  args = LinodeOper.TEST_ARGS.split("\\s+");
+  pr("Args:",args);
+}
     App app = new Main();
     app.startApplication(args);
     app.exitWithReturnCode();
@@ -71,6 +75,7 @@ public class Main extends App {
     registerOper(new NewOperOper());
     registerOper(new NewDatOper());
     registerOper(new StripDbOper());
+    registerOper(new LinodeOper());
     // --- insertion point for new operations (used by NewOperOper)
   }
 

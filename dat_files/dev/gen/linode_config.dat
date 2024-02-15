@@ -1,0 +1,8 @@
+class {
+
+  // Parameters for configuring a Linode
+
+  string root_password;
+  string access_token;
+
+}
