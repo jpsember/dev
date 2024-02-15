@@ -3,8 +3,6 @@ package dev;
 import static js.base.Tools.*;
 
 import java.io.File;
-import java.util.HashMap;
-import java.util.Map;
 
 import dev.gen.LinodeConfig;
 import js.app.AppOper;
@@ -17,8 +15,10 @@ public class LinodeOper extends AppOper {
 
   public static final String TEST_ARGS = "--exceptions -v linode " //
       //+ "create label cpu2";
-      + "list";
-      //+ "delete label cpu2";
+      + " list"
+      //      + "list detail" 
+      //+ " delete label cpu2" //
+  ;
 
   @Override
   public String userCommand() {
@@ -94,7 +94,7 @@ public class LinodeOper extends AppOper {
 
     if (label.isEmpty())
       throw setError("please specify a label for the linode");
-    if (getLinodeId(label) != null)
+    if (getLinodeId(label) != 0)
       throw setError("linode with label", label, "already exists");
 
     log("config:", INDENT, config());
@@ -109,52 +109,24 @@ public class LinodeOper extends AppOper {
         .put("type", "g6-nanode-1") //
     ;
 
-    callLinode("instances", m);
+    callLinode("POST", "instances", m);
     verifyOk();
     discardIdMap();
   }
 
   private void listNodes() {
-    callLinode("instances");
-    verifyOk();
+    var detail = cmdLineArgs().nextArgIf("detail");
 
-    pr(labelToIdMap());
-    
     var m2 = map();
-    var nodes = output().getList("data");
-    for (var m : nodes.asMaps()) {
-      m2.put(m.get("label"), m);
+    var m = labelToIdMap();
+    for (String label : m.keySet()) {
+      var m3 = m.getMap(label);
+      if (detail)
+        m2.put(label, m3);
+      else
+        m2.put(label, m3.getInt("id"));
     }
     pr(m2);
-
-    //    pr(output());
-  }
-
-  private Integer getLinodeId(String label) {
-    return labelToIdMap().get(label);
-  }
-
-  private Map<String, Integer> labelToIdMap() {
-    if (mLabelToIdMap == null) {
-      var m = new HashMap<String, Integer>();
-
-      callLinode("instances");
-      verifyOk();
-
-      var nodes = output().getList("data");
-      for (var m2 : nodes.asMaps()) {
-        var id = m2.getInt("id");
-        m.put(m2.get("label"), id);
-      }
-      mLabelToIdMap = m;
-    }
-    return mLabelToIdMap;
-  }
-
-  private Map<String, Integer> mLabelToIdMap;
-
-  private void discardIdMap() {
-    mLabelToIdMap = null;
   }
 
   private void deleteLinode() {
@@ -163,33 +135,28 @@ public class LinodeOper extends AppOper {
     var label = a.nextArgIf("label", "");
     if (label.isEmpty())
       throw setError("please specify a label for the linode");
-    if (getLinodeId(label) == null)
+    int id = getLinodeId(label);
+    if (id == 0)
       throw setError("linode with label", label, "does not exist");
 
-    var m = map();
-    m.put("authorized_users", list().add("jpsember")) //
-        .put("authorized_keys", JSList.with(config().authorizedKeys())) //
-        .put("image", "linode/ubuntu20.04") //
-        .put("label", label) //
-        .put("region", "us-sea")//
-        .put("root_pass", config().rootPassword()) //
-        .put("type", "g6-nanode-1") //
-    ;
+    callLinode("DELETE", "instances/" + id);
 
-    callLinode("instances", m);
     verifyOk();
     discardIdMap();
   }
 
-  private void callLinode(String endpoint) {
-    callLinode(endpoint, null);
+  //
+  //  private void callLinode(String endpoint) {
+  //    callLinode(endpoint, null);
+  //  }
+  private void callLinode(String action, String endpoint) {
+    callLinode(action, endpoint, null);
   }
 
-  private void callLinode(String endpoint, JSMap m) {
+  private void callLinode(String action, String endpoint, JSMap m) {
 
     mErrors = null;
     mSysCallOutput = null;
-    mSysCall = m;
 
     var sc = new SystemCall();
     sc.setVerbose(verbose());
@@ -198,12 +165,10 @@ public class LinodeOper extends AppOper {
         "-s", // suppress progress bar
         "-H", "Content-Type: application/json", //
         "-H", "Authorization: Bearer " + config().accessToken());
-    if (m != null) {
-      sc.arg("-X", "POST", "-d", m //
-      );
-    } else {
-      sc.arg("-X", "GET");
-    }
+    sc.arg("-X", action);
+    if (m != null)
+      sc.arg("-d", m);
+
     sc.arg("https://api.linode.com/v4/linode/" + endpoint);
 
     if (sc.exitCode() != 0) {
@@ -232,9 +197,39 @@ public class LinodeOper extends AppOper {
     return mSysCallOutput;
   }
 
+  private int getLinodeId(String label) {
+    var m = getLinode(label);
+    if (m == null)
+      return 0;
+    return m.getInt("id");
+  }
+
+  private JSMap getLinode(String label) {
+    return labelToIdMap().optJSMap(label);
+  }
+
+  private void discardIdMap() {
+    mLinodeMap = null;
+  }
+
+  private JSMap labelToIdMap() {
+    if (mLinodeMap == null) {
+      var m = map();
+      callLinode("GET", "instances");
+      verifyOk();
+
+      var nodes = output().getList("data");
+      for (var m2 : nodes.asMaps()) {
+        m.put(m2.get("label"), m2);
+      }
+      mLinodeMap = m;
+    }
+    return mLinodeMap;
+  }
+
+  private JSMap mLinodeMap;
   private LinodeConfig mConfig;
   private JSList mErrors;
   private JSMap mSysCallOutput;
-  private JSMap mSysCall;
 
 }
