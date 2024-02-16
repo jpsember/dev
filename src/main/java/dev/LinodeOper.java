@@ -114,7 +114,10 @@ public class LinodeOper extends AppOper {
         // "These users must have an SSH Key associated with your Profile first. 
         //  See SSH Key Add (POST /profile/sshkeys) for more information."
         //
-        .put("authorized_users", list().add("jeff")) //
+        // I now suspect that these authorized users are NOT ubuntu user names, but rather Linode user names...
+
+        // .put("authorized_users", list().add("jeff")) //
+    
         .put("authorized_keys", JSList.with(config().authorizedKeys())) //
         .put("image", "linode/ubuntu20.04") //
         .put("label", label) //
