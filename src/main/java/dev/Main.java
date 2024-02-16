@@ -34,10 +34,6 @@ public class Main extends App {
 
   public static void main(String[] args) {
     loadTools();
-if (alert("setting default args for linode")) {
-  args = LinodeOper.TEST_ARGS.split("\\s+");
-  pr("Args:",args);
-}
     App app = new Main();
     app.startApplication(args);
     app.exitWithReturnCode();

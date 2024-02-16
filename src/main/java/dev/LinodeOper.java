@@ -6,19 +6,13 @@ import java.io.File;
 
 import dev.gen.LinodeConfig;
 import js.app.AppOper;
+import js.base.BasePrinter;
 import js.base.SystemCall;
 import js.file.Files;
 import js.json.JSList;
 import js.json.JSMap;
 
 public class LinodeOper extends AppOper {
-
-  public static final String TEST_ARGS = "--exceptions -v linode " //
-      //+ "create label cpu2";
-      + " list"
-      //      + "list detail" 
-      //+ " delete label cpu2" //
-  ;
 
   @Override
   public String userCommand() {
@@ -31,6 +25,13 @@ public class LinodeOper extends AppOper {
   }
 
   @Override
+  protected void getOperSpecificHelp(BasePrinter b) {
+    b.pr("list [detail]");
+    b.pr("create <label> [gpu]  ");
+    b.pr("delete <label>");
+  }
+
+  @Override
   public LinodeConfig defaultArgs() {
     return LinodeConfig.DEFAULT_INSTANCE;
   }
@@ -40,8 +41,11 @@ public class LinodeOper extends AppOper {
     if (mConfig == null) {
       var c = ((LinodeConfig) super.config()).toBuilder();
       File secrets = new File("linode_secrets.json");
-      if (!secrets.exists())
+      log("looking for secrets file #1:", INDENT, Files.infoMap(secrets));
+      if (!secrets.exists()) {
         secrets = new File(Files.homeDirectory(), ".ssh/linode_secrets.json");
+        log("looking for secrets file #2:", INDENT, Files.infoMap(secrets));
+      }
       log("looking for secrets in:", secrets, "exists:", secrets.exists());
       if (secrets.exists()) {
         var s = Files.parseAbstractData(LinodeConfig.DEFAULT_INSTANCE, secrets);
@@ -49,6 +53,8 @@ public class LinodeOper extends AppOper {
           c.accessToken(s.accessToken());
         if (c.rootPassword().isEmpty())
           c.rootPassword(s.rootPassword());
+        if (c.authorizedKeys().isEmpty())
+          c.authorizedKeys(s.authorizedKeys());
       }
       if (c.accessToken().isEmpty())
         throw setError("No access_token provided");
@@ -86,8 +92,7 @@ public class LinodeOper extends AppOper {
 
   private void createLinode() {
     var a = cmdLineArgs();
-
-    var label = a.nextArgIf("label", "");
+    var label = a.nextArg("");
     var gpu = a.nextArgIf("gpu");
     if (gpu)
       todo("support gpu");
@@ -100,7 +105,16 @@ public class LinodeOper extends AppOper {
     log("config:", INDENT, config());
 
     var m = map();
-    m.put("authorized_users", list().add("jpsember")) //
+    m //
+        // If I add an authorized user OTHER than 'jpsember', it fails with an error "Username XXX is invalid.".
+        // Is this because the authorized keys is somehow tied to that name?
+
+        // Ah ha: at https://www.linode.com/docs/api/linode-instances/#linode-create, it says:
+        //
+        // "These users must have an SSH Key associated with your Profile first. 
+        //  See SSH Key Add (POST /profile/sshkeys) for more information."
+        //
+        .put("authorized_users", list().add("jeff")) //
         .put("authorized_keys", JSList.with(config().authorizedKeys())) //
         .put("image", "linode/ubuntu20.04") //
         .put("label", label) //
@@ -123,8 +137,13 @@ public class LinodeOper extends AppOper {
       var m3 = m.getMap(label);
       if (detail)
         m2.put(label, m3);
-      else
-        m2.put(label, m3.getInt("id"));
+      else {
+        var m4 = map();
+        String[] keys = { "id", "ipv4" };
+        for (var k : keys)
+          m4.putUnsafe(k, m3.getUnsafe(k));
+        m2.put(label, m4);
+      }
     }
     pr(m2);
   }
@@ -132,7 +151,7 @@ public class LinodeOper extends AppOper {
   private void deleteLinode() {
     var a = cmdLineArgs();
 
-    var label = a.nextArgIf("label", "");
+    var label = a.nextArg("");
     if (label.isEmpty())
       throw setError("please specify a label for the linode");
     int id = getLinodeId(label);
@@ -145,10 +164,6 @@ public class LinodeOper extends AppOper {
     discardIdMap();
   }
 
-  //
-  //  private void callLinode(String endpoint) {
-  //    callLinode(endpoint, null);
-  //  }
   private void callLinode(String action, String endpoint) {
     callLinode(action, endpoint, null);
   }

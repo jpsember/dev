@@ -19,3 +19,20 @@ The file `<repo root>/project_config/encrypted_secrets.bin` is decrypted (using 
 
 The appropriate entity info is read from the entity map (using the supplied entity id as a key) and is written to `<repo_root>/secrets/entity_info.json`.
 
+
+## linode stuff
+
+### Is the `authorized_users` field necessary?
+
+It is poorly documented, and I don't know what relationship if any it has with `authorized_keys`
+
+
+### How do I create a user (with home directory) from the API?
+
+### Silencing the welcome message and last logged in when ssh'ing
+
+https://serverfault.com/questions/407033/how-can-i-edit-the-welcome-message-when-ssh-start
+
+In the root home directory, type `touch ~/.hushlogin` to suppress these messages.
+
+
