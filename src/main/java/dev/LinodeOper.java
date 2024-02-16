@@ -60,12 +60,14 @@ public class LinodeOper extends AppOper {
         throw setError("No access_token provided");
 
       mConfig = c.build();
+      log("config:", INDENT, mConfig);
     }
     return mConfig;
   }
 
   @Override
   public void perform() {
+    todo("add a 'prepare' suboper that rsyncs scripts, and runs one of those scripts remotely");
     var a = cmdLineArgs();
 
     if (!a.hasNextArg()) {
@@ -102,22 +104,8 @@ public class LinodeOper extends AppOper {
     if (getLinodeId(label) != 0)
       throw setError("linode with label", label, "already exists");
 
-    log("config:", INDENT, config());
-
     var m = map();
     m //
-        // If I add an authorized user OTHER than 'jpsember', it fails with an error "Username XXX is invalid.".
-        // Is this because the authorized keys is somehow tied to that name?
-
-        // Ah ha: at https://www.linode.com/docs/api/linode-instances/#linode-create, it says:
-        //
-        // "These users must have an SSH Key associated with your Profile first. 
-        //  See SSH Key Add (POST /profile/sshkeys) for more information."
-        //
-        // I now suspect that these authorized users are NOT ubuntu user names, but rather Linode user names...
-
-        // .put("authorized_users", list().add("jeff")) //
-    
         .put("authorized_keys", JSList.with(config().authorizedKeys())) //
         .put("image", "linode/ubuntu20.04") //
         .put("label", label) //

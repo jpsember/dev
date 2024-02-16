@@ -24,10 +24,17 @@ The appropriate entity info is read from the entity map (using the supplied enti
 
 ### Is the `authorized_users` field necessary?
 
-It is poorly documented, and I don't know what relationship if any it has with `authorized_keys`
+It is poorly documented, and I don't know what relationship if any it has with `authorized_keys`.
+*I now think* that it refers to Linode users, and not Ubuntu users.
+
+To keep things simple, I'll just run as root on the linode instances.
+
 
 
 ### How do I create a user (with home directory) from the API?
+
+I'm just going to run as root, and it creates a home directory for root already.
+
 
 ### Silencing the welcome message and last logged in when ssh'ing
 
