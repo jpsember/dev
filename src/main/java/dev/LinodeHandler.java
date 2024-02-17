@@ -127,7 +127,7 @@ public class LinodeHandler extends BaseObject implements RemoteHandler {
       long curr = System.currentTimeMillis();
       if (startTime == 0)
         startTime = curr;
-      if (curr - startTime > DateTimeTools.SECONDS(30))
+      if (curr - startTime > DateTimeTools.SECONDS(120))
         badState("timed out waiting for status = 'running'", INDENT, ent);
     }
   }
