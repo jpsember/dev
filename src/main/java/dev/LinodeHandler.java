@@ -150,7 +150,6 @@ public class LinodeHandler extends BaseObject implements RemoteHandler {
     var fl = Files.S;
     fl.writeString(f, sb.toString());
     fl.chmod(f, "u+x");
-    todo("use some utility function for this");
   }
 
   private void callLinode(String action, String endpoint) {
@@ -254,7 +253,6 @@ public class LinodeHandler extends BaseObject implements RemoteHandler {
   private LinodeConfig mConfig;
   private JSList mErrors;
   private JSMap mSysCallOutput;
-
 
   static {
     RemoteOper.registerHandler(new LinodeHandler());
