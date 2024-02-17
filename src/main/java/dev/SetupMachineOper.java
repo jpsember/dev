@@ -57,6 +57,9 @@ public class SetupMachineOper extends AppOper {
     if (args.hasNextArg()) {
       String arg = args.nextArg();
       switch (arg) {
+      case "new":
+        mNewFlag = true;
+        break;
       case "eclipse":
         mEclipseMode = true;
         break;
@@ -71,6 +74,11 @@ public class SetupMachineOper extends AppOper {
 
   @Override
   public void perform() {
+    if (mNewFlag) {
+      performNew();
+      return;
+    }
+
     validateOS();
     prepareSSH();
     prepareBash();
@@ -334,5 +342,18 @@ public class SetupMachineOper extends AppOper {
     return new File(Files.homeDirectory(), assertRelative(relativePath));
   }
 
+  private void performNew() {
+    // Create ~/bin directory 
+    //
+    var binDir = files().mkdirs(fileWithinHome("bin"));
+
+    // Create ~/bin/mk script
+    //
+    var targetFile = new File(binDir, "mk");
+    files().writeString(targetFile, resourceString("bin_mk_template.txt"));
+    files().chmod(targetFile, 744);
+  }
+
   private boolean mEclipseMode;
+  private boolean mNewFlag;
 }
