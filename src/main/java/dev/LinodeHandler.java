@@ -47,7 +47,7 @@ public class LinodeHandler extends BaseObject implements RemoteHandler {
 
   @Override
   public JSMap listEntities() {
-    return listEntities(true);
+    return listEntities(false);
   }
 
   @Override

@@ -141,8 +141,6 @@ public class RemoteOper extends AppOper {
   private static Map<String, RemoteHandler> sHandlerMap = hashMap();
 
   public static void registerHandler(RemoteHandler handler) {
-    pr("attempting to register handler:", handler.name());
-    //checkState(!sHandlerMap.containsKey(handler.name()));
     sHandlerMap.put(handler.name(), handler);
   }
 
