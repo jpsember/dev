@@ -1,0 +1,6 @@
+class {
+  int id;
+  string label;
+  string ip_addr;
+  JSMap linode_info;
+}

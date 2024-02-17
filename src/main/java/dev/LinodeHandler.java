@@ -8,110 +8,27 @@ import java.util.Map;
 
 import dev.gen.LinodeConfig;
 import dev.gen.LinodeEntry;
-import js.app.AppOper;
-import js.base.BasePrinter;
+import js.app.CmdLineArgs;
+import js.base.BaseObject;
 import js.base.DateTimeTools;
 import js.base.SystemCall;
 import js.file.Files;
 import js.json.JSList;
 import js.json.JSMap;
-import js.webtools.EntityManager;
+import js.webtools.gen.RemoteEntityInfo;
 
-public class LinodeOper extends AppOper {
+public class LinodeHandler extends BaseObject implements RemoteHandler {
 
   @Override
-  public String userCommand() {
+  protected String supplyName() {
     return "linode";
   }
 
   @Override
-  public String getHelpDescription() {
-    return "no help is available for operation";
-  }
-
-  @Override
-  protected void getOperSpecificHelp(BasePrinter b) {
-    b.pr("list [detail]");
-    b.pr("create <label> [gpu]  ");
-    b.pr("delete <label>");
-    b.pr("select <label>");
-  }
-
-  @Override
-  public LinodeConfig defaultArgs() {
-    return LinodeConfig.DEFAULT_INSTANCE;
-  }
-
-  @Override
-  public LinodeConfig config() {
-    if (mConfig == null) {
-      var c = ((LinodeConfig) super.config()).toBuilder();
-      File secrets = new File("linode_secrets.json");
-      log("looking for secrets file #1:", INDENT, Files.infoMap(secrets));
-      if (!secrets.exists()) {
-        secrets = new File(Files.homeDirectory(), ".ssh/linode_secrets.json");
-        log("looking for secrets file #2:", INDENT, Files.infoMap(secrets));
-      }
-      log("looking for secrets in:", secrets, "exists:", secrets.exists());
-      if (secrets.exists()) {
-        var s = Files.parseAbstractData(LinodeConfig.DEFAULT_INSTANCE, secrets);
-        if (c.accessToken().isEmpty())
-          c.accessToken(s.accessToken());
-        if (c.rootPassword().isEmpty())
-          c.rootPassword(s.rootPassword());
-        if (c.authorizedKeys().isEmpty())
-          c.authorizedKeys(s.authorizedKeys());
-      }
-      if (c.accessToken().isEmpty())
-        throw setError("No access_token provided");
-
-      mConfig = c.build();
-      log("config:", INDENT, mConfig);
-    }
-    return mConfig;
-  }
-
-  @Override
-  public void perform() {
-    todo("add a 'prepare' suboper that rsyncs scripts, and runs one of those scripts remotely");
-    var a = cmdLineArgs();
-
-    if (!a.hasNextArg()) {
-      pr("(no Linode commands specified)");
-    }
-
-    while (a.hasNextArg()) {
-      var cmd = a.nextArg();
-      switch (cmd) {
-      default:
-        throw setError("Unrecognized command:", cmd);
-      case "create":
-        createLinode();
-        break;
-      case "list":
-        listNodes();
-        break;
-      case "delete":
-        deleteLinode();
-        break;
-      case "select":
-        selectLinode(a.nextArg());
-        break;
-      }
-    }
-  }
-
-  private void createLinode() {
-    var a = cmdLineArgs();
-    var label = a.nextArg("");
+  public void create(CmdLineArgs a, String label) {
     var gpu = a.nextArgIf("gpu");
     if (gpu)
       todo("support gpu");
-
-    if (label.isEmpty())
-      throw setError("please specify a label for the linode");
-    if (getLinodeId(label, false) != 0)
-      throw setError("linode with label", label, "already exists");
 
     var m = map();
     m //
@@ -128,22 +45,24 @@ public class LinodeOper extends AppOper {
     discardLinodeInfo();
   }
 
-  private void listNodes() {
-    var detail = cmdLineArgs().nextArgIf("detail");
+  @Override
+  public JSMap listEntities() {
+    return listEntities(true);
+  }
 
+  @Override
+  public JSMap listEntitiesDetailed() {
+    return listEntities(true);
+  }
+
+  private JSMap listEntities(boolean detailed) {
     var m2 = map();
     var m = labelToIdMap();
     for (var m3 : m.values()) {
-
       var label = m3.label();
-      m2.put(label, displayLinodeInfo(m3, detail));
-      //      if (detail)
-      //        m2.put(label, m3.linodeInfo());
-      //      else {
-      //        m2.put(label, m3.toJson().remove("linode_info"));
-      //      }
+      m2.put(label, displayLinodeInfo(m3, detailed));
     }
-    pr(m2);
+    return m2;
   }
 
   private JSMap displayLinodeInfo(LinodeEntry m3, boolean detail) {
@@ -152,26 +71,47 @@ public class LinodeOper extends AppOper {
     return m3.toJson().remove("linode_info");
   }
 
-  private void deleteLinode() {
-    var a = cmdLineArgs();
-
-    var label = a.nextArg("");
-    if (label.isEmpty())
-      throw setError("please specify a label for the linode");
+  @Override
+  public void delete(String label) {
     int id = getLinodeId(label, true);
-
     callLinode("DELETE", "instances/" + id);
-
     verifyOk();
     discardLinodeInfo();
   }
 
-  private void selectLinode(String label) {
+  @Override
+  public RemoteEntityInfo select(String label) {
     var ent = getLinodeInfo(label, true);
     waitUntilRunning(ent);
-    EntityManager.sharedInstance().setLinodeInfo(displayLinodeInfo(ent, false));
     createSSHScript(ent);
-    pr(displayLinodeInfo(ent, false));
+
+    var b = RemoteEntityInfo.newBuilder();
+    b.id(label) //
+        .url(ent.ipAddr()) //
+    ;
+    return b;
+  }
+
+  private LinodeConfig config() {
+    if (mConfig == null) {
+      var c = LinodeConfig.DEFAULT_INSTANCE;
+      File secrets = new File("linode_secrets.json");
+      log("looking for secrets file #1:", INDENT, Files.infoMap(secrets));
+      if (!secrets.exists()) {
+        secrets = new File(Files.homeDirectory(), ".ssh/linode_secrets.json");
+        log("looking for secrets file #2:", INDENT, Files.infoMap(secrets));
+      }
+      log("looking for secrets in:", secrets, "exists:", secrets.exists());
+      if (secrets.exists()) {
+        c = Files.parseAbstractData(LinodeConfig.DEFAULT_INSTANCE, secrets);
+      }
+      if (c.accessToken().isEmpty())
+        badArg("No linode access_token provided");
+
+      mConfig = c.build();
+      log("config:", INDENT, mConfig);
+    }
+    return mConfig;
   }
 
   private void waitUntilRunning(LinodeEntry ent) {
@@ -179,7 +119,7 @@ public class LinodeOper extends AppOper {
     while (true) {
       var stat = ent.linodeInfo().opt("status", "");
       if (stat.isEmpty())
-        setError("no status found for entry:", INDENT, ent);
+        badState("no status found for entry:", INDENT, ent);
       if (stat.equals("running"))
         break;
       // Discard cached linode info, to force update
@@ -188,7 +128,7 @@ public class LinodeOper extends AppOper {
       if (startTime == 0)
         startTime = curr;
       if (curr - startTime > DateTimeTools.SECONDS(30))
-        setError("timed out waiting for status = 'running'", INDENT, ent);
+        badState("timed out waiting for status = 'running'", INDENT, ent);
     }
   }
 
@@ -203,14 +143,14 @@ public class LinodeOper extends AppOper {
     sb.append("root");
     sb.append("@");
     sb.append(ent.ipAddr());
-    //    sb.append(" -p ");
-    //    sb.append(ent.port());
     sb.append(" -oStrictHostKeyChecking=no");
     sb.append(" $@");
     sb.append('\n');
     File f = new File(Files.homeDirectory(), "bin/sshe");
-    files().writeString(f, sb.toString());
-    files().chmod(f, "u+x");
+    var fl = Files.S;
+    fl.writeString(f, sb.toString());
+    fl.chmod(f, "u+x");
+    todo("use some utility function for this");
   }
 
   private void callLinode(String action, String endpoint) {
@@ -253,7 +193,7 @@ public class LinodeOper extends AppOper {
   private boolean verifyOk() {
     var errors = mErrors;
     if (!errors.isEmpty())
-      setError("Errors in system call!", INDENT, errors);
+      badState("Errors in system call!", INDENT, errors);
     return true;
   }
 
@@ -265,7 +205,7 @@ public class LinodeOper extends AppOper {
     var m = getLinode(label);
     if (m == null) {
       if (mustExist)
-        throw setError("label not found:", label);
+        badArg("label not found:", label);
       return null;
     }
     return m;
@@ -315,7 +255,9 @@ public class LinodeOper extends AppOper {
   private JSList mErrors;
   private JSMap mSysCallOutput;
 
+
   static {
     RemoteOper.registerHandler(new LinodeHandler());
   }
+
 }

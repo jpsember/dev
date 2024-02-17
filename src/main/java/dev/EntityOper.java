@@ -78,6 +78,7 @@ public class EntityOper extends AppOper {
 
   @Override
   public void perform() {
+    setError("this operation is now deprecated in favor of remote");
     if (verbose())
       manager().setVerbose();
 
@@ -133,7 +134,8 @@ public class EntityOper extends AppOper {
     if (ent == null) {
       setError("no entity found for:", quote(id), "; use 'list' to available ones");
     }
-    if (!ent.staticUrl()) {
+//    if (!ent.staticUrl())
+    {
       ent = Ngrok.sharedInstance().addNgrokInfo(ent, false);
       if (ent == null)
         setError("no ngrok info found for:", quote(id));

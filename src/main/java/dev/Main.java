@@ -72,6 +72,7 @@ public class Main extends App {
     registerOper(new NewDatOper());
     registerOper(new StripDbOper());
     registerOper(new LinodeOper());
+    registerOper(new RemoteOper());
     // --- insertion point for new operations (used by NewOperOper)
   }
 

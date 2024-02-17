@@ -81,8 +81,6 @@ import js.webtools.gen.RemoteEntityInfo;
  */
 public abstract class RsyncOper extends AppOper {
 
-  private static final boolean EXPERIMENT = false && alert("performing experiment");
-
   /**
    * The 'pull' operation should override this method to return true
    */
@@ -99,11 +97,6 @@ public abstract class RsyncOper extends AppOper {
     if (args.hasNextArg())
       arg1 = args.nextArg();
 
-    if (EXPERIMENT) {
-      arg0 = "jv_exp";
-      arg1 = ""; //"rel/target/foo/bar";
-    }
-
     mSourceEntityPath = new File(arg0);
     if (arg1 != null)
       mTargetEntityPath = new File(arg1);
@@ -113,10 +106,7 @@ public abstract class RsyncOper extends AppOper {
 
   @Override
   public void perform() {
-
     determinePaths();
-    if (EXPERIMENT)
-      halt();
 
     SystemCall s = new SystemCall();
     boolean verbosity = verbose();
@@ -144,14 +134,30 @@ public abstract class RsyncOper extends AppOper {
   }
 
   private void addMachineArg(SystemCall s, File resolvedPath, boolean isRemote) {
-    if (!isRemote)
+    if (!isRemote) {
       s.arg(resolvedPath);
-    else {
+      return;
+    }
+
+    todo("we need a way to distinguish between ngrok, linode, or others");
+    var linodeInfo = EntityManager.sharedInstance().getLinodeInfo();
+    if (linodeInfo.nonEmpty()) {
+      StringBuilder sb = new StringBuilder();
+      sb.append("root@");
+      sb.append(linodeInfo.get("ip_addr"));
+      sb.append(':');
+      sb.append(resolvedPath);
+      s.arg(sb);
+      return;
+    }
+
+    {
       RemoteEntityInfo ent = remoteEntity();
-      if (!ent.staticUrl()) {
+//      if (!ent.staticUrl()) 
+      {
         ent = Ngrok.sharedInstance().addNgrokInfo(ent, true);
       }
-      checkArgument(ent.port() != null, "bad port:", INDENT, ent);
+       checkArgument(ent.port() != 0, "bad port:", INDENT, ent);
 
       // I don't think we need to add quotes around the (single) argument [ssh -p]; in fact,
       // it maybe causes the SystemCall to fail 
@@ -191,12 +197,14 @@ public abstract class RsyncOper extends AppOper {
   }
 
   private void determinePushPaths() {
+    log("determinePushPaths");
 
     File sourceRelativeToProject = null;
     {
       // If no source directory was given, assume the current directory
       //
       File sourceDir = mSourceEntityPath;
+      log("mSourceEntityPath:", mSourceEntityPath);
 
       if (Files.empty(sourceDir)) {
         sourceDir = new File(".");
@@ -210,12 +218,15 @@ public abstract class RsyncOper extends AppOper {
         File sourceBaseDir = localProjectDir();
         sourceRelativeToProject = Files.relativeToContainingDirectory(sourceDir, sourceBaseDir);
         mResolvedSource = Files.join(sourceBaseDir, sourceRelativeToProject);
+        log("source wasn't absolute, local project dir:", sourceBaseDir);
       }
+      log("mResolvedSource:", mResolvedSource);
     }
 
     {
       // If no target directory was given, assume it has the same relative path as the source directory
       File targetDir = mTargetEntityPath;
+      log("mTargetEntityPath:", mTargetEntityPath);
       if (Files.empty(targetDir)) {
         if (sourceRelativeToProject == null)
           throw badArg("Absolute source directory given with no target directory");
@@ -224,14 +235,18 @@ public abstract class RsyncOper extends AppOper {
         // we will end up with xxx/yyy/foo/foo on the target.
 
         File truncatedSource = Files.parent(sourceRelativeToProject);
+        log("remoteProjectDir:", remoteProjectDir());
         mResolvedTarget = Files.join(remoteProjectDir(), truncatedSource);
       } else {
         if (targetDir.isAbsolute())
           mResolvedTarget = targetDir;
-        else
+        else {
+          log("target is relative, joining with remote project dir", remoteProjectDir());
           mResolvedTarget = Files.join(remoteProjectDir(), targetDir);
+        }
         // TODO "Issue #32: haven't yet dealt with the copy directory contents vs copy directory (i.e. by adding '/')");
       }
+      log("mResolvedTarget:", mResolvedTarget);
     }
   }
 
@@ -271,6 +286,7 @@ public abstract class RsyncOper extends AppOper {
         todo(
             "Issue #32: haven't yet dealt with the copy directory contents vs copy directory (i.e. by adding '/')");
       }
+      log("mResolvedTarget:", mResolvedTarget);
     }
   }
 
@@ -324,8 +340,14 @@ public abstract class RsyncOper extends AppOper {
   }
 
   private File remoteProjectDir() {
-    if (mCachedRemoteProjectDir == null)
-      mCachedRemoteProjectDir = Files.assertAbsolute(remoteEntity().projectDir());
+    if (mCachedRemoteProjectDir == null) {
+      var linodeInfo = EntityManager.sharedInstance().getLinodeInfo();
+      if (linodeInfo.nonEmpty()) {
+        mCachedRemoteProjectDir = new File("/root");
+      } else {
+        mCachedRemoteProjectDir = Files.assertAbsolute(remoteEntity().projectDir());
+      }
+    }
     return mCachedRemoteProjectDir;
   }
 
