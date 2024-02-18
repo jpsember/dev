@@ -114,26 +114,33 @@ public class LinodeHandler extends BaseObject implements RemoteHandler {
     return mConfig;
   }
 
-  private void waitUntilRunning(LinodeEntry ent) {
+  private void waitUntilRunning(LinodeEntry ent2) {
     long startTime = 0;
+    long delay = 0;
+    var label = ent2.label();
+
     while (true) {
+      if (startTime != 0)
+        DateTimeTools.sleepForRealMs(5000);
+      long curr = System.currentTimeMillis();
+      if (startTime == 0)
+        startTime = curr;
+      delay = curr - startTime;
+      if (delay > DateTimeTools.SECONDS(600))
+        badState("timed out waiting for status = 'running'", INDENT, label);
+      pr("...delay waiting for status = 'running':", (delay / 1000) + "s");
+      // Discard cached linode info, to force update
+      discardLinodeInfo();
+      var ent = getLinode(label);
       var stat = ent.linodeInfo().opt("status", "");
       if (stat.isEmpty())
         badState("no status found for entry:", INDENT, ent);
       if (stat.equals("running"))
         break;
-      // Discard cached linode info, to force update
-      discardLinodeInfo();
-      long curr = System.currentTimeMillis();
-      if (startTime == 0)
-        startTime = curr;
-      if (curr - startTime > DateTimeTools.SECONDS(120))
-        badState("timed out waiting for status = 'running'", INDENT, ent);
     }
   }
 
   private void createSSHScript(LinodeEntry ent) {
-    waitUntilRunning(ent);
     StringBuilder sb = new StringBuilder();
     sb.append("#!/usr/bin/env bash\n");
     sb.append("echo \"Connecting to: ");
