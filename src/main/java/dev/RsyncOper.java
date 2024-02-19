@@ -35,6 +35,7 @@ import js.base.SystemCall;
 import js.file.Files;
 import js.webtools.EntityManager;
 import js.webtools.Ngrok;
+import js.webtools.RemoteManager;
 import js.webtools.gen.RemoteEntityInfo;
 
 /**
@@ -139,44 +140,66 @@ public abstract class RsyncOper extends AppOper {
       return;
     }
 
+    var mgr = RemoteManager.SHARED_INSTANCE;
+    var entInfo = mgr.activeEntity();
+
     todo("we need a way to distinguish between ngrok, linode, or others");
-    var linodeInfo = EntityManager.sharedInstance().getLinodeInfo();
-    if (linodeInfo.nonEmpty()) {
-      StringBuilder sb = new StringBuilder();
-      sb.append("root@");
-      sb.append(linodeInfo.get("ip_addr"));
-      sb.append(':');
-      sb.append(resolvedPath);
-      s.arg(sb);
-      return;
-    }
 
-    {
-      RemoteEntityInfo ent = remoteEntity();
-//      if (!ent.staticUrl()) 
-      {
-        ent = Ngrok.sharedInstance().addNgrokInfo(ent, true);
-      }
-       checkArgument(ent.port() != 0, "bad port:", INDENT, ent);
+    StringBuilder sb = new StringBuilder();
 
+    if (entInfo.port() != 0) {
       // I don't think we need to add quotes around the (single) argument [ssh -p]; in fact,
       // it maybe causes the SystemCall to fail 
-      s.arg("-e", "ssh -p" + ent.port());
-
-      {
-        StringBuilder sb = new StringBuilder();
-
-        checkArgument(nonEmpty(ent.user()), "no user:", INDENT, ent);
-        checkArgument(nonEmpty(ent.url()), "no url:", INDENT, ent);
-        sb.append(ent.user());
-        sb.append('@');
-        sb.append(ent.url());
-        sb.append(':');
-
-        sb.append(resolvedPath);
-        s.arg(sb);
-      }
+      s.arg("-e", "ssh -p" + entInfo.port());
     }
+
+    pr("construct for:",entInfo);
+    
+    sb.append(checkNonEmpty(entInfo.user()));
+    sb.append('@');
+    sb.append(checkNonEmpty(entInfo.url()));
+    sb.append(':');
+    sb.append(resolvedPath);
+    s.arg(sb);
+    //    
+    //    
+    //    var linodeInfo = EntityManager.sharedInstance().getLinodeInfo();
+    //    if (linodeInfo.nonEmpty()) {
+    //      StringBuilder sb = new StringBuilder();
+    //      sb.append("root@");
+    //      sb.append(linodeInfo.get("ip_addr"));
+    //      sb.append(':');
+    //      sb.append(resolvedPath);
+    //      s.arg(sb);
+    //      return;
+    //    }
+    //
+    //    {
+    //      RemoteEntityInfo ent = remoteEntity();
+    ////      if (!ent.staticUrl()) 
+    //      {
+    //        ent = Ngrok.sharedInstance().addNgrokInfo(ent, true);
+    //      }
+    //       checkArgument(ent.port() != 0, "bad port:", INDENT, ent);
+    //
+    //      // I don't think we need to add quotes around the (single) argument [ssh -p]; in fact,
+    //      // it maybe causes the SystemCall to fail 
+    //      s.arg("-e", "ssh -p" + ent.port());
+    //
+    //      {
+    //        StringBuilder sb = new StringBuilder();
+    //
+    //        checkArgument(nonEmpty(ent.user()), "no user:", INDENT, ent);
+    //        checkArgument(nonEmpty(ent.url()), "no url:", INDENT, ent);
+    //        sb.append(ent.user());
+    //        sb.append('@');
+    //        sb.append(ent.url());
+    //        sb.append(':');
+    //
+    //        sb.append(resolvedPath);
+    //        s.arg(sb);
+    //      }
+    //    }
   }
 
   /**

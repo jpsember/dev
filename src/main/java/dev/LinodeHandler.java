@@ -15,6 +15,7 @@ import js.base.SystemCall;
 import js.file.Files;
 import js.json.JSList;
 import js.json.JSMap;
+import js.webtools.RemoteManager;
 import js.webtools.gen.RemoteEntityInfo;
 
 public class LinodeHandler extends BaseObject implements RemoteHandler {
@@ -40,14 +41,15 @@ public class LinodeHandler extends BaseObject implements RemoteHandler {
         .put("type", "g6-nanode-1") //
     ;
 
-    callLinode("POST", "instances", m);
+    callLinode("POST", "linode/instances", m);
     verifyOk();
     discardLinodeInfo();
   }
 
   @Override
   public JSMap listEntities() {
-    return listEntities(false);
+    alertVerbose();
+        return listEntities(false);
   }
 
   @Override
@@ -74,7 +76,7 @@ public class LinodeHandler extends BaseObject implements RemoteHandler {
   @Override
   public void delete(String label) {
     int id = getLinodeId(label, true);
-    callLinode("DELETE", "instances/" + id);
+    callLinode("DELETE", "linode/instances/" + id);
     verifyOk();
     discardLinodeInfo();
   }
@@ -88,8 +90,21 @@ public class LinodeHandler extends BaseObject implements RemoteHandler {
     var b = RemoteEntityInfo.newBuilder();
     b.id(label) //
         .url(ent.ipAddr()) //
+        .user("root") //
     ;
     return b;
+  }
+
+  @Override
+  public void createImage(String imageLabel) {
+    var v = RemoteManager.SHARED_INSTANCE;
+    var ent = v.activeEntity();
+    var id = getLinodeId(ent.id(), true);
+
+    var m = map();
+    m.put("disk_id", id).put("label", imageLabel);
+
+    callLinode("POST", "images", m);
   }
 
   private LinodeConfig config() {
@@ -179,7 +194,7 @@ public class LinodeHandler extends BaseObject implements RemoteHandler {
     if (m != null)
       sc.arg("-d", m);
 
-    sc.arg("https://api.linode.com/v4/linode/" + endpoint);
+    sc.arg("https://api.linode.com/v4/" + endpoint);
 
     if (sc.exitCode() != 0) {
       alert("got exit code", sc.exitCode(), INDENT, sc.systemErr());
@@ -234,7 +249,7 @@ public class LinodeHandler extends BaseObject implements RemoteHandler {
 
   private Map<String, LinodeEntry> labelToIdMap() {
     if (mLinodeMap == null) {
-      callLinode("GET", "instances");
+      callLinode("GET", "linode/instances");
       verifyOk();
 
       var mp = new HashMap<String, LinodeEntry>();

@@ -2,14 +2,12 @@ package dev;
 
 import static js.base.Tools.*;
 
-import java.io.File;
 import java.util.Map;
 
 import dev.gen.RemoteConfig;
 import js.app.AppOper;
 import js.app.CmdLineArgs;
-import js.file.Files;
-import js.webtools.gen.RemoteInfo;
+import js.webtools.RemoteManager;
 
 public class RemoteOper extends AppOper {
 
@@ -38,6 +36,7 @@ public class RemoteOper extends AppOper {
 
   @Override
   public void perform() {
+    var mgr = RemoteManager.SHARED_INSTANCE;
     var a = cmdLineArgs();
     while (a.hasNextArg()) {
       var cmd = a.nextArg();
@@ -68,16 +67,16 @@ public class RemoteOper extends AppOper {
       case "delete": {
         var label = parseLabel(a);
         handler().delete(label);
-        if (remoteInfo().activeEntity() != null && remoteInfo().activeEntity().id().equals(label))
-          edit().activeEntity(null);
-        flush();
+        if (mgr.info().activeEntity() != null && mgr.info().activeEntity().id().equals(label))
+          mgr.infoEdit().activeEntity(null);
+        mgr.flush();
       }
         break;
       case "select": {
         var label = parseLabel(a);
         var info = handler().select(label);
-        edit().activeEntity(info);
-        flush();
+        mgr.infoEdit().activeEntity(info);
+        mgr.flush();
       }
         break;
       }
@@ -95,12 +94,14 @@ public class RemoteOper extends AppOper {
     var h = sHandlerMap.get(name);
     if (h == null)
       setError("no registered handler:", name);
-    edit().activeHandlerName(name);
-    flush();
+    var mgr = RemoteManager.SHARED_INSTANCE;
+    mgr.infoEdit().activeHandlerName(name);
+    mgr.flush();
   }
 
   private RemoteHandler handler() {
-    var name = remoteInfo().activeHandlerName();
+    var mgr = RemoteManager.SHARED_INSTANCE;
+    var name = mgr.info().activeHandlerName();
     if (name.isEmpty())
       setError("no active remote handler defined");
     var h = sHandlerMap.get(name);
@@ -109,34 +110,6 @@ public class RemoteOper extends AppOper {
     return h;
   }
 
-  private RemoteInfo.Builder remoteInfo() {
-    if (mRemoteInfo == null) {
-      mRemoteInfo = Files.parseAbstractDataOpt(RemoteInfo.DEFAULT_INSTANCE, remoteInfoPersistFile())
-          .toBuilder();
-      mRmod = false;
-    }
-    return mRemoteInfo;
-  }
-
-  private RemoteInfo.Builder edit() {
-    var b = remoteInfo();
-    mRmod = true;
-    return b;
-  }
-
-  private File remoteInfoPersistFile() {
-    return new File(Files.homeDirectory(), ".remote_info");
-  }
-
-  private void flush() {
-    if (!mRmod)
-      return;
-    files().write(remoteInfoPersistFile(), remoteInfo());
-    mRmod = false;
-  }
-
-  private RemoteInfo.Builder mRemoteInfo;
-  private boolean mRmod;
   private RemoteConfig mConfig;
   private static Map<String, RemoteHandler> sHandlerMap = hashMap();
 

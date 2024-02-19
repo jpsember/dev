@@ -17,6 +17,7 @@ import js.json.JSList;
 import js.json.JSMap;
 import js.webtools.EntityManager;
 
+@Deprecated
 public class LinodeOper extends AppOper {
 
   @Override

@@ -18,4 +18,6 @@ public interface RemoteHandler {
 
   String name();
 
+  void createImage(String imageLabel);
+  
 }

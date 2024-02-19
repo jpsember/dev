@@ -37,6 +37,7 @@ import js.webtools.EntityManager;
 import js.webtools.Ngrok;
 import js.webtools.gen.RemoteEntityInfo;
 
+@Deprecated
 public class EntityOper extends AppOper {
 
   @Override
