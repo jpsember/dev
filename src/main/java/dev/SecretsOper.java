@@ -50,7 +50,7 @@ import js.app.AppOper;
 import js.app.CmdLineArgs;
 import js.file.DirWalk;
 import js.file.Files;
-import js.webtools.EntityManager;
+import js.webtools.RemoteManager;
 import js.webtools.gen.RemoteEntityInfo;
 
 public class SecretsOper extends AppOper {
@@ -204,41 +204,44 @@ public class SecretsOper extends AppOper {
   @Override
   public void perform() {
     checkArgument(!nullOrEmpty(mPassPhrase), "Please provide a passphrase");
-  
+
     // This is made more complicated due to
     //
     // 1) the entity_info.json file is stored in the secrets directory, and is not 
     //    to be included in the encrypted directory contents
     // 2) this operation is also (optionally) used to create this entity_info.json
     //    file when decrypting the secrets
-    
+
     if (mEncryptMode) {
-    
+
       // Encrypt all the files in the local project secrets directory, 
       // except for `entity_info.json` which varies for each entity
-      
+
       byte[] zipFileBytes = zipDirectory(files().projectSecretsDirectory(), Files.SECRETS_FILE_ENTITY_INFO);
       byte[] encrypted = encryptData(mPassPhrase, zipFileBytes);
       File target = files().fileWithinProjectConfigDirectory("encrypted_secrets.bin");
       files().write(encrypted, target);
-    
+
     } else {
-      
+
       // Using the passphrase, decrypt the secrets into this entity's secrets directory
-      
+
       File secretsDir = files().optFileWithinProject("secrets");
-      
+
       // If there is an entity id argument, write the entity's info as well; otherwise,
       // leave that file untouched (if it existed)
-      
+
       File entityInfoFile = new File(secretsDir, Files.SECRETS_FILE_ENTITY_INFO);
       String currentEntityInfoContent = Files.readString(entityInfoFile, "");
-      
+
       boolean updateEntityInfo = nonEmpty(mEntityId);
       RemoteEntityInfo entityInfo = null;
       if (updateEntityInfo) {
-        entityInfo = EntityManager.sharedInstance().entity(mEntityId);
-        checkArgument(entityInfo != null, "no information found for entity id:", mEntityId);
+        var mgr = RemoteManager.SHARED_INSTANCE;
+        var ent = mgr.activeEntity();
+        checkState(mEntityId.equals(ent.id()), "expected entity to be the active one");
+        //entityInfo = RemoteManager.SHARED_INSTANCE.EntityManager.sharedInstance().entity(mEntityId);
+        //        checkArgument(entityInfo != null, "no information found for entity id:", mEntityId);
       }
 
       byte[] encrypted = Files.toByteArray(files().fileWithinProjectConfigDirectory("encrypted_secrets.bin"),
@@ -248,12 +251,12 @@ public class SecretsOper extends AppOper {
 
       // If we are to update the entity info, do so from the entity manager; otherwise, restore
       // the content we saved earlier (if there was any)
-      
+
       if (updateEntityInfo) {
         files().writePretty(entityInfoFile, entityInfo);
       } else {
         if (nonEmpty(currentEntityInfoContent)) {
-          files().writeString(entityInfoFile,  currentEntityInfoContent);
+          files().writeString(entityInfoFile, currentEntityInfoContent);
         }
       }
     }

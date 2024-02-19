@@ -33,10 +33,7 @@ import js.app.AppOper;
 import js.app.CmdLineArgs;
 import js.base.SystemCall;
 import js.file.Files;
-import js.webtools.EntityManager;
-import js.webtools.Ngrok;
 import js.webtools.RemoteManager;
-import js.webtools.gen.RemoteEntityInfo;
 
 /**
  * <pre>
@@ -153,8 +150,8 @@ public abstract class RsyncOper extends AppOper {
       s.arg("-e", "ssh -p" + entInfo.port());
     }
 
-    pr("construct for:",entInfo);
-    
+    pr("construct for:", entInfo);
+
     sb.append(checkNonEmpty(entInfo.user()));
     sb.append('@');
     sb.append(checkNonEmpty(entInfo.url()));
@@ -351,10 +348,6 @@ public abstract class RsyncOper extends AppOper {
     return tempFile;
   }
 
-  private RemoteEntityInfo remoteEntity() {
-    return EntityManager.sharedInstance().activeEntity();
-  }
-
   private File localProjectDir() {
     if (mCachedLocalProjectDir == null)
       mCachedLocalProjectDir = Files
@@ -364,12 +357,14 @@ public abstract class RsyncOper extends AppOper {
 
   private File remoteProjectDir() {
     if (mCachedRemoteProjectDir == null) {
-      var linodeInfo = EntityManager.sharedInstance().getLinodeInfo();
-      if (linodeInfo.nonEmpty()) {
-        mCachedRemoteProjectDir = new File("/root");
-      } else {
-        mCachedRemoteProjectDir = Files.assertAbsolute(remoteEntity().projectDir());
-      }
+      var mgr = RemoteManager.SHARED_INSTANCE;
+      var ent = mgr.activeEntity();
+      var f = ent.projectDir();
+      //      var linodeInfo = EntityManager.sharedInstance().getLinodeInfo();
+      //      if (linodeInfo.nonEmpty()) {
+      //        mCachedRemoteProjectDir = new File("/root");
+      //      } else {
+      mCachedRemoteProjectDir = Files.assertAbsolute(f);
     }
     return mCachedRemoteProjectDir;
   }
