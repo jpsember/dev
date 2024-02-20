@@ -239,9 +239,7 @@ public class SecretsOper extends AppOper {
       if (updateEntityInfo) {
         var mgr = RemoteManager.SHARED_INSTANCE;
         var ent = mgr.activeEntity();
-        checkState(mEntityId.equals(ent.id()), "expected entity to be the active one");
-        //entityInfo = RemoteManager.SHARED_INSTANCE.EntityManager.sharedInstance().entity(mEntityId);
-        //        checkArgument(entityInfo != null, "no information found for entity id:", mEntityId);
+        checkState(mEntityId.equals(ent.label()), "expected entity to be the active one");
       }
 
       byte[] encrypted = Files.toByteArray(files().fileWithinProjectConfigDirectory("encrypted_secrets.bin"),

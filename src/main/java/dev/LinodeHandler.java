@@ -26,7 +26,7 @@ public class LinodeHandler extends BaseObject implements RemoteHandler {
   }
 
   @Override
-  public void create(CmdLineArgs a, String label) {
+  public void create(CmdLineArgs a, String entityLabel, String imageLabel) {
     var gpu = a.nextArgIf("gpu");
     if (gpu)
       todo("support gpu");
@@ -35,12 +35,15 @@ public class LinodeHandler extends BaseObject implements RemoteHandler {
     m //
         .put("authorized_keys", JSList.with(config().authorizedKeys())) //
         .put("image", "linode/ubuntu20.04") //
-        .put("label", label) //
+        .put("label", entityLabel) //
         .put("region", "us-sea")//
         .put("root_pass", config().rootPassword()) //
         .put("type", "g6-nanode-1") //
     ;
+    if (nonEmpty(imageLabel))
+      m.put("image", imageLabel);
 
+    // https://www.linode.com/docs/api/linode-instances/#linode-create
     callLinode("POST", "linode/instances", m);
     verifyOk();
     discardLinodeInfo();
@@ -87,9 +90,10 @@ public class LinodeHandler extends BaseObject implements RemoteHandler {
     createSSHScript(ent);
 
     var b = RemoteEntityInfo.newBuilder();
-    b.id(label) //
+    b.label(label) //
         .url(ent.ipAddr()) //
         .user("root") //
+        .projectDir(new File("/root"));
     ;
     return b;
   }
@@ -98,12 +102,74 @@ public class LinodeHandler extends BaseObject implements RemoteHandler {
   public void createImage(String imageLabel) {
     var v = RemoteManager.SHARED_INSTANCE;
     var ent = v.activeEntity();
-    var id = getLinodeId(ent.id(), true);
+    var id = getLinodeId(ent.label(), true);
+
+    // We need to get the disk id of the linode entity.
+    //
+    int diskId = 0;
+    {
+      var getDisksOutput = callLinode("GET", "linode/instances/" + id + "/disks");
+      var disks = getDisksOutput.getList("data");
+      JSMap diskMap = null;
+      for (var mc : disks.asMaps()) {
+        if (mc.get("filesystem").equals("swap"))
+          continue;
+        if (diskMap != null)
+          badState("multiple disks returned:", INDENT, getDisksOutput);
+        diskMap = mc;
+      }
+      checkState(diskMap != null, "no disks found:", INDENT, getDisksOutput);
+      diskId = diskMap.getInt("id");
+    }
 
     var m = map();
-    m.put("disk_id", id).put("label", imageLabel);
-
+    m.put("disk_id", diskId).put("label", imageLabel).put("description", IMAGE_DESCRIPTION);
+    // https://www.linode.com/docs/api/images/#image-create
     callLinode("POST", "images", m);
+
+    waitUntilImageAvailable(imageLabel);
+  }
+
+  private static final String IMAGE_DESCRIPTION = "created by dev 'remote' command";
+
+  @Override
+  public JSList getImagesList() {
+    var lst = callLinode("GET", "images").getList("data");
+    // Suppress all images not created by this tool
+    var out = list();
+    for (var m : lst.asMaps()) {
+      if (m.opt("description", "").equals(IMAGE_DESCRIPTION))
+        out.add(m);
+    }
+    return out;
+  }
+
+  private void waitUntilImageAvailable(String imageLabel) {
+    long startTime = 0;
+    long delay = 0;
+
+    while (true) {
+      if (startTime != 0)
+        DateTimeTools.sleepForRealMs(5000);
+      long curr = System.currentTimeMillis();
+      if (startTime == 0)
+        startTime = curr;
+      delay = curr - startTime;
+      if (delay > DateTimeTools.SECONDS(600))
+        badState("timed out waiting for status = 'available'", INDENT, imageLabel);
+      pr("...delay waiting for status = 'available':", (delay / 1000) + "s");
+
+      // https://www.linode.com/docs/api/images/#images-list
+      var m = callLinode("GET", "images");
+      JSMap targetMap = null;
+      for (var m2 : m.getList("data").asMaps()) {
+        if (m2.get("label").equals(imageLabel))
+          targetMap = m2;
+      }
+      pr("target map:", INDENT, targetMap);
+      if (targetMap != null && targetMap.get("status").equals("available"))
+        break;
+    }
   }
 
   private LinodeConfig config() {
@@ -173,11 +239,11 @@ public class LinodeHandler extends BaseObject implements RemoteHandler {
     fl.chmod(f, "u+x");
   }
 
-  private void callLinode(String action, String endpoint) {
-    callLinode(action, endpoint, null);
+  private JSMap callLinode(String action, String endpoint) {
+    return callLinode(action, endpoint, null);
   }
 
-  private void callLinode(String action, String endpoint, JSMap m) {
+  private JSMap callLinode(String action, String endpoint, JSMap m) {
 
     mErrors = null;
     mSysCallOutput = null;
@@ -208,6 +274,7 @@ public class LinodeHandler extends BaseObject implements RemoteHandler {
     mErrors = out.optJSListOrEmpty("errors");
     if (!mErrors.isEmpty())
       log("Errors occurred in the system call:", INDENT, out);
+    return output();
   }
 
   private boolean verifyOk() {
@@ -248,11 +315,10 @@ public class LinodeHandler extends BaseObject implements RemoteHandler {
 
   private Map<String, LinodeEntry> labelToIdMap() {
     if (mLinodeMap == null) {
-      callLinode("GET", "linode/instances");
+      var mout = callLinode("GET", "linode/instances");
       verifyOk();
-
       var mp = new HashMap<String, LinodeEntry>();
-      var nodes = output().getList("data");
+      var nodes = mout.getList("data");
       for (var m2 : nodes.asMaps()) {
         var ent = LinodeEntry.newBuilder();
         ent.linodeInfo(m2);
@@ -274,9 +340,5 @@ public class LinodeHandler extends BaseObject implements RemoteHandler {
   private LinodeConfig mConfig;
   private JSList mErrors;
   private JSMap mSysCallOutput;
-
-  static {
-    RemoteOper.registerHandler(new LinodeHandler());
-  }
 
 }

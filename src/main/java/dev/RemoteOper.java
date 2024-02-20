@@ -7,6 +7,8 @@ import java.util.Map;
 import dev.gen.RemoteConfig;
 import js.app.AppOper;
 import js.app.CmdLineArgs;
+import js.base.BaseObject;
+import js.base.BasePrinter;
 import js.webtools.RemoteManager;
 
 public class RemoteOper extends AppOper {
@@ -35,6 +37,17 @@ public class RemoteOper extends AppOper {
   }
 
   @Override
+  protected void getOperSpecificHelp(BasePrinter b) {
+    b.pr("list                   -- list entities");
+    b.pr("details                -- list entities with full detail");
+    b.pr("select <label>         -- select entity to be 'active'");
+    b.pr("create <label>\n" + "   [image <imglabel>]  -- create entity");
+    b.pr("delete <label>         -- delete entity");
+    b.pr("createimage <imglabel> -- create image from current entity");
+    b.pr("images                 -- list images");
+  }
+
+  @Override
   public void perform() {
     var mgr = RemoteManager.SHARED_INSTANCE;
     var a = cmdLineArgs();
@@ -51,11 +64,16 @@ public class RemoteOper extends AppOper {
       default:
         throw setError("Unrecognized command:", cmd);
       case "create": {
-        var label = parseLabel(a);
-        if (handler().listEntities().containsKey(label))
-          setError("entity already exists:", label);
-        handler().create(a, label);
-        handler().select(label);
+        var entityLabel = parseLabel(a);
+        String imageLabel = null;
+        if (a.nextArgIf("image")) {
+          imageLabel = parseLabel(a);
+        }
+
+        if (handler().listEntities().containsKey(entityLabel))
+          setError("entity already exists:", entityLabel);
+        handler().create(a, entityLabel, imageLabel);
+        handler().select(entityLabel);
       }
         break;
       case "list":
@@ -67,7 +85,7 @@ public class RemoteOper extends AppOper {
       case "delete": {
         var label = parseLabel(a);
         handler().delete(label);
-        if (mgr.info().activeEntity() != null && mgr.info().activeEntity().id().equals(label))
+        if (mgr.info().activeEntity() != null && mgr.info().activeEntity().label().equals(label))
           mgr.infoEdit().activeEntity(null);
         mgr.flush();
       }
@@ -78,6 +96,14 @@ public class RemoteOper extends AppOper {
         mgr.infoEdit().activeEntity(info);
         mgr.flush();
       }
+        break;
+      case "createimage": {
+        var imageLabel = parseLabel(a);
+        handler().createImage(imageLabel);
+      }
+        break;
+      case "images":
+        pr(handler().getImagesList());
         break;
       }
     }
@@ -107,6 +133,9 @@ public class RemoteOper extends AppOper {
     var h = sHandlerMap.get(name);
     if (h == null)
       setError("no handler found for name:", name);
+    if (verbose() && h instanceof BaseObject) {
+      ((BaseObject) h).setVerbose();
+    }
     return h;
   }
 
@@ -115,6 +144,10 @@ public class RemoteOper extends AppOper {
 
   public static void registerHandler(RemoteHandler handler) {
     sHandlerMap.put(handler.name(), handler);
+  }
+
+  static {
+    RemoteOper.registerHandler(new LinodeHandler());
   }
 
 }

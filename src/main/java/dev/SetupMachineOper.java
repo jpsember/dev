@@ -225,7 +225,7 @@ public class SetupMachineOper extends AppOper {
     if (mMacroMap == null) {
       RemoteEntityInfo entityInfo = Utils.ourEntityInfo();
       mMacroMap = map()//
-          .put("entity_id", entityInfo.id()) //
+          .put("entity_id", entityInfo.label()) //
           .put("project_dir", entityInfo.projectDir().toString()) //
       ;
     }

@@ -1,12 +1,13 @@
 package dev;
 
 import js.app.CmdLineArgs;
+import js.json.JSList;
 import js.json.JSMap;
 import js.webtools.gen.RemoteEntityInfo;
 
 public interface RemoteHandler {
 
-  void create(CmdLineArgs args, String name);
+  void create(CmdLineArgs args, String entityName, String imageName);
 
   JSMap listEntities();
 
@@ -19,5 +20,7 @@ public interface RemoteHandler {
   String name();
 
   void createImage(String imageLabel);
+
+  JSList getImagesList();
   
 }
