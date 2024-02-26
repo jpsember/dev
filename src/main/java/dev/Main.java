@@ -52,7 +52,6 @@ public class Main extends App {
     registerOper(new CopyrightOper());
     registerOper(new GitHashOper());
     registerOper(new ExperimentOper());
-//    registerOper(new EntityOper());
     registerOper(new PushOper());
     registerOper(new PullOper());
     registerOper(new SetupMachineOper());
@@ -71,8 +70,8 @@ public class Main extends App {
     registerOper(new NewOperOper());
     registerOper(new NewDatOper());
     registerOper(new StripDbOper());
-    //registerOper(new LinodeOper());
     registerOper(new RemoteOper());
+    registerOper(new DriverOper());
     // --- insertion point for new operations (used by NewOperOper)
   }
 

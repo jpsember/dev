@@ -1,0 +1,4 @@
+class {
+  string name;  // The name of the project, e.g. 'gitdiff'
+  string main_class; // Fully-qualified name of class containing main method, e.g., 'js.gitdiff.GitDiffApp'
+}
