@@ -32,8 +32,6 @@ eclipse_preferences.epf
 #
 target
 
-src/main/java/dev/gen
-
 # For testing
 #
 sample_project*
