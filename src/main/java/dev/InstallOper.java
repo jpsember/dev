@@ -38,10 +38,10 @@ public class InstallOper extends AppOper {
   @Override
   public void perform() {
 
-    var programName = config().name();
+    var programName = config().program();
     checkNonEmpty(programName, "specify a name");
 
-    var repoName = config().repoName();
+    var repoName = config().repo();
     if (nullOrEmpty(repoName))
       repoName = programName;
 

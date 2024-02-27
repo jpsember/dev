@@ -5,12 +5,12 @@ import js.json.JSMap;
 
 public class InstallConfig implements AbstractData {
 
-  public String name() {
-    return mName;
+  public String program() {
+    return mProgram;
   }
 
-  public String repoName() {
-    return mRepoName;
+  public String repo() {
+    return mRepo;
   }
 
   public String mainClass() {
@@ -22,8 +22,8 @@ public class InstallConfig implements AbstractData {
     return new Builder(this);
   }
 
-  protected static final String _0 = "name";
-  protected static final String _1 = "repo_name";
+  protected static final String _0 = "program";
+  protected static final String _1 = "repo";
   protected static final String _2 = "main_class";
 
   @Override
@@ -34,8 +34,8 @@ public class InstallConfig implements AbstractData {
   @Override
   public JSMap toJson() {
     JSMap m = new JSMap();
-    m.putUnsafe(_0, mName);
-    m.putUnsafe(_1, mRepoName);
+    m.putUnsafe(_0, mProgram);
+    m.putUnsafe(_1, mRepo);
     m.putUnsafe(_2, mMainClass);
     return m;
   }
@@ -51,8 +51,8 @@ public class InstallConfig implements AbstractData {
   }
 
   private InstallConfig(JSMap m) {
-    mName = m.opt(_0, "");
-    mRepoName = m.opt(_1, "");
+    mProgram = m.opt(_0, "");
+    mRepo = m.opt(_1, "");
     mMainClass = m.opt(_2, "");
   }
 
@@ -69,9 +69,9 @@ public class InstallConfig implements AbstractData {
     InstallConfig other = (InstallConfig) object;
     if (other.hashCode() != hashCode())
       return false;
-    if (!(mName.equals(other.mName)))
+    if (!(mProgram.equals(other.mProgram)))
       return false;
-    if (!(mRepoName.equals(other.mRepoName)))
+    if (!(mRepo.equals(other.mRepo)))
       return false;
     if (!(mMainClass.equals(other.mMainClass)))
       return false;
@@ -83,24 +83,24 @@ public class InstallConfig implements AbstractData {
     int r = m__hashcode;
     if (r == 0) {
       r = 1;
-      r = r * 37 + mName.hashCode();
-      r = r * 37 + mRepoName.hashCode();
+      r = r * 37 + mProgram.hashCode();
+      r = r * 37 + mRepo.hashCode();
       r = r * 37 + mMainClass.hashCode();
       m__hashcode = r;
     }
     return r;
   }
 
-  protected String mName;
-  protected String mRepoName;
+  protected String mProgram;
+  protected String mRepo;
   protected String mMainClass;
   protected int m__hashcode;
 
   public static final class Builder extends InstallConfig {
 
     private Builder(InstallConfig m) {
-      mName = m.mName;
-      mRepoName = m.mRepoName;
+      mProgram = m.mProgram;
+      mRepo = m.mRepo;
       mMainClass = m.mMainClass;
     }
 
@@ -118,19 +118,19 @@ public class InstallConfig implements AbstractData {
     @Override
     public InstallConfig build() {
       InstallConfig r = new InstallConfig();
-      r.mName = mName;
-      r.mRepoName = mRepoName;
+      r.mProgram = mProgram;
+      r.mRepo = mRepo;
       r.mMainClass = mMainClass;
       return r;
     }
 
-    public Builder name(String x) {
-      mName = (x == null) ? "" : x;
+    public Builder program(String x) {
+      mProgram = (x == null) ? "" : x;
       return this;
     }
 
-    public Builder repoName(String x) {
-      mRepoName = (x == null) ? "" : x;
+    public Builder repo(String x) {
+      mRepo = (x == null) ? "" : x;
       return this;
     }
 
@@ -144,8 +144,8 @@ public class InstallConfig implements AbstractData {
   public static final InstallConfig DEFAULT_INSTANCE = new InstallConfig();
 
   private InstallConfig() {
-    mName = "";
-    mRepoName = "";
+    mProgram = "";
+    mRepo = "";
     mMainClass = "";
   }
 
