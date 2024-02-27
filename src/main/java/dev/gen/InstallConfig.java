@@ -3,7 +3,7 @@ package dev.gen;
 import js.data.AbstractData;
 import js.json.JSMap;
 
-public class DriverConfig implements AbstractData {
+public class InstallConfig implements AbstractData {
 
   public String name() {
     return mName;
@@ -41,16 +41,16 @@ public class DriverConfig implements AbstractData {
   }
 
   @Override
-  public DriverConfig build() {
+  public InstallConfig build() {
     return this;
   }
 
   @Override
-  public DriverConfig parse(Object obj) {
-    return new DriverConfig((JSMap) obj);
+  public InstallConfig parse(Object obj) {
+    return new InstallConfig((JSMap) obj);
   }
 
-  private DriverConfig(JSMap m) {
+  private InstallConfig(JSMap m) {
     mName = m.opt(_0, "");
     mRepoName = m.opt(_1, "");
     mMainClass = m.opt(_2, "");
@@ -64,9 +64,9 @@ public class DriverConfig implements AbstractData {
   public boolean equals(Object object) {
     if (this == object)
       return true;
-    if (object == null || !(object instanceof DriverConfig))
+    if (object == null || !(object instanceof InstallConfig))
       return false;
-    DriverConfig other = (DriverConfig) object;
+    InstallConfig other = (InstallConfig) object;
     if (other.hashCode() != hashCode())
       return false;
     if (!(mName.equals(other.mName)))
@@ -96,9 +96,9 @@ public class DriverConfig implements AbstractData {
   protected String mMainClass;
   protected int m__hashcode;
 
-  public static final class Builder extends DriverConfig {
+  public static final class Builder extends InstallConfig {
 
-    private Builder(DriverConfig m) {
+    private Builder(InstallConfig m) {
       mName = m.mName;
       mRepoName = m.mRepoName;
       mMainClass = m.mMainClass;
@@ -116,8 +116,8 @@ public class DriverConfig implements AbstractData {
     }
 
     @Override
-    public DriverConfig build() {
-      DriverConfig r = new DriverConfig();
+    public InstallConfig build() {
+      InstallConfig r = new InstallConfig();
       r.mName = mName;
       r.mRepoName = mRepoName;
       r.mMainClass = mMainClass;
@@ -141,9 +141,9 @@ public class DriverConfig implements AbstractData {
 
   }
 
-  public static final DriverConfig DEFAULT_INSTANCE = new DriverConfig();
+  public static final InstallConfig DEFAULT_INSTANCE = new InstallConfig();
 
-  private DriverConfig() {
+  private InstallConfig() {
     mName = "";
     mRepoName = "";
     mMainClass = "";

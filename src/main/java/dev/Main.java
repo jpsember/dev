@@ -71,7 +71,7 @@ public class Main extends App {
     registerOper(new NewDatOper());
     registerOper(new StripDbOper());
     registerOper(new RemoteOper());
-    registerOper(new DriverOper());
+    registerOper(new InstallOper());
     // --- insertion point for new operations (used by NewOperOper)
   }
 

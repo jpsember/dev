@@ -4,33 +4,33 @@ import static js.base.Tools.*;
 
 import java.io.File;
 
-import dev.gen.DriverConfig;
+import dev.gen.InstallConfig;
 import js.app.AppOper;
 import js.base.SystemCall;
 import js.file.DirWalk;
 import js.file.Files;
 
-public class DriverOper extends AppOper {
+public class InstallOper extends AppOper {
 
   @Override
   public String userCommand() {
-    return "driver";
+    return "install";
   }
 
   @Override
   public String getHelpDescription() {
-    return "installs one of my programs from github, and generates a driver script";
+    return "installs one of my programs from github, including a shell script to run it";
   }
 
   @Override
-  public DriverConfig defaultArgs() {
-    return DriverConfig.DEFAULT_INSTANCE;
+  public InstallConfig defaultArgs() {
+    return InstallConfig.DEFAULT_INSTANCE;
   }
 
   @Override
-  public DriverConfig config() {
+  public InstallConfig config() {
     if (mConfig == null) {
-      mConfig = (DriverConfig) super.config();
+      mConfig = (InstallConfig) super.config();
     }
     return mConfig;
   }
@@ -45,7 +45,7 @@ public class DriverOper extends AppOper {
     if (nullOrEmpty(repoName))
       repoName = programName;
 
-    var tempDir = Files.createTempDir("driver_oper");
+    var tempDir = Files.createTempDir("install_oper");
     var repoDir = new File(tempDir, repoName);
     {
       var s = new SystemCall().directory(tempDir);
@@ -55,9 +55,10 @@ public class DriverOper extends AppOper {
       s.arg("git", "clone", url);
       s.assertSuccess();
     }
-    var driverSrc = new File(repoDir, "driver.json");
-    log("parsing driver.json (if one was provided)");
-    var installConfig = Files.parseAbstractDataOpt(DriverConfig.DEFAULT_INSTANCE, driverSrc);
+    final var INFO_SCRIPT_NAME = "install.json";
+    var driverSrc = new File(repoDir, INFO_SCRIPT_NAME);
+    log("parsing", INFO_SCRIPT_NAME, "(if one was provided)");
+    var installConfig = Files.parseAbstractDataOpt(InstallConfig.DEFAULT_INSTANCE, driverSrc);
 
     File binDir = new File("/usr/local/bin");
     File jarFile = null;
@@ -131,6 +132,6 @@ public class DriverOper extends AppOper {
     log("done!");
   }
 
-  private DriverConfig mConfig;
+  private InstallConfig mConfig;
 
 }
