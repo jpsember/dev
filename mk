@@ -1,1 +1,0 @@
-.jsproject/make.sh

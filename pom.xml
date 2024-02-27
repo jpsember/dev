@@ -20,7 +20,7 @@
           <target>11</target>
         </configuration>
       </plugin>
-      <plugin> <!-- taken from https://stackoverflow.com/questions/574594 -->
+      <plugin>
       <artifactId>maven-assembly-plugin</artifactId>
       <configuration>
         <archive>
@@ -34,8 +34,8 @@
       </configuration>
       <executions>
         <execution>
-          <id>make-assembly</id> <!-- this is used for inheritance merges -->
-          <phase>package</phase> <!-- bind to the packaging phase -->
+          <id>make-assembly</id>
+          <phase>package</phase>
           <goals>
             <goal>single</goal>
           </goals>
@@ -56,25 +56,25 @@
     <dependency>
       <groupId>com.github.jpsember</groupId>
       <artifactId>java-core</artifactId>
-      <version>v1.01</version>
+      <version>1.0</version>
     </dependency>
 
     <dependency>
       <groupId>com.github.jpsember</groupId>
       <artifactId>java-testutil</artifactId>
-      <version>v1.0</version>
+      <version>1.0</version>
     </dependency>
 
     <dependency>
       <groupId>com.github.jpsember</groupId>
       <artifactId>java-graphics</artifactId>
-      <version>1.02</version>
+      <version>1.07</version>
     </dependency>
 
     <dependency>
       <groupId>com.github.jpsember</groupId>
       <artifactId>java-webtools</artifactId>
-      <version>1.01</version>
+      <version>1.03</version>
     </dependency>
 
   </dependencies>

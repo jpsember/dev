@@ -168,10 +168,6 @@ public class SetupMachineOper extends AppOper {
   private void prepareBash() {
     log("...prepareBash");
 
-    // Create ~/bin directory 
-    //
-    files().mkdirs(fileWithinHome("bin"));
-
     writeWithBackup(fileWithinHome(".inputrc"), files().fileWithinSecrets("inputrc.txt"));
 
     // There are two bash configuration files we are interested in:

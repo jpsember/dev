@@ -60,7 +60,7 @@ public class InstallOper extends AppOper {
     log("parsing", INFO_SCRIPT_NAME, "(if one was provided)", Files.infoMap(driverSrc));
     var installConfig = Files.parseAbstractDataOpt(InstallConfig.DEFAULT_INSTANCE, driverSrc);
 
-    File binDir = new File("/usr/local/bin");
+    var binDir = Files.binDirectory();
     File jarFile = null;
     {
       log("calling 'mvn package'");

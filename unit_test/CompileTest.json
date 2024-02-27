@@ -9,6 +9,5 @@
          "printStateMachine" : 2680,
                 "reverseDFA" : 3300,
                     "simple" : 6156,
-                    "string" : 2008,
-                  "subsumed" : 3013
+                    "string" : 2008
 }
