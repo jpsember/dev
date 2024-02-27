@@ -1,4 +1,4 @@
-package dev;
+package dev.installer;
 
 import static js.base.Tools.*;
 

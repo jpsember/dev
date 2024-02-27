@@ -26,6 +26,7 @@ package dev;
 
 import static js.base.Tools.*;
 
+import dev.installer.MakeInstallerOper;
 import js.app.App;
 
 public class Main extends App {
@@ -49,7 +50,6 @@ public class Main extends App {
     registerOper(new CreateAppOper());
     registerOper(new ResetTestOper());
     registerOper(new CopyrightOper());
-    registerOper(new GitHashOper());
     registerOper(new ExperimentOper());
     registerOper(new PushOper());
     registerOper(new PullOper());
@@ -58,8 +58,6 @@ public class Main extends App {
     registerOper(new ArchiveOper());
     registerOper(new PrettyPrintOper());
     registerOper(new ResizeOper());
-    registerOper(new ExtractUsefulScriptsOper());
-    registerOper(new SplitProjectOper());
     registerOper(new RemoveExtraneousScriptElementsOper());
     registerOper(new ConvertJsonOper());
     registerOper(new FetchCloudFilesOper());
@@ -68,7 +66,6 @@ public class Main extends App {
     registerOper(new MakeInstallerOper());
     registerOper(new NewOperOper());
     registerOper(new NewDatOper());
-    registerOper(new StripDbOper());
     registerOper(new RemoteOper());
     registerOper(new InstallOper());
     // --- insertion point for new operations (used by NewOperOper)

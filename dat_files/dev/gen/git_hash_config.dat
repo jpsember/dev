@@ -1,5 +1,0 @@
-class {
-  File source = "pull_deps.sh";
-  string pattern = "pull_dep\\s+(\\w+)\\s+([a-gA-G0-9]+)";
-  File repo_dirs = "/Users/home/github_projects";
-}

@@ -1,5 +1,0 @@
-// Uncomment this deprecation flag and add some fields.
-class {
-  File file;
-  *string exprs = ["db","checkState","checkArgument"];
-}
