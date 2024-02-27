@@ -1,5 +1,0 @@
-#!/usr/bin/env sh
-set -eu
-
-MVN=$HOME/.m2/repository
-[!run_app_command]

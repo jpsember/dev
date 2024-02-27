@@ -57,6 +57,7 @@ public final class CreateAppOper extends AppOper {
     createSource();
     createDatFiles();
     createGitIgnore();
+    createInstallJson();
   }
 
   @Override
@@ -153,7 +154,7 @@ public final class CreateAppOper extends AppOper {
 
   private void createPom() {
     setTarget("pom.xml");
-    writeTargetIfMissing(parseResource("pom_template.xml") );
+    writeTargetIfMissing(parseResource("pom_template.xml"));
   }
 
   private void writeTargetIfMissing(String content) {
@@ -179,6 +180,7 @@ public final class CreateAppOper extends AppOper {
       m.put("package_name", appInfo().mainPackage());
       m.put("package_name_slashes", appInfo().mainPackage().replace('.', '/'));
       m.put("main_class_name", appInfo().mainClassName());
+      m.put("main_class", appInfo().mainPackage() + "." + appInfo().mainClassName());
       m.put("main_oper_name", appInfo().mainClassName() + "Oper");
       m.put("test_package_name", appInfo().mainPackage());
       m.put("test_class_name", testClassName());
@@ -215,6 +217,11 @@ public final class CreateAppOper extends AppOper {
   private void createGitIgnore() {
     setTarget(".gitignore");
     writeTargetIfMissing(parseResource("gitignore.txt"));
+  }
+
+  private void createInstallJson() {
+    setTarget("install.json");
+    writeTargetIfMissing(parseResource("install_template.json"));
   }
 
   // ------------------------------------------------------------------
