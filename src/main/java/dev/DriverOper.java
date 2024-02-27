@@ -9,7 +9,6 @@ import js.app.AppOper;
 import js.base.SystemCall;
 import js.file.DirWalk;
 import js.file.Files;
-import js.json.JSMap;
 
 public class DriverOper extends AppOper {
 
@@ -49,25 +48,13 @@ public class DriverOper extends AppOper {
     for (var pass = 0; pass < 2; pass++) {
       var repoNameTry = (pass == 0) ? name : "java-" + name;
       {
-        File c2;
-        var db = false && alert("SPECIAL TEST!");
-        if (db)
-          c2 = Files.currentDirectory();
-        else
-          c2 = Files.createTempDir("driver_oper_" + repoNameTry);
+        var c2 = Files.createTempDir("driver_oper_" + repoNameTry);
         var s = new SystemCall();
         s.setVerbose(verbose());
         s.directory(cloneDir);
         names.add(repoNameTry);
         var url = "https://github.com/jpsember/" + repoNameTry + ".git";
         log("attempting to clone from:", url);
-
-        if (db) {
-          var del = new File(c2, "java-gitdiff");
-          if (del.exists())
-            files().deleteDirectory(del, "java-gitdiff");
-        }
-
         s.arg("git", "clone", url);
         if (s.exitCode() == 0) {
           cloneDir = c2;
@@ -83,16 +70,9 @@ public class DriverOper extends AppOper {
 
     var repoDir = new File(cloneDir, repoName);
 
-    var installConfig = DriverConfig.DEFAULT_INSTANCE;
-    {
-      var driverSrc = new File(repoDir, "driver.json");
-      if (driverSrc.exists()) {
-        log("parsing:", driverSrc);
-        installConfig = Files.parseAbstractData(installConfig, driverSrc);
-        log("parsed as:", INDENT, installConfig);
-      } else
-        die("couldn't find:", driverSrc);
-    }
+    var driverSrc = new File(repoDir, "driver.json");
+    log("parsing driver.json (if one was provided)");
+    var installConfig = Files.parseAbstractDataOpt(DriverConfig.DEFAULT_INSTANCE, driverSrc);
 
     File binDir = new File("/usr/local/bin");
     File jarFile = null;
