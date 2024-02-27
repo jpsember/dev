@@ -45,17 +45,16 @@ public class DriverOper extends AppOper {
     if (nullOrEmpty(repoName))
       repoName = programName;
 
-    var c2 = Files.createTempDir("driver_oper");
-    var cloneDir = new File(c2, repoName);
+    var tempDir = Files.createTempDir("driver_oper");
+    var repoDir = new File(tempDir, repoName);
     {
-      var s = new SystemCall().directory(cloneDir);
+      var s = new SystemCall().directory(tempDir);
       s.setVerbose(verbose());
       var url = "https://github.com/jpsember/" + repoName + ".git";
       log("attempting to clone repo from", url);
       s.arg("git", "clone", url);
       s.assertSuccess();
     }
-    var repoDir = new File(cloneDir, repoName);
     var driverSrc = new File(repoDir, "driver.json");
     log("parsing driver.json (if one was provided)");
     var installConfig = Files.parseAbstractDataOpt(DriverConfig.DEFAULT_INSTANCE, driverSrc);
@@ -66,7 +65,7 @@ public class DriverOper extends AppOper {
       log("calling 'mvn package'");
       var s = new SystemCall().directory(repoDir);
       s.setVerbose(verbose());
-      s.arg("/usr/local/bin/mvn", "package");
+      s.arg("mvn", "package");
       if (s.exitCode() != 0)
         setError("Failed to compile", repoName, INDENT, s.systemErr());
 
