@@ -9,6 +9,10 @@ public class DriverConfig implements AbstractData {
     return mName;
   }
 
+  public String repoName() {
+    return mRepoName;
+  }
+
   public String mainClass() {
     return mMainClass;
   }
@@ -19,7 +23,8 @@ public class DriverConfig implements AbstractData {
   }
 
   protected static final String _0 = "name";
-  protected static final String _1 = "main_class";
+  protected static final String _1 = "repo_name";
+  protected static final String _2 = "main_class";
 
   @Override
   public String toString() {
@@ -30,7 +35,8 @@ public class DriverConfig implements AbstractData {
   public JSMap toJson() {
     JSMap m = new JSMap();
     m.putUnsafe(_0, mName);
-    m.putUnsafe(_1, mMainClass);
+    m.putUnsafe(_1, mRepoName);
+    m.putUnsafe(_2, mMainClass);
     return m;
   }
 
@@ -46,7 +52,8 @@ public class DriverConfig implements AbstractData {
 
   private DriverConfig(JSMap m) {
     mName = m.opt(_0, "");
-    mMainClass = m.opt(_1, "");
+    mRepoName = m.opt(_1, "");
+    mMainClass = m.opt(_2, "");
   }
 
   public static Builder newBuilder() {
@@ -64,6 +71,8 @@ public class DriverConfig implements AbstractData {
       return false;
     if (!(mName.equals(other.mName)))
       return false;
+    if (!(mRepoName.equals(other.mRepoName)))
+      return false;
     if (!(mMainClass.equals(other.mMainClass)))
       return false;
     return true;
@@ -75,6 +84,7 @@ public class DriverConfig implements AbstractData {
     if (r == 0) {
       r = 1;
       r = r * 37 + mName.hashCode();
+      r = r * 37 + mRepoName.hashCode();
       r = r * 37 + mMainClass.hashCode();
       m__hashcode = r;
     }
@@ -82,6 +92,7 @@ public class DriverConfig implements AbstractData {
   }
 
   protected String mName;
+  protected String mRepoName;
   protected String mMainClass;
   protected int m__hashcode;
 
@@ -89,6 +100,7 @@ public class DriverConfig implements AbstractData {
 
     private Builder(DriverConfig m) {
       mName = m.mName;
+      mRepoName = m.mRepoName;
       mMainClass = m.mMainClass;
     }
 
@@ -107,12 +119,18 @@ public class DriverConfig implements AbstractData {
     public DriverConfig build() {
       DriverConfig r = new DriverConfig();
       r.mName = mName;
+      r.mRepoName = mRepoName;
       r.mMainClass = mMainClass;
       return r;
     }
 
     public Builder name(String x) {
       mName = (x == null) ? "" : x;
+      return this;
+    }
+
+    public Builder repoName(String x) {
+      mRepoName = (x == null) ? "" : x;
       return this;
     }
 
@@ -127,6 +145,7 @@ public class DriverConfig implements AbstractData {
 
   private DriverConfig() {
     mName = "";
+    mRepoName = "";
     mMainClass = "";
   }
 

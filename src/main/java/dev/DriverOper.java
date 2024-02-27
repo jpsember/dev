@@ -38,38 +38,24 @@ public class DriverOper extends AppOper {
   @Override
   public void perform() {
 
-    var name = config().name();
-    checkNonEmpty(name, "specify a name");
+    var programName = config().name();
+    checkNonEmpty(programName, "specify a name");
 
-    log("attempting to clone repo from github.com/jpsember");
-    File cloneDir = null;
-    String repoName = null;
-    var names = list();
-    for (var pass = 0; pass < 2; pass++) {
-      var repoNameTry = (pass == 0) ? name : "java-" + name;
-      {
-        var c2 = Files.createTempDir("driver_oper_" + repoNameTry);
-        var s = new SystemCall();
-        s.setVerbose(verbose());
-        s.directory(cloneDir);
-        names.add(repoNameTry);
-        var url = "https://github.com/jpsember/" + repoNameTry + ".git";
-        log("attempting to clone from:", url);
-        s.arg("git", "clone", url);
-        if (s.exitCode() == 0) {
-          cloneDir = c2;
-          repoName = repoNameTry;
-          break;
-        }
-      }
-    }
-    if (repoName == null) {
-      setError("Failed to clone repo from github.com/jpsember/", names);
-    }
-    log("cloned to:", repoName);
+    var repoName = config().repoName();
+    if (nullOrEmpty(repoName))
+      repoName = programName;
 
+    var c2 = Files.createTempDir("driver_oper");
+    var cloneDir = new File(c2, repoName);
+    {
+      var s = new SystemCall().directory(cloneDir);
+      s.setVerbose(verbose());
+      var url = "https://github.com/jpsember/" + repoName + ".git";
+      log("attempting to clone repo from", url);
+      s.arg("git", "clone", url);
+      s.assertSuccess();
+    }
     var repoDir = new File(cloneDir, repoName);
-
     var driverSrc = new File(repoDir, "driver.json");
     log("parsing driver.json (if one was provided)");
     var installConfig = Files.parseAbstractDataOpt(DriverConfig.DEFAULT_INSTANCE, driverSrc);
@@ -136,7 +122,7 @@ public class DriverOper extends AppOper {
 
       sb.append("\"$@\"");
       sb.append("\n");
-      scriptFile = new File(binDir, name);
+      scriptFile = new File(binDir, programName);
       var content = sb.toString();
       log("writing:", scriptFile, INDENT, content);
       files().writeString(scriptFile, content);

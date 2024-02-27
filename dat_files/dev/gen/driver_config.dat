@@ -1,4 +1,5 @@
 class {
-  string name;  // The name of the project, e.g. 'gitdiff'
+  string name;       // The name of the program, e.g. 'gitdiff'
+  string repo_name;  // The name of the git repository, if different from the program name
   string main_class; // Fully-qualified name of class containing main method, e.g., 'js.gitdiff.GitDiffApp'
 }
