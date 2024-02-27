@@ -57,7 +57,7 @@ public class InstallOper extends AppOper {
     }
     final var INFO_SCRIPT_NAME = "install.json";
     var driverSrc = new File(repoDir, INFO_SCRIPT_NAME);
-    log("parsing", INFO_SCRIPT_NAME, "(if one was provided)");
+    log("parsing", INFO_SCRIPT_NAME, "(if one was provided)", Files.infoMap(driverSrc));
     var installConfig = Files.parseAbstractDataOpt(InstallConfig.DEFAULT_INSTANCE, driverSrc);
 
     File binDir = new File("/usr/local/bin");
