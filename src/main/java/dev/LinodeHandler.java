@@ -233,10 +233,10 @@ public class LinodeHandler extends BaseObject implements RemoteHandler {
     sb.append(" -oStrictHostKeyChecking=no");
     sb.append(" $@");
     sb.append('\n');
-    File f = new File(Files.homeDirectory(), "bin/sshe");
+    File f = new File(Files.binDirectory(), "sshe");
     var fl = Files.S;
     fl.writeString(f, sb.toString());
-    fl.chmod(f, "u+x");
+    fl.chmod(f, 755);
   }
 
   private JSMap callLinode(String action, String endpoint) {
