@@ -271,7 +271,7 @@ public abstract class RsyncOper extends AppOper {
     if (mCachedExcludeExpressionsList == null) {
       List<String> strings = arrayList();
       mCachedExcludeExpressionsList = strings;
-      String script = Files.readString(getClass(), "rsync_excludes.txt");
+      String script = frag("rsync_excludes.txt");
       for (String s : split(script, '\n')) {
         s = s.trim();
         if (s.isEmpty() || s.startsWith("#"))
@@ -280,6 +280,11 @@ public abstract class RsyncOper extends AppOper {
       }
     }
     return mCachedExcludeExpressionsList;
+  }
+
+
+  private String frag(String resourceName) {
+    return Files.readString(getClass(), "rsync/" + resourceName);
   }
 
   /**

@@ -57,9 +57,6 @@ public class SetupMachineOper extends AppOper {
     if (args.hasNextArg()) {
       String arg = args.nextArg();
       switch (arg) {
-      case "new":
-        mNewFlag = true;
-        break;
       case "eclipse":
         mEclipseMode = true;
         break;
@@ -74,11 +71,6 @@ public class SetupMachineOper extends AppOper {
 
   @Override
   public void perform() {
-    if (mNewFlag) {
-      performNew();
-      return;
-    }
-
     validateOS();
     prepareSSH();
     prepareBash();
@@ -117,17 +109,17 @@ public class SetupMachineOper extends AppOper {
 
   private void prepareVI() {
     log("...prepareVI");
-    writeWithBackup(fileWithinHome(".vimrc"), resourceString("vimrc.txt"));
+    writeWithBackup(fileWithinHome(".vimrc"), frag("vimrc.txt"));
   }
 
   private void prepareScreen() {
     log("...prepareScreen");
-    writeWithBackup(fileWithinHome(".screenrc"), resourceString("screenrc.txt"));
+    writeWithBackup(fileWithinHome(".screenrc"), frag("screenrc.txt"));
   }
 
   private void prepareGit() {
     log("...prepareGit");
-    writeWithBackup(fileWithinHome(".gitconfig"), applyMacroParser(resourceString("git_config.txt")));
+    writeWithBackup(fileWithinHome(".gitconfig"), applyMacroParser(frag("git_config.txt")));
   }
 
   private void prepareAWS() {
@@ -210,11 +202,11 @@ public class SetupMachineOper extends AppOper {
       }
     }
     writeWithBackup(bashProfileMain, applyMacroParser(newContent));
-    writeWithBackup(bashProfileAux, applyMacroParser(resourceString("profile_custom.txt")));
+    writeWithBackup(bashProfileAux, applyMacroParser(frag("profile_custom.txt")));
   }
 
-  private String resourceString(String filename) {
-    return Files.readString(getClass(), filename);
+  private String frag(String filename) {
+    return Files.readString(getClass(), "setupmachine/" + filename);
   }
 
   private String applyMacroParser(String sourceText) {
@@ -232,7 +224,7 @@ public class SetupMachineOper extends AppOper {
 
   private void runSetupScript() {
     File targetFile = fileWithinHome(".setup_script.sh");
-    writeWithBackup(targetFile, applyMacroParser(resourceString("setup_script.txt")));
+    writeWithBackup(targetFile, applyMacroParser(frag("setup_script.txt")));
 
     pr("Running script that requires sudo access... type password if necessary...");
     SystemCall sc = new SystemCall();
@@ -338,18 +330,5 @@ public class SetupMachineOper extends AppOper {
     return new File(Files.homeDirectory(), assertRelative(relativePath));
   }
 
-  private void performNew() {
-    // Create ~/bin directory 
-    //
-    var binDir = files().mkdirs(fileWithinHome("bin"));
-
-    // Create ~/bin/mk script
-    //
-    var targetFile = new File(binDir, "mk");
-    files().writeString(targetFile, resourceString("bin_mk_template.txt"));
-    files().chmod(targetFile, 744);
-  }
-
   private boolean mEclipseMode;
-  private boolean mNewFlag;
 }

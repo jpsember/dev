@@ -224,7 +224,7 @@ public class MakeInstallerOper extends AppOper {
   }
 
   private String frag(String resourceName) {
-    return Files.readString(getClass(), resourceName);
+    return Files.readString(getClass(), "installer/" + resourceName);
   }
 
   private void generateRunScript(String programName, String mainClass) {

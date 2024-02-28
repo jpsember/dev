@@ -116,7 +116,7 @@ public final class CopyrightOper extends AppOper {
    * @return
    */
   private String readLicense(String resourceName) {
-    String c = Files.readString(getClass(), resourceName);
+    String c = frag(resourceName);
     List<String> lines = split("\n" + c + "\n", '\n');
 
     StringBuilder sb = new StringBuilder();
@@ -147,6 +147,10 @@ public final class CopyrightOper extends AppOper {
     }
 
     return sb.toString().trim();
+  }
+
+  private String frag(String resourceName) {
+    return Files.readString(getClass(), "copyright/" + resourceName);
   }
 
   private String mSourceDirStr = "";

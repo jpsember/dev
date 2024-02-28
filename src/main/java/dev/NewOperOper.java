@@ -84,8 +84,8 @@ public class NewOperOper extends AppOper {
 
   }
 
-  private String frag(String resourceName) {
-    return Files.readString(getClass(), resourceName);
+  private String frag (String resourceName) {
+    return Files.readString(getClass(), "newoper/"+resourceName);
   }
 
   private JSMap macroMap() {

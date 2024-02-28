@@ -145,7 +145,7 @@ public final class CreateAppOper extends AppOper {
   }
 
   private String frag(String resourceName) {
-    return Files.readString(getClass(), resourceName);
+    return Files.readString(getClass(), "createapp/" + resourceName);
   }
 
   private File appFile(String pathRelativeToProject) {

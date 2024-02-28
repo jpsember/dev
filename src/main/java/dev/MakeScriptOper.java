@@ -73,8 +73,12 @@ public class MakeScriptOper extends AppOper {
 
   private JSMap template() {
     if (mTemplate == null)
-      mTemplate = JSMap.fromResource(this.getClass(), "makescript.json");
+      mTemplate = new JSMap(frag("makescript.json"));
     return mTemplate;
+  }
+
+  private String frag(String resourceName) {
+    return Files.readString(getClass(), "makescript/" + resourceName);
   }
 
   private JSMap mTemplate;
