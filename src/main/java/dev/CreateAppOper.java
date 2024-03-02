@@ -80,7 +80,6 @@ public final class CreateAppOper extends AppOper {
   }
 
   private void postProcessArgs() {
-    alertVerbose();
     var c = config();
     log("post processing args; config:", c);
 
@@ -230,11 +229,10 @@ public final class CreateAppOper extends AppOper {
   }
 
   private void compileDatFiles() {
-    if (eclipse()) // Mysterious failures if we try to call datagen within eclipse
-      return;
     var s = new SystemCall();
     s.setVerbose(verbose());
-    s.arg("/usr/local/bin/datagen");
+    s.arg("datagen");
+    s.arg("start_dir",mAppDir);
     log("attempting generate data classes");
     s.assertSuccess();
   }
