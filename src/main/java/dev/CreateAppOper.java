@@ -231,8 +231,8 @@ public final class CreateAppOper extends AppOper {
   private void compileDatFiles() {
     var s = new SystemCall();
     s.setVerbose(verbose());
-    s.arg("datagen");
-    s.arg("start_dir",mAppDir);
+    s.arg("/usr/local/bin/datagen");
+    s.arg("start_dir", mAppDir);
     log("attempting generate data classes");
     s.assertSuccess();
   }
