@@ -32,6 +32,7 @@ import java.util.List;
 import dev.gen.AppInfo;
 import js.app.AppOper;
 import js.app.CmdLineArgs;
+import js.base.BasePrinter;
 import js.file.DirWalk;
 import js.file.Files;
 import js.json.JSMap;
@@ -41,6 +42,7 @@ public final class CreateAppOper extends AppOper {
 
   @Override
   public String userCommand() {
+    todo("Add option to create (or suppress) json config arguments");
     return "createapp";
   }
 
@@ -63,6 +65,14 @@ public final class CreateAppOper extends AppOper {
   @Override
   protected List<Object> getAdditionalArgs() {
     return arrayList("[ package <xxx.yyy.etc> | startdir <dir> | main <e.g. Main> ]*");
+  }
+
+  @Override
+  protected void getOperSpecificHelp(BasePrinter b) {
+    b.pr("package <xxx.yyy.etc>");
+    b.pr("startdir <dir>");
+    b.pr("main <e.g. Main>");
+    b.pr("Create a directory to hold the project, and from that directory, type 'dev createapp package ...");
   }
 
   @Override
