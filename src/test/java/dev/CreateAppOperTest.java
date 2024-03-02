@@ -26,67 +26,61 @@ package dev;
 
 import static js.base.Tools.*;
 
-import java.io.File;
 import java.util.List;
 
 import org.junit.Test;
 
 import js.data.DataUtil;
-import js.file.Files;
 import js.testutil.MyTestCase;
 
 public class CreateAppOperTest extends MyTestCase {
 
   @Test
-  public void sample() {
-    addArg("createapp");
-    addArg("package", "js.zebra");
-    addArg("app_dir", appDir());
+  public void zebra() {
     compile();
   }
 
   @Test
-  public void customMain() {
-    addArg("createapp");
-    addArg("package", "js.zebra");
-    addArg("app_dir", appDir());
-    addArg("main", "Zebra");
+  public void nameDiffersFromDir() {
+    addArg("name", "foo");
     compile();
-  }
-
-  private final void addArg(Object... args) {
-    for (Object a : args) {
-      mArgs.add(a.toString());
-    }
-  }
-
-  private File appDir() {
-    if (mAppDir == null)
-      mAppDir = Files.S.mkdirs(generatedFile(appName()));
-    return mAppDir;
   }
 
   private void runApp() {
     if (verbose())
       addArg("--verbose");
-    new Main().startApplication(DataUtil.toStringArray(args()));
+    var m = new Main();
+    m.startApplication(DataUtil.toStringArray(args()));
     args().clear();
   }
 
+  private void provideArg(String key, Object value) {
+    if (!args().contains(key))
+      addArg(key, value);
+  }
+
   private void compile() {
+    provideArg("name", name());
+    provideArg("parent_dir", generatedDir());
+    if (alert("setting eclipse mode"))
+      addArg("eclipse");
     runApp();
     assertGenerated();
   }
 
-  private String appName() {
-    return "zebra";
-  }
-
   private List<String> args() {
+    if (mArgs == null) {
+      mArgs = arrayList();
+      mArgs.add("createapp");
+    }
     return mArgs;
   }
 
-  private File mAppDir;
-  private List<String> mArgs = arrayList();
+  private void addArg(Object... args) {
+    for (var a : args)
+      args().add(a.toString());
+  }
+
+  private List<String> mArgs;
 
 }

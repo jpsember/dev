@@ -7,24 +7,24 @@ import js.json.JSMap;
 
 public class CreateAppConfig implements AbstractData {
 
+  public File parentDir() {
+    return mParentDir;
+  }
+
   public String name() {
     return mName;
-  }
-
-  public String mainPackage() {
-    return mMainPackage;
-  }
-
-  public String mainClassName() {
-    return mMainClassName;
   }
 
   public boolean omitJsonArgs() {
     return mOmitJsonArgs;
   }
 
-  public File appDir() {
-    return mAppDir;
+  public File zapExisting() {
+    return mZapExisting;
+  }
+
+  public boolean eclipse() {
+    return mEclipse;
   }
 
   @Override
@@ -32,11 +32,11 @@ public class CreateAppConfig implements AbstractData {
     return new Builder(this);
   }
 
-  protected static final String _0 = "name";
-  protected static final String _1 = "main_package";
-  protected static final String _2 = "main_class_name";
-  protected static final String _3 = "omit_json_args";
-  protected static final String _4 = "app_dir";
+  protected static final String _0 = "parent_dir";
+  protected static final String _1 = "name";
+  protected static final String _2 = "omit_json_args";
+  protected static final String _3 = "zap_existing";
+  protected static final String _4 = "eclipse";
 
   @Override
   public String toString() {
@@ -46,11 +46,11 @@ public class CreateAppConfig implements AbstractData {
   @Override
   public JSMap toJson() {
     JSMap m = new JSMap();
-    m.putUnsafe(_0, mName);
-    m.putUnsafe(_1, mMainPackage);
-    m.putUnsafe(_2, mMainClassName);
-    m.putUnsafe(_3, mOmitJsonArgs);
-    m.putUnsafe(_4, mAppDir.toString());
+    m.putUnsafe(_0, mParentDir.toString());
+    m.putUnsafe(_1, mName);
+    m.putUnsafe(_2, mOmitJsonArgs);
+    m.putUnsafe(_3, mZapExisting.toString());
+    m.putUnsafe(_4, mEclipse);
     return m;
   }
 
@@ -65,17 +65,23 @@ public class CreateAppConfig implements AbstractData {
   }
 
   private CreateAppConfig(JSMap m) {
-    mName = m.opt(_0, "");
-    mMainPackage = m.opt(_1, "");
-    mMainClassName = m.opt(_2, "Main");
-    mOmitJsonArgs = m.opt(_3, false);
     {
-      mAppDir = Files.DEFAULT;
-      String x = m.opt(_4, (String) null);
+      mParentDir = Files.DEFAULT;
+      String x = m.opt(_0, (String) null);
       if (x != null) {
-        mAppDir = new File(x);
+        mParentDir = new File(x);
       }
     }
+    mName = m.opt(_1, "");
+    mOmitJsonArgs = m.opt(_2, false);
+    {
+      mZapExisting = Files.DEFAULT;
+      String x = m.opt(_3, (String) null);
+      if (x != null) {
+        mZapExisting = new File(x);
+      }
+    }
+    mEclipse = m.opt(_4, false);
   }
 
   public static Builder newBuilder() {
@@ -91,15 +97,15 @@ public class CreateAppConfig implements AbstractData {
     CreateAppConfig other = (CreateAppConfig) object;
     if (other.hashCode() != hashCode())
       return false;
+    if (!(mParentDir.equals(other.mParentDir)))
+      return false;
     if (!(mName.equals(other.mName)))
-      return false;
-    if (!(mMainPackage.equals(other.mMainPackage)))
-      return false;
-    if (!(mMainClassName.equals(other.mMainClassName)))
       return false;
     if (!(mOmitJsonArgs == other.mOmitJsonArgs))
       return false;
-    if (!(mAppDir.equals(other.mAppDir)))
+    if (!(mZapExisting.equals(other.mZapExisting)))
+      return false;
+    if (!(mEclipse == other.mEclipse))
       return false;
     return true;
   }
@@ -109,31 +115,31 @@ public class CreateAppConfig implements AbstractData {
     int r = m__hashcode;
     if (r == 0) {
       r = 1;
+      r = r * 37 + mParentDir.hashCode();
       r = r * 37 + mName.hashCode();
-      r = r * 37 + mMainPackage.hashCode();
-      r = r * 37 + mMainClassName.hashCode();
       r = r * 37 + (mOmitJsonArgs ? 1 : 0);
-      r = r * 37 + mAppDir.hashCode();
+      r = r * 37 + mZapExisting.hashCode();
+      r = r * 37 + (mEclipse ? 1 : 0);
       m__hashcode = r;
     }
     return r;
   }
 
+  protected File mParentDir;
   protected String mName;
-  protected String mMainPackage;
-  protected String mMainClassName;
   protected boolean mOmitJsonArgs;
-  protected File mAppDir;
+  protected File mZapExisting;
+  protected boolean mEclipse;
   protected int m__hashcode;
 
   public static final class Builder extends CreateAppConfig {
 
     private Builder(CreateAppConfig m) {
+      mParentDir = m.mParentDir;
       mName = m.mName;
-      mMainPackage = m.mMainPackage;
-      mMainClassName = m.mMainClassName;
       mOmitJsonArgs = m.mOmitJsonArgs;
-      mAppDir = m.mAppDir;
+      mZapExisting = m.mZapExisting;
+      mEclipse = m.mEclipse;
     }
 
     @Override
@@ -150,26 +156,21 @@ public class CreateAppConfig implements AbstractData {
     @Override
     public CreateAppConfig build() {
       CreateAppConfig r = new CreateAppConfig();
+      r.mParentDir = mParentDir;
       r.mName = mName;
-      r.mMainPackage = mMainPackage;
-      r.mMainClassName = mMainClassName;
       r.mOmitJsonArgs = mOmitJsonArgs;
-      r.mAppDir = mAppDir;
+      r.mZapExisting = mZapExisting;
+      r.mEclipse = mEclipse;
       return r;
+    }
+
+    public Builder parentDir(File x) {
+      mParentDir = (x == null) ? Files.DEFAULT : x;
+      return this;
     }
 
     public Builder name(String x) {
       mName = (x == null) ? "" : x;
-      return this;
-    }
-
-    public Builder mainPackage(String x) {
-      mMainPackage = (x == null) ? "" : x;
-      return this;
-    }
-
-    public Builder mainClassName(String x) {
-      mMainClassName = (x == null) ? "Main" : x;
       return this;
     }
 
@@ -178,8 +179,13 @@ public class CreateAppConfig implements AbstractData {
       return this;
     }
 
-    public Builder appDir(File x) {
-      mAppDir = (x == null) ? Files.DEFAULT : x;
+    public Builder zapExisting(File x) {
+      mZapExisting = (x == null) ? Files.DEFAULT : x;
+      return this;
+    }
+
+    public Builder eclipse(boolean x) {
+      mEclipse = x;
       return this;
     }
 
@@ -188,10 +194,9 @@ public class CreateAppConfig implements AbstractData {
   public static final CreateAppConfig DEFAULT_INSTANCE = new CreateAppConfig();
 
   private CreateAppConfig() {
+    mParentDir = Files.DEFAULT;
     mName = "";
-    mMainPackage = "";
-    mMainClassName = "Main";
-    mAppDir = Files.DEFAULT;
+    mZapExisting = Files.DEFAULT;
   }
 
 }

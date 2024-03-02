@@ -1,7 +1,7 @@
 fields {
+  File parent_dir;  // If nonempty, the directory to contain the app
   string name; // name of app; e.g. "dfa"
-  string main_package; // if empty, defaults to name of app
-  string main_class_name = "Main";
   bool omit_json_args;
-  File app_dir; // If empty, uses current directory
+  File zap_existing; // If nonempty, zaps app directory beforehand; this must equal the absolute path of the generated directory for safety
+  bool eclipse;  // for development: true to enable different behaviour if running within Eclipse
 }

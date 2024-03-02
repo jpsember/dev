@@ -80,60 +80,54 @@ public final class CreateAppOper extends AppOper {
   }
 
   private void postProcessArgs() {
+    alertVerbose();
     var c = config();
     log("post processing args; config:", c);
 
-    if (Files.empty(c.appDir())) {
-      c.appDir(Files.currentDirectory());
-      log("set directory:", c.appDir());
+    {
+      var d = c.parentDir();
+      if (Files.empty(d))
+        d = Files.currentDirectory();
+      c.parentDir(Files.absolute(d));
     }
 
-    c.appDir(Files.absolute(c.appDir()));
     {
-      var f = Files.currentDirectory().getName();
-      if (!RegExp.patternMatchesString("[a-z]+", f))
-        badArg("name of current directory is not appropriate for an app name:", f);
-      c.name(f);
+      var name = c.name();
+      if (name.isEmpty())
+        badArg("missing arg: name");
+      if (!RegExp.patternMatchesString("[a-z]+", name))
+        badArg("inappropriate app name:", name);
+      mAppDir = new File(c.parentDir(), name);
     }
-
-    if (c.mainClassName().isEmpty())
-      c.mainClassName(c.name());
-
     {
-      var s = c.mainClassName();
-      if (s.endsWith(".java"))
-        badArg("Extraneous '.java' suffix for", s);
-    }
-
-    if (c.mainPackage().isEmpty())
-      c.mainPackage(c.name());
-
-    {
-      // If the current directory contains other directories, or suspicious files, report an error
-      var d = new DirWalk(c.appDir()).includeDirectories().withRecurse(true);
-      for (var f : d.files()) {
-        if (f.isDirectory()) {
-          badArg("Unexpected current directory contents:", INDENT, Files.infoMap(f), CR,
-              "You must run this command from the directory that is to contain the new app");
-        }
+      var z = c.zapExisting();
+      if (Files.nonEmpty(z)) {
+        if (!z.equals(mAppDir))
+          badArg("zap_existing is nonempty, but not equal to app dir:", mAppDir, INDENT, c);
+        files().deleteDirectory(z, "/" + c.name());
       }
     }
-    {
-      String mainPackage = c.mainPackage();
-      String suffix = "." + c.mainClassName();
-      if (mainPackage.endsWith(suffix))
-        badArg("Extraneous suffix for <package> arg:", suffix);
-      if (!("." + mainPackage).endsWith("." + c.name()))
-        badArg("*** Package", quote(mainPackage), "doesn't end with app name", quote(c.name()));
-      if (nonEmpty(c.mainPackage()))
-        checkArgumentsEqual(mainPackage, c.mainPackage(), "Inferred package vs command line arg");
-    }
+    files().mkdirs(mAppDir);
+
+    mMainPackage = c.name();
+    mMainClassName = DataUtil.capitalizeFirst(c.name());
+
+    //
+    //    {
+    //      String mainPackage = c.mainPackage();
+    //      String suffix = "." + c.mainClassName();
+    //      if (mainPackage.endsWith(suffix))
+    //        badArg("Extraneous suffix for <package> arg:", suffix);
+    //      if (!("." + mainPackage).endsWith("." + c.name()))
+    //        badArg("*** Package", quote(mainPackage), "doesn't end with app name", quote(c.name()));
+    //      if (nonEmpty(c.mainPackage()))
+    //        checkArgumentsEqual(mainPackage, c.mainPackage(), "Inferred package vs command line arg");
+    //    }
   }
 
   private File mainJavaFile() {
     if (mMainJavaFile == null) {
-      mMainJavaFile = appFile("src/main/java/" + AppUtil.dotToSlash(config().mainPackage()) + "/"
-          + config().mainClassName() + ".java");
+      mMainJavaFile = appFile("src/main/java/" + mMainPackage + "/" + "Main.java");
     }
     return mMainJavaFile;
   }
@@ -156,11 +150,16 @@ public final class CreateAppOper extends AppOper {
   }
 
   private String frag(String resourceName) {
-    return Files.readString(getClass(), "createapp/" + resourceName);
+    var path = "createapp/" + resourceName;
+    if (eclipse()) {
+      var f = new File("/Users/home/github_projects/dev/src/main/resources/dev");
+      return Files.readString(new File(f, path));
+    }
+    return Files.readString(getClass(), path);
   }
 
   private File appFile(String pathRelativeToProject) {
-    return new File(config().appDir(), pathRelativeToProject);
+    return new File(mAppDir, pathRelativeToProject);
   }
 
   private void createPom() {
@@ -189,12 +188,12 @@ public final class CreateAppOper extends AppOper {
       JSMap m = map();
       m.put("group_id", "com.jsbase");
       m.put("app_name", c.name());
-      m.put("package_name", c.mainPackage());
-      m.put("package_name_slashes", c.mainPackage().replace('.', '/'));
-      m.put("main_class_name", c.mainClassName());
-      m.put("main_class", c.mainPackage() + "." + c.mainClassName());
-      m.put("main_oper_name", c.mainClassName() + "Oper");
-      m.put("test_package_name", c.mainPackage());
+      m.put("package_name", mMainPackage);
+      m.put("package_name_slashes", mMainPackage.replace('.', '/'));
+      m.put("main_class_name", mMainClassName);
+      m.put("main_class", mMainPackage + "." + mMainClassName);
+      m.put("main_oper_name", mMainClassName + "Oper");
+      m.put("test_package_name", mMainPackage);
       m.put("test_class_name", testClassName());
       m.put("pom_dependencies", frag("pom_dependencies.xml"));
       m.put("datagen_gitignore_comment", "# ...add appropriate entries for generated Java files");
@@ -227,13 +226,13 @@ public final class CreateAppOper extends AppOper {
     // If there are already Java files in the test directory, don't write any 'do nothing' tests
     if (!testDir.exists() || new DirWalk(testDir).withExtensions("java").files().isEmpty()) {
       setTarget(
-          testSubdir + "/" + AppUtil.dotToSlash(config().mainPackage()) + "/" + testClassName() + ".java");
+          testSubdir + "/" + AppUtil.dotToSlash(mMainPackage) + "/" + testClassName() + ".java");
       writeTargetIfMissing(parseResource("main_test_java.txt"));
     }
   }
 
   private void createDatFiles() {
-    var genDir = "dat_files/" + AppUtil.dotToSlash(config().mainPackage()) + "/gen/";
+    var genDir = "dat_files/" + AppUtil.dotToSlash(mMainPackage) + "/gen/";
     setTarget(genDir + "_SKIP_sample.dat.RENAME_ME");
     writeTargetIfMissing(parseResource("sample_dat.txt"));
     if (!config().omitJsonArgs()) {
@@ -244,9 +243,11 @@ public final class CreateAppOper extends AppOper {
   }
 
   private void compileDatFiles() {
+    if (eclipse()) // Mysterious failures if we try to call datagen within eclipse
+      return;
     var s = new SystemCall();
     s.setVerbose(verbose());
-    s.arg("datagen");
+    s.arg("/usr/local/bin/datagen");
     log("attempting generate data classes");
     s.assertSuccess();
   }
@@ -259,6 +260,10 @@ public final class CreateAppOper extends AppOper {
   private void createInstallJson() {
     setTarget("install.json");
     writeTargetIfMissing(parseResource("install_template.json"));
+  }
+
+  private boolean eclipse() {
+    return config().eclipse() && alert("workaround while within eclipse");
   }
 
   // ------------------------------------------------------------------
@@ -278,5 +283,7 @@ public final class CreateAppOper extends AppOper {
   private File mMainJavaFile;
   private JSMap mMacroMap;
   private CreateAppConfig.Builder mConfig;
-
+  private File mAppDir;
+  private String mMainPackage;
+  private String mMainClassName;
 }
