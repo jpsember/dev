@@ -6,6 +6,7 @@ import java.io.File;
 
 import dev.gen.InstallConfig;
 import js.app.AppOper;
+import js.base.BasePrinter;
 import js.base.SystemCall;
 import js.file.DirWalk;
 import js.file.Files;
@@ -20,6 +21,11 @@ public class InstallOper extends AppOper {
   @Override
   public String getHelpDescription() {
     return "installs one of my programs from github, including a shell script to run it";
+  }
+
+  @Override
+  protected void getOperSpecificHelp(BasePrinter b) {
+    b.pr("dev install program <program name> [repo <x>] [main_class <y>]");
   }
 
   @Override
@@ -39,7 +45,7 @@ public class InstallOper extends AppOper {
   public void perform() {
 
     var programName = config().program();
-    checkNonEmpty(programName, "specify a name");
+    checkNonEmpty(programName, "missing argument: program");
 
     var repoName = config().repo();
     if (nullOrEmpty(repoName))
