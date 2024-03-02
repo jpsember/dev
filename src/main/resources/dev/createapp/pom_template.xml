@@ -9,6 +9,7 @@
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
   </properties>
 
+
   <build>
     <plugins>
       <plugin>
@@ -20,12 +21,12 @@
           <target>11</target>
         </configuration>
       </plugin>
-      <plugin> <!-- taken from https://stackoverflow.com/questions/574594 -->
+      <plugin>
       <artifactId>maven-assembly-plugin</artifactId>
       <configuration>
         <archive>
           <manifest>
-            <mainClass>[!main_class]</mainClass>
+            <mainClass>dev.Main</mainClass>
           </manifest>
         </archive>
         <descriptorRefs>
@@ -34,14 +35,14 @@
       </configuration>
       <executions>
         <execution>
-          <id>make-assembly</id> <!-- this is used for inheritance merges -->
-          <phase>package</phase> <!-- bind to the packaging phase -->
+          <id>make-assembly</id>
+          <phase>package</phase>
           <goals>
             <goal>single</goal>
           </goals>
         </execution>
       </executions>
-    </plugin>
+     </plugin>
     </plugins>
   </build>
 
