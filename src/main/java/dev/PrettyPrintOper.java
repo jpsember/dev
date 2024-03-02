@@ -68,8 +68,11 @@ public class PrettyPrintOper extends AppOper {
   public void perform() {
     if (mFiles.isEmpty())
       pr("(please specify one or more json files)");
-    for (File f : mFiles)
+    for (File f : mFiles) {
+      if (!f.exists())
+        f = Files.addExtension(f,Files.EXT_JSON);
       pr(JSMap.from(f));
+    }
   }
 
   private List<File> mFiles = arrayList();
