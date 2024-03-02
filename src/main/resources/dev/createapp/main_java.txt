@@ -4,7 +4,7 @@ import static js.base.Tools.*;
 
 import js.app.App;
 
-import [!package_name].[!main_oper_name];
+// remove this when satisfied:   import [!package_name].[!main_oper_name];
 
 public class [!main_class_name] extends App {
 

@@ -3,7 +3,7 @@ set -eu
 
 echo "Installing driver for dev program"
 
-mvn package
+mvn package "$@"
 
 BINDIR=/usr/local/bin
 JARSDIR=${BINDIR}/jpsember_jars

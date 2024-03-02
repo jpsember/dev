@@ -1,0 +1,15 @@
+
+  @Override
+  public [!config_class] defaultArgs() {
+    return [!config_class].DEFAULT_INSTANCE;
+  }
+
+  @Override
+  public [!config_class] config() {
+    if (mConfig == null) 
+      mConfig = ([!config_class]) super.config();
+    return mConfig;
+  }
+
+  private [!config_class] mConfig;
+ 

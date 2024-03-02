@@ -33,6 +33,8 @@ import dev.gen.AppInfo;
 import js.app.AppOper;
 import js.app.CmdLineArgs;
 import js.base.BasePrinter;
+import js.base.SystemCall;
+import js.data.DataUtil;
 import js.file.DirWalk;
 import js.file.Files;
 import js.json.JSMap;
@@ -43,6 +45,8 @@ public final class CreateAppOper extends AppOper {
   @Override
   public String userCommand() {
     todo("Add option to create (or suppress) json config arguments");
+    todo("have package default to name of app");
+    todo("no need for import of main oper");
     return "createapp";
   }
 
@@ -58,6 +62,7 @@ public final class CreateAppOper extends AppOper {
     createPom();
     createSource();
     createDatFiles();
+    compileDatFiles();
     createGitIgnore();
     createInstallJson();
   }
@@ -78,6 +83,8 @@ public final class CreateAppOper extends AppOper {
   @Override
   protected void processAdditionalArgs() {
     CmdLineArgs args = app().cmdLineArgs();
+
+    mMainPackageArg = appInfo().name();
     mStartDirString = args.nextArgIf("startdir", mStartDirString);
     mMainPackageArg = args.nextArgIf("package", mMainPackageArg);
     mMainClassName = args.nextArgIf("main", mMainClassName);
@@ -149,9 +156,17 @@ public final class CreateAppOper extends AppOper {
   }
 
   private String parseText(String template) {
-    MacroParser parser = new MacroParser();
-    parser.withTemplate(template).withMapper(macroMap());
-    return parser.content();
+
+    // Keep applying the parser until the content doesn't change
+    var orig = template;
+    while (true) {
+      MacroParser parser = new MacroParser();
+      parser.withTemplate(orig).withMapper(macroMap());
+      var result = parser.content();
+      if (result.equals(orig))
+        return orig;
+      orig = result;
+    }
   }
 
   private String frag(String resourceName) {
@@ -196,6 +211,15 @@ public final class CreateAppOper extends AppOper {
       m.put("test_class_name", testClassName());
       m.put("pom_dependencies", frag("pom_dependencies.xml"));
       m.put("datagen_gitignore_comment", "# ...add appropriate entries for generated Java files");
+      if (mWithJsonArgs) {
+        var configDatName = appInfo().name() + "_config";
+        var configDatNameJava = DataUtil.convertUnderscoresToCamelCase(configDatName);
+        m.put("config_import_statement", "import dfa.gen." + configDatNameJava + ";");
+        m.put("json_args_support", frag("json_args_java.txt"));
+        m.put("config_class", configDatNameJava);
+      } else {
+      }
+
       m.lock();
       mMacroMap = m;
     }
@@ -220,8 +244,24 @@ public final class CreateAppOper extends AppOper {
   }
 
   private void createDatFiles() {
-    setTarget("dat_files/" + AppUtil.dotToSlash(appInfo().mainPackage()) + "/gen/_SKIP_sample.dat.RENAME_ME");
+    var genDir = "dat_files/" + AppUtil.dotToSlash(appInfo().mainPackage()) + "/gen/";
+    setTarget(genDir + "_SKIP_sample.dat.RENAME_ME");
     writeTargetIfMissing(parseResource("sample_dat.txt"));
+
+    if (mWithJsonArgs) {
+      var datName = appInfo().name() + "_config";
+      setTarget(genDir + datName + ".dat");
+      writeTargetIfMissing(parseResource("config_dat.txt"));
+    }
+
+  }
+
+  private void compileDatFiles() {
+    var s = new SystemCall();
+    s.setVerbose(verbose());
+    s.arg("datagen");
+    log("attempting generate data classes");
+    s.assertSuccess();
   }
 
   private void createGitIgnore() {
@@ -254,5 +294,5 @@ public final class CreateAppOper extends AppOper {
   private File mMainJavaFile;
   private JSMap mMacroMap;
   private AppInfo.Builder mAppInfo;
-
+  private boolean mWithJsonArgs = true;
 }
