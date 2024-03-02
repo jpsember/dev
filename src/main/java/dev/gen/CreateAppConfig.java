@@ -17,6 +17,10 @@ public class CreateAppConfig implements AbstractData {
     return mMainClassName;
   }
 
+  public boolean omitJsonArgs() {
+    return mOmitJsonArgs;
+  }
+
   @Override
   public Builder toBuilder() {
     return new Builder(this);
@@ -25,6 +29,7 @@ public class CreateAppConfig implements AbstractData {
   protected static final String _0 = "name";
   protected static final String _1 = "main_package";
   protected static final String _2 = "main_class_name";
+  protected static final String _3 = "omit_json_args";
 
   @Override
   public String toString() {
@@ -37,6 +42,7 @@ public class CreateAppConfig implements AbstractData {
     m.putUnsafe(_0, mName);
     m.putUnsafe(_1, mMainPackage);
     m.putUnsafe(_2, mMainClassName);
+    m.putUnsafe(_3, mOmitJsonArgs);
     return m;
   }
 
@@ -54,6 +60,7 @@ public class CreateAppConfig implements AbstractData {
     mName = m.opt(_0, "");
     mMainPackage = m.opt(_1, "");
     mMainClassName = m.opt(_2, "Main");
+    mOmitJsonArgs = m.opt(_3, false);
   }
 
   public static Builder newBuilder() {
@@ -75,6 +82,8 @@ public class CreateAppConfig implements AbstractData {
       return false;
     if (!(mMainClassName.equals(other.mMainClassName)))
       return false;
+    if (!(mOmitJsonArgs == other.mOmitJsonArgs))
+      return false;
     return true;
   }
 
@@ -86,6 +95,7 @@ public class CreateAppConfig implements AbstractData {
       r = r * 37 + mName.hashCode();
       r = r * 37 + mMainPackage.hashCode();
       r = r * 37 + mMainClassName.hashCode();
+      r = r * 37 + (mOmitJsonArgs ? 1 : 0);
       m__hashcode = r;
     }
     return r;
@@ -94,6 +104,7 @@ public class CreateAppConfig implements AbstractData {
   protected String mName;
   protected String mMainPackage;
   protected String mMainClassName;
+  protected boolean mOmitJsonArgs;
   protected int m__hashcode;
 
   public static final class Builder extends CreateAppConfig {
@@ -102,6 +113,7 @@ public class CreateAppConfig implements AbstractData {
       mName = m.mName;
       mMainPackage = m.mMainPackage;
       mMainClassName = m.mMainClassName;
+      mOmitJsonArgs = m.mOmitJsonArgs;
     }
 
     @Override
@@ -121,6 +133,7 @@ public class CreateAppConfig implements AbstractData {
       r.mName = mName;
       r.mMainPackage = mMainPackage;
       r.mMainClassName = mMainClassName;
+      r.mOmitJsonArgs = mOmitJsonArgs;
       return r;
     }
 
@@ -136,6 +149,11 @@ public class CreateAppConfig implements AbstractData {
 
     public Builder mainClassName(String x) {
       mMainClassName = (x == null) ? "Main" : x;
+      return this;
+    }
+
+    public Builder omitJsonArgs(boolean x) {
+      mOmitJsonArgs = x;
       return this;
     }
 

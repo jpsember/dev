@@ -27,7 +27,6 @@ package dev;
 import static js.base.Tools.*;
 
 import java.io.File;
-import java.util.List;
 
 import dev.gen.CreateAppConfig;
 import js.app.AppOper;
@@ -44,9 +43,6 @@ public final class CreateAppOper extends AppOper {
 
   @Override
   public String userCommand() {
-    todo("Add option to create (or suppress) json config arguments");
-    todo("have package default to name of app");
-    todo("no need for import of main oper");
     return "createapp";
   }
 
@@ -58,7 +54,6 @@ public final class CreateAppOper extends AppOper {
   @Override
   public void perform() {
     postProcessArgs();
-    //    createAppDir();
     createPom();
     createSource();
     createDatFiles();
@@ -68,15 +63,7 @@ public final class CreateAppOper extends AppOper {
   }
 
   @Override
-  protected List<Object> getAdditionalArgs() {
-    return arrayList("[ package <xxx.yyy.etc> | startdir <dir> | main <e.g. Main> ]*");
-  }
-
-  @Override
   protected void getOperSpecificHelp(BasePrinter b) {
-    b.pr("package <xxx.yyy.etc>");
-    b.pr("startdir <dir>");
-    b.pr("main <e.g. Main>");
     b.pr("Create a directory to hold the project, and from that directory, type 'dev createapp package ...");
   }
 
@@ -92,28 +79,8 @@ public final class CreateAppOper extends AppOper {
     return mConfig;
   }
 
-  private CreateAppConfig.Builder mConfig;
-
-  //  private AppInfo.Builder appInfo() {
-  //    if (mAppInfo == null) {
-  //      mAppInfo = AppInfo.newBuilder();
-  //      //
-  //      //      File startDir;
-  //      //      if (mStartDirString.isEmpty())
-  //      //        startDir = Files.currentDirectory();
-  //      //      else
-  //      //        startDir = new File(mStartDirString);
-  //
-  //      AppUtil.withDirectory(mAppInfo, Files.currentDirectory(), config().mainClassName());
-  //      log("...derived app info:", INDENT, mAppInfo);
-  //    }
-  //    return mAppInfo;
-  //  }
-
   private void postProcessArgs() {
-    pr("postProcessArgs");
     var c = config();
-
     {
       var f = Files.currentDirectory().getName();
       if (!RegExp.patternMatchesString("[a-z]+", f))
@@ -121,7 +88,6 @@ public final class CreateAppOper extends AppOper {
       c.name(f);
     }
 
-    pr("config:", c);
     if (c.mainClassName().isEmpty())
       c.mainClassName(c.name());
 
@@ -151,21 +117,10 @@ public final class CreateAppOper extends AppOper {
         badArg("Extraneous suffix for <package> arg:", suffix);
       if (!("." + mainPackage).endsWith("." + c.name()))
         badArg("*** Package", quote(mainPackage), "doesn't end with app name", quote(c.name()));
-
       if (nonEmpty(c.mainPackage()))
         checkArgumentsEqual(mainPackage, c.mainPackage(), "Inferred package vs command line arg");
-      //      c.mainPackage(mainPackage);
     }
-    pr("config now:", config());
   }
-  //
-  //  private String appName() {
-  //    return appInfo().name();
-  //  }
-  //
-  //  private File appDir() {
-  //    return appInfo().dir();
-  //  }
 
   private File mainJavaFile() {
     if (mMainJavaFile == null) {
@@ -174,17 +129,12 @@ public final class CreateAppOper extends AppOper {
     }
     return mMainJavaFile;
   }
-  //
-  //  private void createAppDir() {
-  //    files().mkdirs(appDir());
-  //  }
 
   private String parseResource(String resourceName) {
     return parseText(frag(resourceName));
   }
 
   private String parseText(String template) {
-
     // Keep applying the parser until the content doesn't change
     var orig = template;
     while (true) {
@@ -243,15 +193,18 @@ public final class CreateAppOper extends AppOper {
       m.put("test_class_name", testClassName());
       m.put("pom_dependencies", frag("pom_dependencies.xml"));
       m.put("datagen_gitignore_comment", "# ...add appropriate entries for generated Java files");
-      if (mWithJsonArgs) {
+
+      if (c.omitJsonArgs()) {
+        m.put("config_import_statement", "");
+        m.put("json_args_support", "");
+        m.put("config_class", "");
+      } else {
         var configDatName = c.name() + "_config";
         var configDatNameJava = DataUtil.convertUnderscoresToCamelCase(configDatName);
         m.put("config_import_statement", "import dfa.gen." + configDatNameJava + ";");
         m.put("json_args_support", frag("json_args_java.txt"));
         m.put("config_class", configDatNameJava);
-      } else {
       }
-
       m.lock();
       mMacroMap = m;
     }
@@ -259,7 +212,6 @@ public final class CreateAppOper extends AppOper {
   }
 
   private void createSource() {
-
     mTargetFile = mainJavaFile();
     writeTargetIfMissing(parseResource("main_java.txt"));
     mTargetFile = new File(chomp(mainJavaFile().toString(), ".java") + "Oper.java");
@@ -279,13 +231,11 @@ public final class CreateAppOper extends AppOper {
     var genDir = "dat_files/" + AppUtil.dotToSlash(config().mainPackage()) + "/gen/";
     setTarget(genDir + "_SKIP_sample.dat.RENAME_ME");
     writeTargetIfMissing(parseResource("sample_dat.txt"));
-
-    if (mWithJsonArgs) {
+    if (!config().omitJsonArgs()) {
       var datName = config().name() + "_config";
       setTarget(genDir + datName + ".dat");
       writeTargetIfMissing(parseResource("config_dat.txt"));
     }
-
   }
 
   private void compileDatFiles() {
@@ -320,11 +270,8 @@ public final class CreateAppOper extends AppOper {
   private File mTargetFile;
   //------------------------------------------------------------------
 
-  //  private String mStartDirString = "";
-  //  private String mMainPackageArg = "";
-  //  private String mMainClassName = "Main";
   private File mMainJavaFile;
   private JSMap mMacroMap;
-  //  private AppInfo.Builder mAppInfo;
-  private boolean mWithJsonArgs = true;
+  private CreateAppConfig.Builder mConfig;
+
 }

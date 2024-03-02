@@ -2,4 +2,5 @@ fields {
   string name; // name of app; e.g. "dfa"
   string main_package; // if empty, defaults to name of app
   string main_class_name = "Main";
+  bool omit_json_args;
 }
