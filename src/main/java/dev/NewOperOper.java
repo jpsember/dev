@@ -43,7 +43,7 @@ public class NewOperOper extends AppOper {
 
     {
       String n = config().name();
-      checkNonEmpty(n, "no name given");
+      checkNonEmpty(n, "missing argument: name");
       n = DataUtil.convertUnderscoresToCamelCase(n);
       checkArgument(n.endsWith("Oper"), "name should end with 'Oper':", n);
       mClassName = n;
@@ -84,8 +84,8 @@ public class NewOperOper extends AppOper {
 
   }
 
-  private String frag (String resourceName) {
-    return Files.readString(getClass(), "newoper/"+resourceName);
+  private String frag(String resourceName) {
+    return Files.readString(getClass(), "newoper/" + resourceName);
   }
 
   private JSMap macroMap() {
