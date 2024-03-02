@@ -1,3 +1,0 @@
-WS:  \s+
-ID:  [_a-zA-Z]+\d*
-NUM: \d+
