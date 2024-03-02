@@ -62,7 +62,7 @@ public class CreateAppOperTest extends MyTestCase {
   private void compile() {
     provideArg("name", name());
     provideArg("parent_dir", generatedDir());
-    if (alert("setting eclipse mode"))
+    if (false && alert("setting eclipse mode"))
       addArg("eclipse");
     runApp();
     assertGenerated();
