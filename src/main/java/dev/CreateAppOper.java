@@ -111,23 +111,11 @@ public final class CreateAppOper extends AppOper {
 
     mMainPackage = c.name();
     mMainClassName = DataUtil.capitalizeFirst(c.name());
-
-    //
-    //    {
-    //      String mainPackage = c.mainPackage();
-    //      String suffix = "." + c.mainClassName();
-    //      if (mainPackage.endsWith(suffix))
-    //        badArg("Extraneous suffix for <package> arg:", suffix);
-    //      if (!("." + mainPackage).endsWith("." + c.name()))
-    //        badArg("*** Package", quote(mainPackage), "doesn't end with app name", quote(c.name()));
-    //      if (nonEmpty(c.mainPackage()))
-    //        checkArgumentsEqual(mainPackage, c.mainPackage(), "Inferred package vs command line arg");
-    //    }
   }
 
   private File mainJavaFile() {
     if (mMainJavaFile == null) {
-      mMainJavaFile = appFile("src/main/java/" + mMainPackage + "/" + "Main.java");
+      mMainJavaFile = appFile("src/main/java/" + mMainPackage + "/" + mMainClassName + ".java");
     }
     return mMainJavaFile;
   }
@@ -225,8 +213,7 @@ public final class CreateAppOper extends AppOper {
     File testDir = appFile(testSubdir);
     // If there are already Java files in the test directory, don't write any 'do nothing' tests
     if (!testDir.exists() || new DirWalk(testDir).withExtensions("java").files().isEmpty()) {
-      setTarget(
-          testSubdir + "/" + AppUtil.dotToSlash(mMainPackage) + "/" + testClassName() + ".java");
+      setTarget(testSubdir + "/" + AppUtil.dotToSlash(mMainPackage) + "/" + testClassName() + ".java");
       writeTargetIfMissing(parseResource("main_test_java.txt"));
     }
   }
