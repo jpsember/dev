@@ -41,7 +41,7 @@ public class UninstallOper extends AppOper {
   @Override
   public void perform() {
 
-    var program = config().program();
+    var program = readIfMissing(config().program());
     checkNonEmpty(program, "missing argument: program");
 
     var binDir = new File("/usr/local/bin");

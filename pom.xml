@@ -56,13 +56,13 @@
     <dependency>
       <groupId>com.github.jpsember</groupId>
       <artifactId>java-core</artifactId>
-      <version>1.0</version>
+      <version>1.01</version>
     </dependency>
 
     <dependency>
       <groupId>com.github.jpsember</groupId>
       <artifactId>java-testutil</artifactId>
-      <version>1.0</version>
+      <version>1.02</version>
     </dependency>
 
     <dependency>
