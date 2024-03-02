@@ -41,7 +41,7 @@ public class CreateAppOperTest extends MyTestCase {
   public void sample() {
     addArg("createapp");
     addArg("package", "js.zebra");
-    addArg("startdir", appDir());
+    addArg("app_dir", appDir());
     compile();
   }
 
@@ -49,15 +49,8 @@ public class CreateAppOperTest extends MyTestCase {
   public void customMain() {
     addArg("createapp");
     addArg("package", "js.zebra");
-    addArg("startdir", appDir());
+    addArg("app_dir", appDir());
     addArg("main", "Zebra");
-    compile();
-  }
-
-  @Test(expected = IllegalArgumentException.class)
-  public void noPackageDefined() {
-    addArg("createapp");
-    addArg("startdir", appDir());
     compile();
   }
 

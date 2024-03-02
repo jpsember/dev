@@ -1,6 +1,8 @@
 package dev.gen;
 
+import java.io.File;
 import js.data.AbstractData;
+import js.file.Files;
 import js.json.JSMap;
 
 public class CreateAppConfig implements AbstractData {
@@ -21,6 +23,10 @@ public class CreateAppConfig implements AbstractData {
     return mOmitJsonArgs;
   }
 
+  public File appDir() {
+    return mAppDir;
+  }
+
   @Override
   public Builder toBuilder() {
     return new Builder(this);
@@ -30,6 +36,7 @@ public class CreateAppConfig implements AbstractData {
   protected static final String _1 = "main_package";
   protected static final String _2 = "main_class_name";
   protected static final String _3 = "omit_json_args";
+  protected static final String _4 = "app_dir";
 
   @Override
   public String toString() {
@@ -43,6 +50,7 @@ public class CreateAppConfig implements AbstractData {
     m.putUnsafe(_1, mMainPackage);
     m.putUnsafe(_2, mMainClassName);
     m.putUnsafe(_3, mOmitJsonArgs);
+    m.putUnsafe(_4, mAppDir.toString());
     return m;
   }
 
@@ -61,6 +69,13 @@ public class CreateAppConfig implements AbstractData {
     mMainPackage = m.opt(_1, "");
     mMainClassName = m.opt(_2, "Main");
     mOmitJsonArgs = m.opt(_3, false);
+    {
+      mAppDir = Files.DEFAULT;
+      String x = m.opt(_4, (String) null);
+      if (x != null) {
+        mAppDir = new File(x);
+      }
+    }
   }
 
   public static Builder newBuilder() {
@@ -84,6 +99,8 @@ public class CreateAppConfig implements AbstractData {
       return false;
     if (!(mOmitJsonArgs == other.mOmitJsonArgs))
       return false;
+    if (!(mAppDir.equals(other.mAppDir)))
+      return false;
     return true;
   }
 
@@ -96,6 +113,7 @@ public class CreateAppConfig implements AbstractData {
       r = r * 37 + mMainPackage.hashCode();
       r = r * 37 + mMainClassName.hashCode();
       r = r * 37 + (mOmitJsonArgs ? 1 : 0);
+      r = r * 37 + mAppDir.hashCode();
       m__hashcode = r;
     }
     return r;
@@ -105,6 +123,7 @@ public class CreateAppConfig implements AbstractData {
   protected String mMainPackage;
   protected String mMainClassName;
   protected boolean mOmitJsonArgs;
+  protected File mAppDir;
   protected int m__hashcode;
 
   public static final class Builder extends CreateAppConfig {
@@ -114,6 +133,7 @@ public class CreateAppConfig implements AbstractData {
       mMainPackage = m.mMainPackage;
       mMainClassName = m.mMainClassName;
       mOmitJsonArgs = m.mOmitJsonArgs;
+      mAppDir = m.mAppDir;
     }
 
     @Override
@@ -134,6 +154,7 @@ public class CreateAppConfig implements AbstractData {
       r.mMainPackage = mMainPackage;
       r.mMainClassName = mMainClassName;
       r.mOmitJsonArgs = mOmitJsonArgs;
+      r.mAppDir = mAppDir;
       return r;
     }
 
@@ -157,6 +178,11 @@ public class CreateAppConfig implements AbstractData {
       return this;
     }
 
+    public Builder appDir(File x) {
+      mAppDir = (x == null) ? Files.DEFAULT : x;
+      return this;
+    }
+
   }
 
   public static final CreateAppConfig DEFAULT_INSTANCE = new CreateAppConfig();
@@ -165,6 +191,7 @@ public class CreateAppConfig implements AbstractData {
     mName = "";
     mMainPackage = "";
     mMainClassName = "Main";
+    mAppDir = Files.DEFAULT;
   }
 
 }

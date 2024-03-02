@@ -81,6 +81,14 @@ public final class CreateAppOper extends AppOper {
 
   private void postProcessArgs() {
     var c = config();
+    log("post processing args; config:", c);
+
+    if (Files.empty(c.appDir())) {
+      c.appDir(Files.currentDirectory());
+      log("set directory:", c.appDir());
+    }
+
+    c.appDir(Files.absolute(c.appDir()));
     {
       var f = Files.currentDirectory().getName();
       if (!RegExp.patternMatchesString("[a-z]+", f))
@@ -102,7 +110,7 @@ public final class CreateAppOper extends AppOper {
 
     {
       // If the current directory contains other directories, or suspicious files, report an error
-      var d = new DirWalk(Files.currentDirectory()).includeDirectories().withRecurse(true);
+      var d = new DirWalk(c.appDir()).includeDirectories().withRecurse(true);
       for (var f : d.files()) {
         if (f.isDirectory()) {
           badArg("Unexpected current directory contents:", INDENT, Files.infoMap(f), CR,
@@ -152,7 +160,7 @@ public final class CreateAppOper extends AppOper {
   }
 
   private File appFile(String pathRelativeToProject) {
-    return new File(pathRelativeToProject);
+    return new File(config().appDir(), pathRelativeToProject);
   }
 
   private void createPom() {
@@ -166,10 +174,7 @@ public final class CreateAppOper extends AppOper {
   }
 
   private File writeFile(File path, String content) {
-    // If path has a parent directory, create it if necessary
-    File dir = path.getParentFile();
-    if (dir != null)
-      files().mkdirs(dir);
+    files().mkdirs(Files.parent(path));
     files().writeString(path, content);
     return path;
   }
