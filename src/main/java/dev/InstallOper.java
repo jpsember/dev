@@ -6,6 +6,7 @@ import java.io.File;
 
 import dev.gen.InstallConfig;
 import js.app.AppOper;
+import js.app.CmdLineArgs;
 import js.base.BasePrinter;
 import js.base.SystemCall;
 import js.file.DirWalk;
@@ -45,6 +46,13 @@ public class InstallOper extends AppOper {
   public void perform() {
 
     var programName = config().program();
+    if (programName.isEmpty()) {
+      CmdLineArgs args = app().cmdLineArgs();
+      if (args.hasNextArg()) {
+        programName = args.nextArg();
+      }
+    }
+
     checkNonEmpty(programName, "missing argument: program");
 
     var repoName = config().repo();
