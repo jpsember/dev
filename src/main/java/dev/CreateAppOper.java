@@ -151,12 +151,13 @@ public final class CreateAppOper extends AppOper {
 
   private void createPom() {
     setTarget("pom.xml");
-    writeTargetIfMissing(parseResource("pom_template.xml"));
+    write(parseResource("pom_template.xml"));
   }
 
-  private void writeTargetIfMissing(String content) {
-    if (!targetFile().exists())
-      writeFile(targetFile(), content);
+  private void write(String content) {
+    var f = targetFile();
+    checkState(!f.exists());
+    writeFile(f, content);
   }
 
   private File writeFile(File path, String content) {
@@ -196,6 +197,10 @@ public final class CreateAppOper extends AppOper {
         m.put("json_args_support", frag("json_args_java.txt"));
         m.put("config_class", configDatNameJava);
       }
+
+      // Determine latest versions of pom dependencies
+      todo("determine latest versions of pom dep");
+
       m.lock();
       mMacroMap = m;
     }
@@ -203,28 +208,29 @@ public final class CreateAppOper extends AppOper {
   }
 
   private void createSource() {
-    mTargetFile = mainJavaFile();
-    writeTargetIfMissing(parseResource("main_java.txt"));
+    setTarget(mainJavaFile());
+    write(parseResource("main_java.txt"));
     mTargetFile = new File(chomp(mainJavaFile().toString(), ".java") + "Oper.java");
-    writeTargetIfMissing(parseResource("main_oper.txt"));
+    write(parseResource("main_oper.txt"));
 
     String testSubdir = "src/test/java";
     File testDir = appFile(testSubdir);
     // If there are already Java files in the test directory, don't write any 'do nothing' tests
     if (!testDir.exists() || new DirWalk(testDir).withExtensions("java").files().isEmpty()) {
       setTarget(testSubdir + "/" + AppUtil.dotToSlash(mMainPackage) + "/" + testClassName() + ".java");
-      writeTargetIfMissing(parseResource("main_test_java.txt"));
+      write(parseResource("main_test_java.txt"));
     }
   }
 
   private void createDatFiles() {
     var genDir = "dat_files/" + AppUtil.dotToSlash(mMainPackage) + "/gen/";
-    setTarget(genDir + "_SKIP_sample.dat.RENAME_ME");
-    writeTargetIfMissing(parseResource("sample_dat.txt"));
-    if (!config().omitJsonArgs()) {
+    if (config().omitJsonArgs()) {
+      setTarget(genDir + "_SKIP_sample.dat.RENAME_ME");
+      write(parseResource("sample_dat.txt"));
+    } else {
       var datName = config().name() + "_config";
       setTarget(genDir + datName + ".dat");
-      writeTargetIfMissing(parseResource("config_dat.txt"));
+      write(parseResource("config_dat.txt"));
     }
   }
 
@@ -239,12 +245,14 @@ public final class CreateAppOper extends AppOper {
   private SystemCall sysCall() {
     var s = new SystemCall();
     s.setVerbose(verbose());
+    // Execute all commands with mAppDir as the current directory
+    s.directory(mAppDir);
     return s;
   }
 
   private void createGitRepo() {
     setTarget(".gitignore");
-    writeTargetIfMissing(parseResource("gitignore.txt"));
+    write(parseResource("gitignore.txt"));
     sysCall().arg("git", "init", "-b", "main").assertSuccess();
     sysCall().arg("git", "add", ".gitignore").assertSuccess();
     sysCall().arg("git", "commit", "-m", "initial commit").assertSuccess();
@@ -252,7 +260,7 @@ public final class CreateAppOper extends AppOper {
 
   private void createInstallJson() {
     setTarget("install.json");
-    writeTargetIfMissing(parseResource("install_template.json"));
+    write(parseResource("install_template.json"));
   }
 
   private boolean eclipse() {
@@ -262,11 +270,16 @@ public final class CreateAppOper extends AppOper {
   // ------------------------------------------------------------------
   // A distinguished 'target file'
 
+  private void setTarget(File file) {
+    mTargetFile = file;
+  }
+
   private void setTarget(String pathRelativeToProject) {
-    mTargetFile = appFile(pathRelativeToProject);
+    setTarget(appFile(pathRelativeToProject));
   }
 
   private File targetFile() {
+    checkState(Files.nonEmpty(mTargetFile), "no targetFile defined");
     return mTargetFile;
   }
 

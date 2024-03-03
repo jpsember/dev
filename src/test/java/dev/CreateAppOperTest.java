@@ -26,11 +26,13 @@ package dev;
 
 import static js.base.Tools.*;
 
+import java.io.File;
 import java.util.List;
 
 import org.junit.Test;
 
 import js.data.DataUtil;
+import js.file.Files;
 import js.testutil.MyTestCase;
 
 public class CreateAppOperTest extends MyTestCase {
@@ -60,11 +62,17 @@ public class CreateAppOperTest extends MyTestCase {
   }
 
   private void compile() {
+    // Place the generated directory OUTSIDE of any existing repo, since we will be creating a new repo during the test
+    setGeneratedDir(Files.createTempDir("_unit_test_" + name() + "_"));
     provideArg("name", name());
     provideArg("parent_dir", generatedDir());
-    if (false && alert("setting eclipse mode"))
-      addArg("eclipse");
+    var nameDir = argValueForKey("name");
     runApp();
+    checkNonEmpty(nameDir, "no 'name' value found:", mArgs);
+    var gitDir = Files.assertDirectoryExists(new File(generatedDir(), nameDir + "/.git"),
+        "generated .git subdir");
+    // Delete the .git subdirectory, since its contents are not important (and likely to change frequently)
+    files().deleteDirectory(gitDir, ".git");
     assertGenerated();
   }
 
@@ -79,6 +87,15 @@ public class CreateAppOperTest extends MyTestCase {
   private void addArg(Object... args) {
     for (var a : args)
       args().add(a.toString());
+  }
+
+  private String argValueForKey(String key) {
+    var args = args();
+    for (int i = 0; i < args.size() - 1; i++) {
+      if (args.get(i).equals(key))
+        return args.get(i + 1);
+    }
+    return null;
   }
 
   private List<String> mArgs;
