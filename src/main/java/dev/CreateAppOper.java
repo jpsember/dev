@@ -91,7 +91,7 @@ public final class CreateAppOper extends AppOper {
     }
 
     {
-      var name = c.name();
+      var name = readIfMissing(c.name());
       if (name.isEmpty())
         badArg("missing arg: name");
       if (!RegExp.patternMatchesString("[a-z]+", name))
@@ -192,7 +192,7 @@ public final class CreateAppOper extends AppOper {
       } else {
         var configDatName = c.name() + "_config";
         var configDatNameJava = DataUtil.convertUnderscoresToCamelCase(configDatName);
-        m.put("config_import_statement", "import dfa.gen." + configDatNameJava + ";");
+        m.put("config_import_statement", "import " + mMainPackage + ".gen." + configDatNameJava + ";");
         m.put("json_args_support", frag("json_args_java.txt"));
         m.put("config_class", configDatNameJava);
       }
