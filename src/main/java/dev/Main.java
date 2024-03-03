@@ -65,7 +65,6 @@ public class Main extends App {
     registerOper(new MakeInstallerOper());
     registerOper(new NewOperOper());
     registerOper(new NewDatOper());
-    registerOper(new RemoteOper());
     registerOper(new InstallOper());
     registerOper(new UninstallOper());
     // --- insertion point for new operations (used by NewOperOper)
