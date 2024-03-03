@@ -58,7 +58,7 @@ public final class CreateAppOper extends AppOper {
     createSource();
     createDatFiles();
     compileDatFiles();
-    createGitIgnore();
+    createGitRepo();
     createInstallJson();
   }
 
@@ -229,17 +229,25 @@ public final class CreateAppOper extends AppOper {
   }
 
   private void compileDatFiles() {
-    var s = new SystemCall();
-    s.setVerbose(verbose());
+    var s = sysCall();
     s.arg("/usr/local/bin/datagen");
     s.arg("start_dir", mAppDir);
     log("attempting generate data classes");
     s.assertSuccess();
   }
 
-  private void createGitIgnore() {
+  private SystemCall sysCall() {
+    var s = new SystemCall();
+    s.setVerbose(verbose());
+    return s;
+  }
+
+  private void createGitRepo() {
     setTarget(".gitignore");
     writeTargetIfMissing(parseResource("gitignore.txt"));
+    sysCall().arg("git", "init", "-b", "main").assertSuccess();
+    sysCall().arg("git", "add", ".gitignore").assertSuccess();
+    sysCall().arg("git", "commit", "-m", "initial commit").assertSuccess();
   }
 
   private void createInstallJson() {
