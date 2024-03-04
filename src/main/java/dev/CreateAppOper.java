@@ -139,12 +139,6 @@ public final class CreateAppOper extends AppOper {
 
   private String frag(String resourceName) {
     var path = "createapp/" + resourceName;
-    if (eclipse()) {
-      var f = new File("/Users/home/github_projects/dev/src/main/resources/dev");
-      var f2 = new File(f,path);
-      var s = Files.readString(f2);
-      return s;
-    }
     return Files.readString(getClass(), path);
   }
 
@@ -187,8 +181,8 @@ public final class CreateAppOper extends AppOper {
       m.put("test_package_name", mMainPackage);
       m.put("test_class_name", testClassName());
       {
-      var s = frag("pom_dependencies.xml");
-      m.put("pom_dependencies", s);
+        var s = frag("pom_dependencies.xml");
+        m.put("pom_dependencies", s);
       }
       m.put("datagen_gitignore_comment", "# ...add appropriate entries for generated Java files");
 
@@ -210,10 +204,6 @@ public final class CreateAppOper extends AppOper {
         m.put("json_args_support", frag("json_args_java.txt"));
         m.put("config_class", configDatNameJava);
       }
-
-      // Determine latest versions of pom dependencies
-      todo("determine latest versions of pom dep");
-
       m.lock();
       mMacroMap = m;
     }
@@ -274,10 +264,6 @@ public final class CreateAppOper extends AppOper {
   private void createInstallJson() {
     setTarget("install.json");
     write(parseResource("install_template.json"));
-  }
-
-  private boolean eclipse() {
-    return config().eclipse() && alert("workaround while within eclipse");
   }
 
   private String mostRecentTagForRepo(String repoUrl) {

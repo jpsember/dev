@@ -3,5 +3,4 @@ fields {
   string name; // name of app; e.g. "dfa"
   bool omit_json_args;
   File zap_existing; // If nonempty, zaps app directory beforehand; this must equal the absolute path of the generated directory for safety
-  bool eclipse;  // for development: true to enable different behaviour if running within Eclipse
 }

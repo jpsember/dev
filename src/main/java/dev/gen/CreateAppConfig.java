@@ -23,10 +23,6 @@ public class CreateAppConfig implements AbstractData {
     return mZapExisting;
   }
 
-  public boolean eclipse() {
-    return mEclipse;
-  }
-
   @Override
   public Builder toBuilder() {
     return new Builder(this);
@@ -36,7 +32,6 @@ public class CreateAppConfig implements AbstractData {
   protected static final String _1 = "name";
   protected static final String _2 = "omit_json_args";
   protected static final String _3 = "zap_existing";
-  protected static final String _4 = "eclipse";
 
   @Override
   public String toString() {
@@ -50,7 +45,6 @@ public class CreateAppConfig implements AbstractData {
     m.putUnsafe(_1, mName);
     m.putUnsafe(_2, mOmitJsonArgs);
     m.putUnsafe(_3, mZapExisting.toString());
-    m.putUnsafe(_4, mEclipse);
     return m;
   }
 
@@ -81,7 +75,6 @@ public class CreateAppConfig implements AbstractData {
         mZapExisting = new File(x);
       }
     }
-    mEclipse = m.opt(_4, false);
   }
 
   public static Builder newBuilder() {
@@ -105,8 +98,6 @@ public class CreateAppConfig implements AbstractData {
       return false;
     if (!(mZapExisting.equals(other.mZapExisting)))
       return false;
-    if (!(mEclipse == other.mEclipse))
-      return false;
     return true;
   }
 
@@ -119,7 +110,6 @@ public class CreateAppConfig implements AbstractData {
       r = r * 37 + mName.hashCode();
       r = r * 37 + (mOmitJsonArgs ? 1 : 0);
       r = r * 37 + mZapExisting.hashCode();
-      r = r * 37 + (mEclipse ? 1 : 0);
       m__hashcode = r;
     }
     return r;
@@ -129,7 +119,6 @@ public class CreateAppConfig implements AbstractData {
   protected String mName;
   protected boolean mOmitJsonArgs;
   protected File mZapExisting;
-  protected boolean mEclipse;
   protected int m__hashcode;
 
   public static final class Builder extends CreateAppConfig {
@@ -139,7 +128,6 @@ public class CreateAppConfig implements AbstractData {
       mName = m.mName;
       mOmitJsonArgs = m.mOmitJsonArgs;
       mZapExisting = m.mZapExisting;
-      mEclipse = m.mEclipse;
     }
 
     @Override
@@ -160,7 +148,6 @@ public class CreateAppConfig implements AbstractData {
       r.mName = mName;
       r.mOmitJsonArgs = mOmitJsonArgs;
       r.mZapExisting = mZapExisting;
-      r.mEclipse = mEclipse;
       return r;
     }
 
@@ -181,11 +168,6 @@ public class CreateAppConfig implements AbstractData {
 
     public Builder zapExisting(File x) {
       mZapExisting = (x == null) ? Files.DEFAULT : x;
-      return this;
-    }
-
-    public Builder eclipse(boolean x) {
-      mEclipse = x;
       return this;
     }
 
