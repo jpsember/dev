@@ -1,11 +1,11 @@
     <dependency>
       <groupId>com.github.jpsember</groupId>
       <artifactId>java-core</artifactId>
-      <version>1.01</version>
+      <version>[!java-core]</version>
     </dependency>
 
     <dependency>
       <groupId>com.github.jpsember</groupId>
       <artifactId>java-testutil</artifactId>
-      <version>1.02</version>
+      <version>[!java-testutil]</version>
     </dependency>

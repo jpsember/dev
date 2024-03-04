@@ -27,6 +27,7 @@ package dev;
 import static js.base.Tools.*;
 
 import java.io.File;
+import java.util.Map;
 
 import dev.gen.CreateAppConfig;
 import js.app.AppOper;
@@ -140,7 +141,9 @@ public final class CreateAppOper extends AppOper {
     var path = "createapp/" + resourceName;
     if (eclipse()) {
       var f = new File("/Users/home/github_projects/dev/src/main/resources/dev");
-      return Files.readString(new File(f, path));
+      var f2 = new File(f,path);
+      var s = Files.readString(f2);
+      return s;
     }
     return Files.readString(getClass(), path);
   }
@@ -183,8 +186,18 @@ public final class CreateAppOper extends AppOper {
       m.put("main_oper_name", mMainClassName + "Oper");
       m.put("test_package_name", mMainPackage);
       m.put("test_class_name", testClassName());
-      m.put("pom_dependencies", frag("pom_dependencies.xml"));
+      {
+      var s = frag("pom_dependencies.xml");
+      m.put("pom_dependencies", s);
+      }
       m.put("datagen_gitignore_comment", "# ...add appropriate entries for generated Java files");
+
+      for (var expr : split("java-core java-testutil", ' ')) {
+        var url = "github.com/jpsember/" + expr;
+        var tag = mostRecentTagForRepo(url);
+        log("most recent tag for", url, "is", tag);
+        m.put(expr, tag);
+      }
 
       if (c.omitJsonArgs()) {
         m.put("config_import_statement", "");
@@ -266,6 +279,33 @@ public final class CreateAppOper extends AppOper {
   private boolean eclipse() {
     return config().eclipse() && alert("workaround while within eclipse");
   }
+
+  private String mostRecentTagForRepo(String repoUrl) {
+    var tag = mRepoTagMap.get(repoUrl);
+    if (tag == null) {
+      if (testMode()) {
+        tag = "9.9";
+      } else {
+        var s = new SystemCall();
+        s.setVerbose(verbose());
+        s.arg("git", "ls-remote", "--tags", "-q", "--sort=-v:refname", "--refs", "https://" + repoUrl);
+        s.assertSuccess();
+        var out = s.systemOut();
+        var x = split(out, '\n');
+        tag = "";
+        if (!x.isEmpty()) {
+          var w = x.get(0);
+          var j = w.lastIndexOf('/');
+          checkArgument(j > 0, "failed to parse tags from:", INDENT, out);
+          tag = w.substring(j + 1);
+        }
+      }
+      mRepoTagMap.put(repoUrl, tag);
+    }
+    return tag;
+  }
+
+  private Map<String, String> mRepoTagMap = hashMap();
 
   // ------------------------------------------------------------------
   // A distinguished 'target file'
