@@ -125,9 +125,12 @@ public abstract class RsyncOper extends AppOper {
 
     s.arg("--exclude-from=" + constructExcludeList());
 
+    // Create directories on remote machine, in case it doesn't exist; see https://stackoverflow.com/questions/1636889
+    s.arg("--mkpath");
+    
     addMachineArg(s, mResolvedSource, isPull());
     addMachineArg(s, mResolvedTarget, !isPull());
-
+    
     s.assertSuccess();
   }
 
