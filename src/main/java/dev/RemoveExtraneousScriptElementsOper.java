@@ -30,6 +30,7 @@ import java.io.File;
 import java.util.List;
 import js.app.AppOper;
 import js.app.CmdLineArgs;
+import js.base.BasePrinter;
 import js.file.Files;
 import js.graphics.PolygonElement;
 import js.graphics.ScriptElement;
@@ -55,8 +56,8 @@ public class RemoveExtraneousScriptElementsOper extends AppOper {
   }
 
   @Override
-  protected List<Object> getAdditionalArgs() {
-    return arrayList("[project_dir]");
+  protected void getOperSpecificHelp(BasePrinter b) {
+    b.pr("[project_dir]");
   }
 
   @Override

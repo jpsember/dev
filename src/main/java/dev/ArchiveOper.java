@@ -39,6 +39,8 @@ import java.util.zip.ZipOutputStream;
 import js.file.DirWalk;
 import js.file.Files;
 import js.app.AppOper;
+import js.app.HelpFormatter;
+import js.base.BasePrinter;
 import js.json.JSList;
 import js.json.JSMap;
 import js.parsing.RegExp;
@@ -180,14 +182,14 @@ public final class ArchiveOper extends AppOper {
   }
 
   @Override
-  protected List<Object> getAdditionalArgs() {
-    return arrayList(//
-        "[dir <path>] : project root directory", CR, //
-        "[mock_remote <path>] : directory simulating cloud archive device", CR, //
-        "( push <path>     : mark file or directory for pushing new version", CR, //
-        "| forget <path>   : stop tracking file or directory within archive", CR, //
-        "| offload <path>  : delete local copy of object", CR, //
-        "| update)         : perform requested actions, synchronize remote and local objects");
+  protected void getOperSpecificHelp(BasePrinter b) {
+    var hf = new HelpFormatter();
+    hf.addItem("[ dir <path> ]", "project root directory");
+    hf.addItem("[ mock_remote <path> ]", "directory simulating cloud archive device");
+    hf.addItem("( push <path>", "mark file or directory for pushing new version");
+    hf.addItem("| forget <path>", "stop tracking file or directory within archive");
+    hf.addItem("| update )", "perform requested actions, synchronize remote and local objects");
+    b.pr(hf);
   }
 
   @Override

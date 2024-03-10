@@ -31,6 +31,7 @@ import java.util.List;
 
 import js.app.AppOper;
 import js.app.CmdLineArgs;
+import js.base.BasePrinter;
 import js.file.Files;
 import js.json.JSMap;
 
@@ -47,8 +48,8 @@ public class PrettyPrintOper extends AppOper {
   }
 
   @Override
-  protected List<Object> getAdditionalArgs() {
-    return arrayList("<file>+");
+  protected void getOperSpecificHelp(BasePrinter b) {
+    b.pr("<file>+");
   }
 
   @Override
@@ -70,7 +71,7 @@ public class PrettyPrintOper extends AppOper {
       pr("(please specify one or more json files)");
     for (File f : mFiles) {
       if (!f.exists())
-        f = Files.addExtension(f,Files.EXT_JSON);
+        f = Files.addExtension(f, Files.EXT_JSON);
       pr(JSMap.from(f));
     }
   }

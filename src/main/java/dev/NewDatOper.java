@@ -6,6 +6,7 @@ import java.io.File;
 
 import dev.gen.NewDatConfig;
 import js.app.AppOper;
+import js.base.BasePrinter;
 import js.data.DataUtil;
 import js.file.DirWalk;
 import js.file.Files;
@@ -19,7 +20,12 @@ public class NewDatOper extends AppOper {
 
   @Override
   public String getHelpDescription() {
-    return "name <gen.xyz.foo.dat>";
+    return "generate a new dat file";
+  }
+
+  @Override
+  protected void getOperSpecificHelp(BasePrinter b) {
+    b.pr("name <gen.xyz.foo.dat>");
   }
 
   @Override
@@ -82,7 +88,6 @@ public class NewDatOper extends AppOper {
       if (target.exists())
         setError("target file already exists:", target);
       files().writeString(target, "// deprecated until you define some fields\n- class {}");
-      //halt("want to construct:", INDENT, target);
     }
 
   }

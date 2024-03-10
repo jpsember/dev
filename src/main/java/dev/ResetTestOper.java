@@ -27,11 +27,11 @@ package dev;
 import static js.base.Tools.*;
 
 import java.io.File;
-import java.util.List;
 
 import dev.gen.AppInfo;
 import js.app.AppOper;
 import js.app.CmdLineArgs;
+import js.base.BasePrinter;
 import js.file.DirWalk;
 import js.file.Files;
 
@@ -47,9 +47,10 @@ public class ResetTestOper extends AppOper {
     return "Discard all unit test hash codes and temporary files";
   }
 
+ 
   @Override
-  protected List<Object> getAdditionalArgs() {
-    return arrayList("[startdir <dir>]*");
+  protected void getOperSpecificHelp(BasePrinter b) {
+    b.pr("[startdir <dir>]*");
   }
 
   @Override

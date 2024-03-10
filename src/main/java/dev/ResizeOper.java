@@ -24,14 +24,12 @@
  **/
 package dev;
 
-import static js.base.Tools.*;
-
 import java.awt.image.BufferedImage;
 import java.io.File;
-import java.util.List;
 
 import js.app.AppOper;
 import js.app.CmdLineArgs;
+import js.base.BasePrinter;
 import js.file.DirWalk;
 import js.file.Files;
 import js.geometry.IPoint;
@@ -51,8 +49,8 @@ public class ResizeOper extends AppOper {
   }
 
   @Override
-  protected List<Object> getAdditionalArgs() {
-    return arrayList("<dir>");
+  protected void getOperSpecificHelp(BasePrinter b) {
+    b.pr("<dir>");
   }
 
   @Override

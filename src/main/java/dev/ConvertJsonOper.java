@@ -27,9 +27,10 @@ package dev;
 import static js.base.Tools.*;
 
 import java.io.File;
-import java.util.List;
+
 import js.app.AppOper;
 import js.app.CmdLineArgs;
+import js.base.BasePrinter;
 import js.file.DirWalk;
 import js.file.Files;
 import js.json.JSMap;
@@ -48,8 +49,8 @@ public class ConvertJsonOper extends AppOper {
   }
 
   @Override
-  protected List<Object> getAdditionalArgs() {
-    return arrayList("[ compact | pretty ]* [source_dir [target_dir]]");
+  protected void getOperSpecificHelp(BasePrinter b) {
+    b.pr("[ compact | pretty ]* [source_dir [target_dir]]");
   }
 
   @Override

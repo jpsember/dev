@@ -33,7 +33,6 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.security.SecureRandom;
 import java.security.spec.KeySpec;
-import java.util.List;
 import java.util.Set;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
@@ -48,6 +47,7 @@ import javax.crypto.spec.SecretKeySpec;
 
 import js.app.AppOper;
 import js.app.CmdLineArgs;
+import js.base.BasePrinter;
 import js.file.DirWalk;
 import js.file.Files;
 import js.webtools.RemoteManager;
@@ -66,8 +66,8 @@ public class SecretsOper extends AppOper {
   }
 
   @Override
-  protected List<Object> getAdditionalArgs() {
-    return arrayList("[encrypt] passphrase <text> [entity <id>]");
+  protected void getOperSpecificHelp(BasePrinter b) {
+    b.pr("[encrypt] passphrase <text> [entity <id>]");
   }
 
   @Override

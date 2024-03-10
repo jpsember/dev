@@ -24,9 +24,7 @@
  **/
 package dev;
 
-import static js.base.Tools.*;
-
-import java.util.List;
+import js.base.BasePrinter;
 
 public class PullOper extends RsyncOper {
 
@@ -41,8 +39,8 @@ public class PullOper extends RsyncOper {
   }
 
   @Override
-  protected List<Object> getAdditionalArgs() {
-    return arrayList("<remote dir>", "[<local dir>]");
+  protected void getOperSpecificHelp(BasePrinter b) {
+    b.pr("<remote dir> [<local dir>]");
   }
 
   @Override

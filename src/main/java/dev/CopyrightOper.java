@@ -32,6 +32,7 @@ import java.util.regex.Matcher;
 
 import js.app.AppOper;
 import js.app.CmdLineArgs;
+import js.base.BasePrinter;
 import js.base.DateTimeTools;
 import js.file.DirWalk;
 import js.file.Files;
@@ -50,8 +51,8 @@ public final class CopyrightOper extends AppOper {
   }
 
   @Override
-  protected List<Object> getAdditionalArgs() {
-    return arrayList("sourcedir <dir>", "remove");
+  protected void getOperSpecificHelp(BasePrinter b) {
+    b.pr("[ sourcedir <dir> |  remove ]");
   }
 
   @Override

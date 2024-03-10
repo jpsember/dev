@@ -27,10 +27,10 @@ package dev;
 import static js.base.Tools.*;
 
 import java.io.File;
-import java.util.List;
 
 import js.app.AppOper;
 import js.app.CmdLineArgs;
+import js.base.BasePrinter;
 import js.file.Files;
 import js.json.JSList;
 import js.json.JSMap;
@@ -48,8 +48,8 @@ public class MakeScriptOper extends AppOper {
   }
 
   @Override
-  protected List<Object> getAdditionalArgs() {
-    return arrayList("<script_name[.ext]>");
+  protected void getOperSpecificHelp(BasePrinter b) {
+    b.pr("<script_name[.ext]");
   }
 
   @Override
