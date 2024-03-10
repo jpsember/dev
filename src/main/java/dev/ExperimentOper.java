@@ -55,7 +55,7 @@ public class ExperimentOper extends AppOper {
   }
 
   @Override
-  public String getHelpDescription() {
+  public String shortHelp() {
     return "quick experiment";
   }
 

@@ -44,12 +44,12 @@ public class ResizeOper extends AppOper {
   }
 
   @Override
-  public String getHelpDescription() {
+  public String shortHelp() {
     return "resize images";
   }
 
   @Override
-  protected void getOperSpecificHelp(BasePrinter b) {
+  protected void longHelp(BasePrinter b) {
     b.pr("<dir>");
   }
 

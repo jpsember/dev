@@ -43,12 +43,12 @@ public class MakeScriptOper extends AppOper {
   }
 
   @Override
-  public String getHelpDescription() {
+  public String shortHelp() {
     return "Create an executable script";
   }
 
   @Override
-  protected void getOperSpecificHelp(BasePrinter b) {
+  protected void longHelp(BasePrinter b) {
     b.pr("<script_name[.ext]");
   }
 

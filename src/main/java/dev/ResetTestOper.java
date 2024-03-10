@@ -43,13 +43,13 @@ public class ResetTestOper extends AppOper {
   }
 
   @Override
-  public String getHelpDescription() {
+  public String shortHelp() {
     return "Discard all unit test hash codes and temporary files";
   }
 
  
   @Override
-  protected void getOperSpecificHelp(BasePrinter b) {
+  protected void longHelp(BasePrinter b) {
     b.pr("[startdir <dir>]*");
   }
 

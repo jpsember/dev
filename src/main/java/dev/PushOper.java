@@ -34,12 +34,12 @@ public class PushOper extends RsyncOper {
   }
 
   @Override
-  public String getHelpDescription() {
+  public String shortHelp() {
     return "push files from local machine to remote";
   }
 
   @Override
-  protected void getOperSpecificHelp(BasePrinter b) {
+  protected void longHelp(BasePrinter b) {
     b.pr("<local dir> [<remote dir>]");
   }
 }

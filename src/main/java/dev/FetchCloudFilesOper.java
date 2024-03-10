@@ -45,7 +45,7 @@ public class FetchCloudFilesOper extends AppOper {
   }
 
   @Override
-  public String getHelpDescription() {
+  public String shortHelp() {
     return "read files from S3";
   }
 

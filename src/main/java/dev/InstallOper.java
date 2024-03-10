@@ -19,12 +19,12 @@ public class InstallOper extends AppOper {
   }
 
   @Override
-  public String getHelpDescription() {
+  public String shortHelp() {
     return "installs one of my programs from github, including a shell script to run it";
   }
 
   @Override
-  protected void getOperSpecificHelp(BasePrinter b) {
+  protected void longHelp(BasePrinter b) {
     b.pr("dev install program <program name> [repo <x>] [main_class <y>]");
   }
 

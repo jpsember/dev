@@ -19,12 +19,12 @@ public class NewDatOper extends AppOper {
   }
 
   @Override
-  public String getHelpDescription() {
+  public String shortHelp() {
     return "generate a new dat file";
   }
 
   @Override
-  protected void getOperSpecificHelp(BasePrinter b) {
+  protected void longHelp(BasePrinter b) {
     b.pr("name <gen.xyz.foo.dat>");
   }
 

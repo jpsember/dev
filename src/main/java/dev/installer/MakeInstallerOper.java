@@ -60,7 +60,7 @@ public class MakeInstallerOper extends AppOper {
   }
 
   @Override
-  public String getHelpDescription() {
+  public String shortHelp() {
     return "creates an installer zip file from a script";
   }
 

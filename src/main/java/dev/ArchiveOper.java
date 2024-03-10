@@ -177,12 +177,12 @@ public final class ArchiveOper extends AppOper {
   }
 
   @Override
-  public String getHelpDescription() {
+  public String shortHelp() {
     return "synchronize local project files with cloud archive";
   }
 
   @Override
-  protected void getOperSpecificHelp(BasePrinter b) {
+  protected void longHelp(BasePrinter b) {
     var hf = new HelpFormatter();
     hf.addItem("[ dir <path> ]", "project root directory");
     hf.addItem("[ mock_remote <path> ]", "directory simulating cloud archive device");

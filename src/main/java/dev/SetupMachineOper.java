@@ -46,7 +46,7 @@ public class SetupMachineOper extends AppOper {
   }
 
   @Override
-  public String getHelpDescription() {
+  public String shortHelp() {
     return "setup system";
   }
 

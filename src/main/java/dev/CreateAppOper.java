@@ -48,7 +48,7 @@ public final class CreateAppOper extends AppOper {
   }
 
   @Override
-  public String getHelpDescription() {
+  public String shortHelp() {
     return "create Java app";
   }
 
@@ -64,7 +64,7 @@ public final class CreateAppOper extends AppOper {
   }
 
   @Override
-  protected void getOperSpecificHelp(BasePrinter b) {
+  protected void longHelp(BasePrinter b) {
     b.pr("Create a directory to hold the project, and from that directory, type 'dev createapp package ...");
   }
 

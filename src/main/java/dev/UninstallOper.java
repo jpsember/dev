@@ -16,12 +16,12 @@ public class UninstallOper extends AppOper {
   }
 
   @Override
-  public String getHelpDescription() {
+  public String shortHelp() {
     return "<program> : uninstalls one of Jeff's programs";
   }
 
   @Override
-  protected void getOperSpecificHelp(BasePrinter b) {
+  protected void longHelp(BasePrinter b) {
     b.pr("dev uninstall program <program name>");
   }
 

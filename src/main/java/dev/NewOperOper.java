@@ -19,7 +19,7 @@ public class NewOperOper extends AppOper {
   }
 
   @Override
-  public String getHelpDescription() {
+  public String shortHelp() {
     return "creates a new operation for the dev program";
   }
 

@@ -46,12 +46,12 @@ public final class CopyrightOper extends AppOper {
   }
 
   @Override
-  public String getHelpDescription() {
+  public String shortHelp() {
     return "add copyright messages to source files";
   }
 
   @Override
-  protected void getOperSpecificHelp(BasePrinter b) {
+  protected void longHelp(BasePrinter b) {
     b.pr("[ sourcedir <dir> |  remove ]");
   }
 

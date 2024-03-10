@@ -61,12 +61,12 @@ public class SecretsOper extends AppOper {
   }
 
   @Override
-  public String getHelpDescription() {
+  public String shortHelp() {
     return "decrypt (or encrypt) secrets";
   }
 
   @Override
-  protected void getOperSpecificHelp(BasePrinter b) {
+  protected void longHelp(BasePrinter b) {
     b.pr("[encrypt] passphrase <text> [entity <id>]");
   }
 

@@ -51,12 +51,12 @@ public class RemoveExtraneousScriptElementsOper extends AppOper {
   }
 
   @Override
-  public String getHelpDescription() {
+  public String shortHelp() {
     return "remove extraneous ScriptElements from project";
   }
 
   @Override
-  protected void getOperSpecificHelp(BasePrinter b) {
+  protected void longHelp(BasePrinter b) {
     b.pr("[project_dir]");
   }
 

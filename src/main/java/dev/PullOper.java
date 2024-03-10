@@ -34,12 +34,12 @@ public class PullOper extends RsyncOper {
   }
 
   @Override
-  public String getHelpDescription() {
+  public String shortHelp() {
     return "pull files from remote machine to local";
   }
 
   @Override
-  protected void getOperSpecificHelp(BasePrinter b) {
+  protected void longHelp(BasePrinter b) {
     b.pr("<remote dir> [<local dir>]");
   }
 

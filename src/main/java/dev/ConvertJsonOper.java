@@ -44,12 +44,12 @@ public class ConvertJsonOper extends AppOper {
   }
 
   @Override
-  public String getHelpDescription() {
+  public String shortHelp() {
     return "convert json files from datagen format to standard json";
   }
 
   @Override
-  protected void getOperSpecificHelp(BasePrinter b) {
+  protected void longHelp(BasePrinter b) {
     b.pr("[ compact | pretty ]* [source_dir [target_dir]]");
   }
 
