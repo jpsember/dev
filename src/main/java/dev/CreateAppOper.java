@@ -98,6 +98,7 @@ public final class CreateAppOper extends AppOper {
       if (!RegExp.patternMatchesString("[a-z]+", name))
         badArg("inappropriate app name:", name);
       mAppDir = new File(c.parentDir(), name);
+      c.name(name);
     }
     {
       var z = c.zapExisting();
