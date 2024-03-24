@@ -66,11 +66,11 @@ public final class CreateAppOper extends AppOper {
 
   @Override
   protected void longHelp(BasePrinter b) {
-    b.pr("Create a directory to hold the project, and from that directory, type 'dev createapp <options>");
+    b.pr("Create a directory to hold the project, and from that directory, type 'dev createapp <options>'");
     b.pr("where <options> include:");
     var hf = new HelpFormatter();
-    hf.addItem("[ parent_dir <path> ]", "directory to contain project");
-    hf.addItem("[ name <string> ]", "name of project");
+    hf.addItem("[ parent_dir <path> ]", "directory to contain project (default: current dir)");
+    hf.addItem("[ name <string> ]", "name of project (default: name of parent_dir)");
     hf.addItem("[ zap_existing <directory> ]", "deleting existing directory before starting");
     b.pr(hf);
   }
