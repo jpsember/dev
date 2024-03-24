@@ -31,6 +31,7 @@ import java.util.Map;
 
 import dev.gen.CreateAppConfig;
 import js.app.AppOper;
+import js.app.HelpFormatter;
 import js.base.BasePrinter;
 import js.base.SystemCall;
 import js.data.DataUtil;
@@ -65,7 +66,13 @@ public final class CreateAppOper extends AppOper {
 
   @Override
   protected void longHelp(BasePrinter b) {
-    b.pr("Create a directory to hold the project, and from that directory, type 'dev createapp package ...");
+    b.pr("Create a directory to hold the project, and from that directory, type 'dev createapp <options>");
+    b.pr("where <options> include:");
+    var hf = new HelpFormatter();
+    hf.addItem("[ parent_dir <path> ]", "directory to contain project");
+    hf.addItem("[ name <string> ]", "name of project");
+    hf.addItem("[ zap_existing <directory> ]", "deleting existing directory before starting");
+    b.pr(hf);
   }
 
   @Override
