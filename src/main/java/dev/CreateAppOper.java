@@ -93,6 +93,9 @@ public final class CreateAppOper extends AppOper {
 
     {
       var name = readIfMissing(c.name());
+      if (name.isEmpty()) {
+        name = Files.basename(c.parentDir());
+      }
       if (name.isEmpty())
         badArg("missing arg: name");
       if (!RegExp.patternMatchesString("[a-z]+", name))
