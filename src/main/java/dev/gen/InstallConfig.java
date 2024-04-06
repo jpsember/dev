@@ -17,6 +17,10 @@ public class InstallConfig implements AbstractData {
     return mMainClass;
   }
 
+  public boolean skipTests() {
+    return mSkipTests;
+  }
+
   @Override
   public Builder toBuilder() {
     return new Builder(this);
@@ -25,6 +29,7 @@ public class InstallConfig implements AbstractData {
   protected static final String _0 = "program";
   protected static final String _1 = "repo";
   protected static final String _2 = "main_class";
+  protected static final String _3 = "skip_tests";
 
   @Override
   public String toString() {
@@ -37,6 +42,7 @@ public class InstallConfig implements AbstractData {
     m.putUnsafe(_0, mProgram);
     m.putUnsafe(_1, mRepo);
     m.putUnsafe(_2, mMainClass);
+    m.putUnsafe(_3, mSkipTests);
     return m;
   }
 
@@ -54,6 +60,7 @@ public class InstallConfig implements AbstractData {
     mProgram = m.opt(_0, "");
     mRepo = m.opt(_1, "");
     mMainClass = m.opt(_2, "");
+    mSkipTests = m.opt(_3, false);
   }
 
   public static Builder newBuilder() {
@@ -75,6 +82,8 @@ public class InstallConfig implements AbstractData {
       return false;
     if (!(mMainClass.equals(other.mMainClass)))
       return false;
+    if (!(mSkipTests == other.mSkipTests))
+      return false;
     return true;
   }
 
@@ -86,6 +95,7 @@ public class InstallConfig implements AbstractData {
       r = r * 37 + mProgram.hashCode();
       r = r * 37 + mRepo.hashCode();
       r = r * 37 + mMainClass.hashCode();
+      r = r * 37 + (mSkipTests ? 1 : 0);
       m__hashcode = r;
     }
     return r;
@@ -94,6 +104,7 @@ public class InstallConfig implements AbstractData {
   protected String mProgram;
   protected String mRepo;
   protected String mMainClass;
+  protected boolean mSkipTests;
   protected int m__hashcode;
 
   public static final class Builder extends InstallConfig {
@@ -102,6 +113,7 @@ public class InstallConfig implements AbstractData {
       mProgram = m.mProgram;
       mRepo = m.mRepo;
       mMainClass = m.mMainClass;
+      mSkipTests = m.mSkipTests;
     }
 
     @Override
@@ -121,6 +133,7 @@ public class InstallConfig implements AbstractData {
       r.mProgram = mProgram;
       r.mRepo = mRepo;
       r.mMainClass = mMainClass;
+      r.mSkipTests = mSkipTests;
       return r;
     }
 
@@ -136,6 +149,11 @@ public class InstallConfig implements AbstractData {
 
     public Builder mainClass(String x) {
       mMainClass = (x == null) ? "" : x;
+      return this;
+    }
+
+    public Builder skipTests(boolean x) {
+      mSkipTests = x;
       return this;
     }
 

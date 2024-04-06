@@ -2,4 +2,5 @@ class {
   string program;    // The name of the program, e.g. 'gitdiff'
   string repo;       // The name of the git repository, if different from the program name
   string main_class; // Fully-qualified name of class containing main method, e.g., 'js.gitdiff.GitDiffApp'
+  bool skip_tests;
 }
