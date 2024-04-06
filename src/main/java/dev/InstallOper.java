@@ -72,9 +72,9 @@ public class InstallOper extends AppOper {
       var s = new SystemCall().directory(repoDir);
       s.setVerbose(verbose());
       s.arg("mvn", "package");
-      if (config().skipTests() || true)
+      if (config().skipTests())
         s.arg("-Dmaven.test.skip=true");
-      
+
       if (s.exitCode() != 0)
         setError("Failed to compile", repoName, INDENT, s.systemErr());
 
