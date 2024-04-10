@@ -99,7 +99,7 @@ public final class CreateAppOper extends AppOper {
     }
 
     {
-      var name = readIfMissing(c.name());
+      var name = c.name(); //readIfMissing(c.name());
       if (name.isEmpty()) {
         name = Files.basename(c.parentDir());
       }
