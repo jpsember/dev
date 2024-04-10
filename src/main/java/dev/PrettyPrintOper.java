@@ -56,9 +56,7 @@ public class PrettyPrintOper extends AppOper {
   protected void processAdditionalArgs() {
     CmdLineArgs args = app().cmdLineArgs();
 
-    do {
-      mOverwrite = args.nextArgIf("overwrite");
-    } while (args.handlingArgs());
+    mOverwrite = args.nextArgIf("overwrite");
 
     if (args.hasNextArg()) {
       File relPath = new File(args.nextArg());
