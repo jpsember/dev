@@ -49,12 +49,17 @@ public class PrettyPrintOper extends AppOper {
 
   @Override
   protected void longHelp(BasePrinter b) {
-    b.pr("<file>+");
+    b.pr("[overwrite] <file>+");
   }
 
   @Override
   protected void processAdditionalArgs() {
     CmdLineArgs args = app().cmdLineArgs();
+
+    do {
+      mOverwrite = args.nextArgIf("overwrite");
+    } while (args.handlingArgs());
+
     if (args.hasNextArg()) {
       File relPath = new File(args.nextArg());
       if (!relPath.isAbsolute()) {
@@ -72,10 +77,14 @@ public class PrettyPrintOper extends AppOper {
     for (File f : mFiles) {
       if (!f.exists())
         f = Files.addExtension(f, Files.EXT_JSON);
-      pr(JSMap.from(f));
+      var m = JSMap.from(f);
+      if (mOverwrite) {
+        files().writeIfChanged(f, m.prettyPrint());
+      } else
+        pr(m);
     }
   }
 
   private List<File> mFiles = arrayList();
-
+  private boolean mOverwrite;
 }
