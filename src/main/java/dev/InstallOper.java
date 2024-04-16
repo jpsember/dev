@@ -59,7 +59,7 @@ public class InstallOper extends AppOper {
       log("attempting to clone repo from", url);
       s.arg("git", "clone");
       if (nonEmpty(config().branch()))
-        s.arg("-n", config().branch());
+        s.arg("-b", config().branch());
       s.arg(url);
       s.assertSuccess();
     }
