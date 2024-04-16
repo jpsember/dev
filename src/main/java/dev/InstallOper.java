@@ -25,7 +25,7 @@ public class InstallOper extends AppOper {
 
   @Override
   protected void longHelp(BasePrinter b) {
-    b.pr("dev install program <program name> [repo <x>] [main_class <y>]");
+    b.pr("dev install program <program name> [branch <x>] [repo <x>] [main_class <y>]");
   }
 
   @Override
@@ -57,7 +57,10 @@ public class InstallOper extends AppOper {
       s.setVerbose(verbose());
       var url = "https://github.com/jpsember/" + repoName + ".git";
       log("attempting to clone repo from", url);
-      s.arg("git", "clone", url);
+      s.arg("git", "clone");
+      if (nonEmpty(config().branch()))
+        s.arg("-n", config().branch());
+      s.arg(url);
       s.assertSuccess();
     }
     final var INFO_SCRIPT_NAME = "install.json";

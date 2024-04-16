@@ -21,6 +21,10 @@ public class InstallConfig implements AbstractData {
     return mSkipTests;
   }
 
+  public String branch() {
+    return mBranch;
+  }
+
   @Override
   public Builder toBuilder() {
     return new Builder(this);
@@ -30,6 +34,7 @@ public class InstallConfig implements AbstractData {
   protected static final String _1 = "repo";
   protected static final String _2 = "main_class";
   protected static final String _3 = "skip_tests";
+  protected static final String _4 = "branch";
 
   @Override
   public String toString() {
@@ -43,6 +48,7 @@ public class InstallConfig implements AbstractData {
     m.putUnsafe(_1, mRepo);
     m.putUnsafe(_2, mMainClass);
     m.putUnsafe(_3, mSkipTests);
+    m.putUnsafe(_4, mBranch);
     return m;
   }
 
@@ -61,6 +67,7 @@ public class InstallConfig implements AbstractData {
     mRepo = m.opt(_1, "");
     mMainClass = m.opt(_2, "");
     mSkipTests = m.opt(_3, false);
+    mBranch = m.opt(_4, "");
   }
 
   public static Builder newBuilder() {
@@ -84,6 +91,8 @@ public class InstallConfig implements AbstractData {
       return false;
     if (!(mSkipTests == other.mSkipTests))
       return false;
+    if (!(mBranch.equals(other.mBranch)))
+      return false;
     return true;
   }
 
@@ -96,6 +105,7 @@ public class InstallConfig implements AbstractData {
       r = r * 37 + mRepo.hashCode();
       r = r * 37 + mMainClass.hashCode();
       r = r * 37 + (mSkipTests ? 1 : 0);
+      r = r * 37 + mBranch.hashCode();
       m__hashcode = r;
     }
     return r;
@@ -105,6 +115,7 @@ public class InstallConfig implements AbstractData {
   protected String mRepo;
   protected String mMainClass;
   protected boolean mSkipTests;
+  protected String mBranch;
   protected int m__hashcode;
 
   public static final class Builder extends InstallConfig {
@@ -114,6 +125,7 @@ public class InstallConfig implements AbstractData {
       mRepo = m.mRepo;
       mMainClass = m.mMainClass;
       mSkipTests = m.mSkipTests;
+      mBranch = m.mBranch;
     }
 
     @Override
@@ -134,6 +146,7 @@ public class InstallConfig implements AbstractData {
       r.mRepo = mRepo;
       r.mMainClass = mMainClass;
       r.mSkipTests = mSkipTests;
+      r.mBranch = mBranch;
       return r;
     }
 
@@ -157,6 +170,11 @@ public class InstallConfig implements AbstractData {
       return this;
     }
 
+    public Builder branch(String x) {
+      mBranch = (x == null) ? "" : x;
+      return this;
+    }
+
   }
 
   public static final InstallConfig DEFAULT_INSTANCE = new InstallConfig();
@@ -165,6 +183,7 @@ public class InstallConfig implements AbstractData {
     mProgram = "";
     mRepo = "";
     mMainClass = "";
+    mBranch = "";
   }
 
 }
