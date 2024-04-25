@@ -36,7 +36,6 @@ public class Main extends App {
   public static void main(String[] args) {
     loadTools();
     App app = new Main();
-    //app.setCustomArgs("-v --exceptions -d push rpi_home_dir/files_to_send/ .");
     //app.setCustomArgs("-v --exceptions --help");
     app.startApplication(args);
     app.exitWithReturnCode();

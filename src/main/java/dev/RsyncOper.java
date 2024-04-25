@@ -32,7 +32,6 @@ import java.util.List;
 import js.app.AppOper;
 import js.app.CmdLineArgs;
 import js.base.SystemCall;
-import js.file.FileException;
 import js.file.Files;
 import js.webtools.RemoteManager;
 
@@ -63,9 +62,7 @@ import js.webtools.RemoteManager;
  * For our purposes, we usually want to copy a directory, and without changing its name; so we probably
  * want to NOT add a trailing slash to the source, and also trim the last directory's name from the target path.
  * 
- * ACTUALLY, now I think the trailing slash is a good way to get it to send just the contents...
- * 
- * 
+ * ACTUALLY, now I think the trailing slash is a good way to get it to send just the contents.
  * 
  * It is also tricky because this behaviour only applies to directories, and we don't know ahead of time
  * (if we're pulling in something from a remote machine) whether we're talking about a directory or a file.
@@ -103,7 +100,6 @@ public abstract class RsyncOper extends AppOper {
 
     mSourceContentsOnly = arg0.endsWith("/");
     mSourceEntityPath = new File(arg0);
-    pr("arg0:", quote(arg0), CR, "sourcePath:", mSourceEntityPath, CR, "contents only:", mSourceContentsOnly);
 
     if (arg1 != null)
       mTargetEntityPath = new File(arg1);
@@ -300,16 +296,7 @@ public abstract class RsyncOper extends AppOper {
   }
 
   private String frag(String resourceName) {
-    String s = null;
-    try {
-      s = Files.readString(getClass(), "rsync/" + resourceName);
-    } catch (FileException e) {
-      var f = new File("/Users/home/github_projects/dev/src/main/resources/dev/rsync/" + resourceName);
-      if (!f.exists())
-        throw e;
-      s = Files.readString(f);
-    }
-    return s;
+    return Files.readString(getClass(), "rsync/" + resourceName);
   }
 
   /**
