@@ -90,12 +90,16 @@ public abstract class RsyncOper extends AppOper {
   protected final void processAdditionalArgs() {
 
     CmdLineArgs args = app().cmdLineArgs();
+
+    mContentsFlag = args.nextArgIf("-c") || args.nextArgIf("--contents");
+
     String arg0 = args.nextArg();
     String arg1 = null;
     if (args.hasNextArg())
       arg1 = args.nextArg();
 
     mSourceEntityPath = new File(arg0);
+    pr("arg0:", quote(arg0), "mSourceEntityPath:", mSourceEntityPath);
     if (arg1 != null)
       mTargetEntityPath = new File(arg1);
 
@@ -127,10 +131,10 @@ public abstract class RsyncOper extends AppOper {
 
     // Create directories on remote machine, in case it doesn't exist; see https://stackoverflow.com/questions/1636889
     s.arg("--mkpath");
-    
+
     addMachineArg(s, mResolvedSource, isPull());
     addMachineArg(s, mResolvedTarget, !isPull());
-    
+
     s.assertSuccess();
   }
 
@@ -285,7 +289,6 @@ public abstract class RsyncOper extends AppOper {
     return mCachedExcludeExpressionsList;
   }
 
-
   private String frag(String resourceName) {
     return Files.readString(getClass(), "rsync/" + resourceName);
   }
@@ -341,4 +344,5 @@ public abstract class RsyncOper extends AppOper {
   private List<String> mCachedExcludeExpressionsList;
   private File mCachedLocalProjectDir;
   private File mCachedRemoteProjectDir;
+  private boolean mContentsFlag;
 }
