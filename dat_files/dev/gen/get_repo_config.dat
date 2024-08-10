@@ -3,4 +3,5 @@ class {
   string hash;  // commit hash to request; if empty, uses most recent
   string version; // the version number to assign to the commit;
                 // if hash was empty, leaves version unchanged
+  bool eclipse; // true if running from IDE
 }

@@ -17,6 +17,10 @@ public class GetRepoConfig implements AbstractData {
     return mVersion;
   }
 
+  public boolean eclipse() {
+    return mEclipse;
+  }
+
   @Override
   public Builder toBuilder() {
     return new Builder(this);
@@ -25,6 +29,7 @@ public class GetRepoConfig implements AbstractData {
   protected static final String _0 = "name";
   protected static final String _1 = "hash";
   protected static final String _2 = "version";
+  protected static final String _3 = "eclipse";
 
   @Override
   public String toString() {
@@ -37,6 +42,7 @@ public class GetRepoConfig implements AbstractData {
     m.putUnsafe(_0, mName);
     m.putUnsafe(_1, mHash);
     m.putUnsafe(_2, mVersion);
+    m.putUnsafe(_3, mEclipse);
     return m;
   }
 
@@ -54,6 +60,7 @@ public class GetRepoConfig implements AbstractData {
     mName = m.opt(_0, "");
     mHash = m.opt(_1, "");
     mVersion = m.opt(_2, "");
+    mEclipse = m.opt(_3, false);
   }
 
   public static Builder newBuilder() {
@@ -75,6 +82,8 @@ public class GetRepoConfig implements AbstractData {
       return false;
     if (!(mVersion.equals(other.mVersion)))
       return false;
+    if (!(mEclipse == other.mEclipse))
+      return false;
     return true;
   }
 
@@ -86,6 +95,7 @@ public class GetRepoConfig implements AbstractData {
       r = r * 37 + mName.hashCode();
       r = r * 37 + mHash.hashCode();
       r = r * 37 + mVersion.hashCode();
+      r = r * 37 + (mEclipse ? 1 : 0);
       m__hashcode = r;
     }
     return r;
@@ -94,6 +104,7 @@ public class GetRepoConfig implements AbstractData {
   protected String mName;
   protected String mHash;
   protected String mVersion;
+  protected boolean mEclipse;
   protected int m__hashcode;
 
   public static final class Builder extends GetRepoConfig {
@@ -102,6 +113,7 @@ public class GetRepoConfig implements AbstractData {
       mName = m.mName;
       mHash = m.mHash;
       mVersion = m.mVersion;
+      mEclipse = m.mEclipse;
     }
 
     @Override
@@ -121,6 +133,7 @@ public class GetRepoConfig implements AbstractData {
       r.mName = mName;
       r.mHash = mHash;
       r.mVersion = mVersion;
+      r.mEclipse = mEclipse;
       return r;
     }
 
@@ -136,6 +149,11 @@ public class GetRepoConfig implements AbstractData {
 
     public Builder version(String x) {
       mVersion = (x == null) ? "" : x;
+      return this;
+    }
+
+    public Builder eclipse(boolean x) {
+      mEclipse = x;
       return this;
     }
 
