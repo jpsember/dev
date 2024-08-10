@@ -32,7 +32,7 @@ public class GetRepoOper extends AppOper {
 
   @Override
   public String getHelpDescription() {
-    return "no help is available for operation (yet)";
+    return "install GitHub projects as local Maven dependencies";
   }
 
   @Override
