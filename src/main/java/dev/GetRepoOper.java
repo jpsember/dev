@@ -57,7 +57,8 @@ public class GetRepoOper extends AppOper {
     checkoutDesiredCommit();
     modifyPom();
     installRepoToLocalRepository();
-    discardWorkDirectory();
+    if (!config().eclipse())
+      discardWorkDirectory();
   }
 
   private void ensureSysCallOkay(String output, String errorTag, String context) {
