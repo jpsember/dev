@@ -25,8 +25,6 @@ import js.file.Files;
 
 public class GetRepoOper extends AppOper {
 
-  private static final boolean NO_RECREATE = true && alert("NOT recreating clone dir");
-
   @Override
   public String userCommand() {
     return "getrepo";
@@ -55,7 +53,10 @@ public class GetRepoOper extends AppOper {
 
   @Override
   public void perform() {
-    determineRepoAndVersion();
+    cloneRepo();
+    checkoutDesiredCommit();
+    modifyPom();
+    installRepoToLocalRepository();
     discardWorkDirectory();
   }
 
@@ -78,7 +79,7 @@ public class GetRepoOper extends AppOper {
     return sc;
   }
 
-  private void determineRepoAndVersion() {
+  private void cloneRepo() {
     var name = config().name();
     checkNonEmpty(name, "No repo name given");
 
@@ -88,52 +89,43 @@ public class GetRepoOper extends AppOper {
     //
     var sc = newSysCall(workDir());
     sc.arg(programPath("git"), "clone", "https://github.com/" + name + ".git");
+    // Git clone sends output to system error for some stupid reason
+    ensureSysCallOkay(sc.systemErr(), "fatal:", "cloning repo");
+  }
 
-    if (!NO_RECREATE) {
-      // Git clone sends output to system error for some stupid reason
-      ensureSysCallOkay(sc.systemErr(), "fatal:", "cloning repo");
-    }
+  private void checkoutDesiredCommit() {
+    // Ensure that a commit with the requested hash exists
+    getCommitMessage(commitHash());
 
-    var hash = config().hash().toLowerCase();
+    var sc = newSysCall(null);
+    sc.arg(programPath("git"), "checkout", commitHash());
+    sc.call();
+    ensureSysCallOkay(sc.systemErr(), "error:", "checking out commit " + commitHash());
+  }
 
-    checkState(!nullOrEmpty(hash), "for now, please supply an explicit commit hash");
-    var versionNumber = config().version();
-    checkState(!nullOrEmpty(versionNumber), "please specify a version to assign to this commit");
-
-    {
-      // Ensure that a commit with the requested hash exists
-      getCommitMessage(hash);
-
-      sc = newSysCall(null);
-      sc.arg(programPath("git"), "checkout", hash);
-      sc.call();
-      ensureSysCallOkay(sc.systemErr(), "error:", "checking out commit " + hash);
-    }
-
+  private void modifyPom() {
     File pomFile = null;
-    try {
-      pomFile = new File(repoDir(), "pom.xml");
-      Files.assertExists(pomFile, "can't find pom.xml file");
-      var doc = parseXML(pomFile);
+    pomFile = new File(repoDir(), "pom.xml");
+    Files.assertExists(pomFile, "can't find pom.xml file");
+    var doc = parseXML(pomFile);
 
-      Node proj = getNode(doc, "project");
-      var nodeGroupId = getNode(proj, "groupId");
-      var nodeArtifactId = getNode(proj, "artifactId");
-      var version = getNode(proj, "version");
+    Node proj = getNode(doc, "project");
+    var nodeGroupId = getNode(proj, "groupId");
+    var nodeArtifactId = getNode(proj, "artifactId");
+    var version = getNode(proj, "version");
 
-      log("found group:", nodeGroupId, "artifact:", nodeArtifactId, "version:", version);
+    log("found group:", nodeGroupId, "artifact:", nodeArtifactId, "version:", version);
 
-      version.setTextContent(versionNumber);
+    version.setTextContent(versionNumber());
 
-      var modifiedPom = toXMLString(doc);
-      files().writeString(pomFile, modifiedPom);
-    } catch (Throwable t) {
-      throw asRuntimeException(t);
-    }
+    var modifiedPom = toXMLString(doc);
+    files().writeString(pomFile, modifiedPom);
+  }
 
+  private void installRepoToLocalRepository() {
     // Perform a "mvn install"
     log("performing 'mvn install'");
-    sc = newSysCall(null);
+    var sc = newSysCall(null);
     sc.arg(programPath("mvn"), "install");
     sc.call();
     log("...done mvn install");
@@ -147,8 +139,7 @@ public class GetRepoOper extends AppOper {
   private File workDir() {
     if (mWorkDir == null) {
       var f = new File("_SKIP_gitRepoOperWork");
-      if (!NO_RECREATE)
-        files().deleteDirectory(f, "_SKIP_");
+      files().deleteDirectory(f, "_SKIP_");
       mWorkDir = files().mkdirs(f);
     }
     return mWorkDir;
@@ -297,6 +288,38 @@ public class GetRepoOper extends AppOper {
     }
     checkState(child != null, "cannot find node named:", name, "for:", parent);
     return child;
+  }
+
+  private void parseOptions() {
+    if (!mOptionsParsed) {
+      mOptionsParsed = true;
+      var hash = config().hash().toLowerCase();
+
+      checkState(!nullOrEmpty(hash), "for now, please supply an explicit commit hash");
+      var versionNumber = config().version();
+      checkState(!nullOrEmpty(versionNumber), "please specify a version to assign to this commit");
+      mCommitHash = hash;
+      mVersionNumber = versionNumber;
+    }
+
+  }
+
+  // ------------------------------------------------------------------
+  // Parsing options (commit hash, version number)
+  // ------------------------------------------------------------------
+
+  private boolean mOptionsParsed;
+  private String mCommitHash;
+  private String mVersionNumber;
+
+  private String commitHash() {
+    parseOptions();
+    return mCommitHash;
+  }
+
+  private String versionNumber() {
+    parseOptions();
+    return mVersionNumber;
   }
 
 }
