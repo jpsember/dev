@@ -280,22 +280,18 @@ public final class CreateAppOper extends AppOper {
   private String mostRecentTagForRepo(String repoUrl) {
     var tag = mRepoTagMap.get(repoUrl);
     if (tag == null) {
-      if (testMode()) {
-        tag = "9.9";
-      } else {
-        var s = new SystemCall();
-        s.setVerbose(verbose());
-        s.arg("git", "ls-remote", "--tags", "-q", "--sort=-v:refname", "--refs", "https://" + repoUrl);
-        s.assertSuccess();
-        var out = s.systemOut();
-        var x = split(out, '\n');
-        tag = "";
-        if (!x.isEmpty()) {
-          var w = x.get(0);
-          var j = w.lastIndexOf('/');
-          checkArgument(j > 0, "failed to parse tags from:", INDENT, out);
-          tag = w.substring(j + 1);
-        }
+      var s = new SystemCall();
+      s.setVerbose(verbose());
+      s.arg("git", "ls-remote", "--tags", "-q", "--sort=-v:refname", "--refs", "https://" + repoUrl);
+      s.assertSuccess();
+      var out = s.systemOut();
+      var x = split(out, '\n');
+      tag = "";
+      if (!x.isEmpty()) {
+        var w = x.get(0);
+        var j = w.lastIndexOf('/');
+        checkArgument(j > 0, "failed to parse tags from:", INDENT, out);
+        tag = w.substring(j + 1);
       }
       mRepoTagMap.put(repoUrl, tag);
     }

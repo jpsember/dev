@@ -1,0 +1,4 @@
+class {
+  string name;  // The name of the github repository
+  string hash;  // commit hash to request; if empty, uses most recent
+}
