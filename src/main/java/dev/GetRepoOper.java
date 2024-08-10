@@ -13,13 +13,13 @@ import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 
-import org.w3c.dom.Document;
 import org.w3c.dom.Node;
 
 import dev.gen.GetRepoConfig;
 import js.app.AppOper;
 import js.base.SystemCall;
 import js.file.DirWalk;
+import js.file.FileException;
 import js.file.Files;
 
 public class GetRepoOper extends AppOper {
@@ -74,7 +74,7 @@ public class GetRepoOper extends AppOper {
 
     sc.setVerbose(verbose());
     sc.directory(workDir());
-    sc.arg("git", "clone", "https://github.com/" + name + ".git");
+    sc.arg(programPath("git"), "clone", "https://github.com/" + name + ".git");
 
     if (!NO_RECREATE) {
       // Git clone sends output to system error for some stupid reason
@@ -96,7 +96,7 @@ public class GetRepoOper extends AppOper {
     {
       sc = new SystemCall();
       sc.directory(repoDir);
-      sc.arg("git", "log", "--oneline");
+      sc.arg(programPath("git"), "log", "--oneline");
       var out = sc.systemOut().trim();
       mCommitMap = hashMap();
       for (var logEntry : split(out, '\n')) {
@@ -115,59 +115,70 @@ public class GetRepoOper extends AppOper {
     }
 
     var hash = config().hash().toLowerCase();
-    if (nullOrEmpty(hash)) {
-    } else {
+
+    checkState(!nullOrEmpty(hash), "for now, please supply an explicit commit hash");
+    var versionNumber = config().version();
+    checkState(!nullOrEmpty(versionNumber), "please specify a version to assign to this commit");
+
+    {
       var message = mCommitMap.get(hash);
       if (message == null)
         badArg("No commit found with hash:", hash);
 
       sc = new SystemCall();
       sc.directory(repoDir);
-      sc.arg("git", "checkout", hash);
+      sc.arg(programPath("git"), "checkout", hash);
       sc.call();
       ensureSysCallOkay(sc.systemErr(), "error:", "checking out commit " + hash);
     }
 
     File pomFile = null;
-    // Parse pom.xml
     try {
       pomFile = new File(repoDir, "pom.xml");
       Files.assertExists(pomFile, "can't find pom.xml file");
 
-      var builder = DocumentBuilderFactory.newInstance().newDocumentBuilder();
-      Document doc = builder.parse(pomFile);
+      var doc = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(pomFile);
 
-      //Retrieving the Root Element
       Node proj = getNode(doc, "project");
 
       var nodeGroupId = getNode(proj, "groupId");
       var nodeArtifactId = getNode(proj, "artifactId");
       var version = getNode(proj, "version");
 
-      //      show(nodeGroupId,0);
+      log("found group:", nodeGroupId, "artifact:", nodeArtifactId, "version:", version);
 
-      pr("version text content:", version.getTextContent());
-      pr("setting");
-      version.setTextContent("hallelujah");
+      version.setTextContent(versionNumber);
 
-      pr("mod:",xmlToString(doc));
-//      {
-//        TransformerFactory tf = TransformerFactory.newInstance();
-//        Transformer transformer = tf.newTransformer();
-//        transformer.setOutputProperty(OutputKeys.OMIT_XML_DECLARATION, "yes");
-//        StringWriter writer = new StringWriter();
-//        transformer.transform(new DOMSource(doc), new StreamResult(writer));
-//        var output = writer.getBuffer().toString();
-//        pr("mod:", INDENT, output);
-//      }
+      var modifiedPom = xmlToString(doc);
+      files().writeString(pomFile, modifiedPom);
 
-      //      show(element, 0);
-
-      // doc.getDocumentElement().normalize();
     } catch (Throwable t) {
       throw asRuntimeException(t);
     }
 
+    // Perform a "mvn install"
+
+    // halt("do a mvn install");
+    sc = new SystemCall();
+    sc.directory(repoDir);
+    sc.arg(programPath("mvn"), "install");
+    sc.call();
+    ensureSysCallOkay(sc.systemErr(), "error:", "performing 'mvn install'");
+  }
+
+  public static File findProgramPath(String progName) {
+    String[] dirs = { "/usr/local/bin" };
+    File progPath = null;
+    for (var d : dirs) {
+      var c = new File(d, progName);
+      if (c.exists()) {
+        progPath = c;
+        break;
+      }
+    }
+    if (progPath == null)
+      throw FileException.withMessage("Cannot locate program:", progName);
+    return progPath;
   }
 
   private String xmlToString(Node parent) {
@@ -201,25 +212,6 @@ public class GetRepoOper extends AppOper {
     return child;
   }
 
-  private void show(Node el, int indent) {
-    var nm = el.getNodeName();
-    var sp = spaces(indent);
-    pr(sp, nm);
-    var ch = el.getChildNodes();
-    for (int i = 0; i < ch.getLength(); i++)
-      show(ch.item(i), indent + 4);
-  }
-  //  
-  //    //Retrieving the Child Node
-  //    Node childNode = element.getFirstChild();
-  //    String childNodeName = childNode.getNodeName();
-  //    System.out.println("Sub Element name : " + childNodeName);
-  //    //Retrieving Text Content of the Child Node "+ childNodeName);
-  //    
-  //    System.out.println("Text content of Sub Element : "+childNode.getTextContent());
-  //    
-  //  }
-
   private File workDir() {
     if (mWorkDir == null) {
       var f = new File("_SKIP_gitRepoOperWork");
@@ -231,8 +223,17 @@ public class GetRepoOper extends AppOper {
     return mWorkDir;
   }
 
+  private File programPath(String name) {
+    var f = mExeMap.get(name);
+    if (f == null) {
+      f = findProgramPath(name);
+      mExeMap.put(name, f);
+    }
+    return f;
+  }
+
+  private Map<String, File> mExeMap = hashMap();
   private File mWorkDir;
   private GetRepoConfig mConfig;
   private Map<String, String> mCommitMap;
-  private Map<String, Node> mPomMap;
 }

@@ -1,4 +1,6 @@
 class {
   string name;  // The name of the github repository
   string hash;  // commit hash to request; if empty, uses most recent
+  string version; // the version number to assign to the commit;
+                // if hash was empty, leaves version unchanged
 }

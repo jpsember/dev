@@ -13,6 +13,10 @@ public class GetRepoConfig implements AbstractData {
     return mHash;
   }
 
+  public String version() {
+    return mVersion;
+  }
+
   @Override
   public Builder toBuilder() {
     return new Builder(this);
@@ -20,6 +24,7 @@ public class GetRepoConfig implements AbstractData {
 
   protected static final String _0 = "name";
   protected static final String _1 = "hash";
+  protected static final String _2 = "version";
 
   @Override
   public String toString() {
@@ -31,6 +36,7 @@ public class GetRepoConfig implements AbstractData {
     JSMap m = new JSMap();
     m.putUnsafe(_0, mName);
     m.putUnsafe(_1, mHash);
+    m.putUnsafe(_2, mVersion);
     return m;
   }
 
@@ -47,6 +53,7 @@ public class GetRepoConfig implements AbstractData {
   private GetRepoConfig(JSMap m) {
     mName = m.opt(_0, "");
     mHash = m.opt(_1, "");
+    mVersion = m.opt(_2, "");
   }
 
   public static Builder newBuilder() {
@@ -66,6 +73,8 @@ public class GetRepoConfig implements AbstractData {
       return false;
     if (!(mHash.equals(other.mHash)))
       return false;
+    if (!(mVersion.equals(other.mVersion)))
+      return false;
     return true;
   }
 
@@ -76,6 +85,7 @@ public class GetRepoConfig implements AbstractData {
       r = 1;
       r = r * 37 + mName.hashCode();
       r = r * 37 + mHash.hashCode();
+      r = r * 37 + mVersion.hashCode();
       m__hashcode = r;
     }
     return r;
@@ -83,6 +93,7 @@ public class GetRepoConfig implements AbstractData {
 
   protected String mName;
   protected String mHash;
+  protected String mVersion;
   protected int m__hashcode;
 
   public static final class Builder extends GetRepoConfig {
@@ -90,6 +101,7 @@ public class GetRepoConfig implements AbstractData {
     private Builder(GetRepoConfig m) {
       mName = m.mName;
       mHash = m.mHash;
+      mVersion = m.mVersion;
     }
 
     @Override
@@ -108,6 +120,7 @@ public class GetRepoConfig implements AbstractData {
       GetRepoConfig r = new GetRepoConfig();
       r.mName = mName;
       r.mHash = mHash;
+      r.mVersion = mVersion;
       return r;
     }
 
@@ -121,6 +134,11 @@ public class GetRepoConfig implements AbstractData {
       return this;
     }
 
+    public Builder version(String x) {
+      mVersion = (x == null) ? "" : x;
+      return this;
+    }
+
   }
 
   public static final GetRepoConfig DEFAULT_INSTANCE = new GetRepoConfig();
@@ -128,6 +146,7 @@ public class GetRepoConfig implements AbstractData {
   private GetRepoConfig() {
     mName = "";
     mHash = "";
+    mVersion = "";
   }
 
 }
