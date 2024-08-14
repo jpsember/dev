@@ -37,7 +37,6 @@ public class GetRepoOper extends AppOper {
 
   @Override
   public GetRepoConfig defaultArgs() {
-    pr(GetRepoConfig.DEFAULT_INSTANCE);
     return GetRepoConfig.DEFAULT_INSTANCE;
   }
 

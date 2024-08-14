@@ -43,7 +43,7 @@ public class InstallOper extends AppOper {
 
   @Override
   public void perform() {
-    var programName = config().program(); //readIfMissing(config().program());
+    var programName = config().program();
     checkNonEmpty(programName, "missing argument: program");
 
     var repoName = config().repo();
