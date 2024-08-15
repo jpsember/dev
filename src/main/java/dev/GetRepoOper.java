@@ -18,6 +18,8 @@ import org.w3c.dom.Node;
 
 import dev.gen.GetRepoConfig;
 import js.app.AppOper;
+import js.app.HelpFormatter;
+import js.base.BasePrinter;
 import js.base.SystemCall;
 import js.file.DirWalk;
 import js.file.FileException;
@@ -31,8 +33,19 @@ public class GetRepoOper extends AppOper {
   }
 
   @Override
-  public String getHelpDescription() {
+  public String shortHelp() {
     return "install GitHub projects as local Maven dependencies";
+  }
+
+  @Override
+  protected void longHelp(BasePrinter b) {
+    var hf = new HelpFormatter();
+    hf.addItem(" name <user/repo>", "GitHub repository");
+    hf.addItem("[ hash <hhhhhhh> ]", "commit hash");
+    hf.addItem("[ version <x> ]", "version number to assign to Maven dependency");
+    b.pr(hf);
+    b.br();
+    b.pr("If no hash and version number are given, uses the most recent commit with version = 'LATEST'.");
   }
 
   @Override
@@ -52,6 +65,7 @@ public class GetRepoOper extends AppOper {
 
   @Override
   public void perform() {
+    processOurArgs();
     cloneRepo();
     checkoutDesiredCommit();
     modifyPom();
@@ -80,27 +94,46 @@ public class GetRepoOper extends AppOper {
   }
 
   private void cloneRepo() {
-    var name = config().name();
-    checkNonEmpty(name, "No repo name given");
-
-    // We want to be able to execute something like
-    //
-    //   git clone https://github.com/jpsember/java-core.git
-    //
     var sc = newSysCall(workDir());
-    sc.arg(programPath("git"), "clone", "https://github.com/" + name + ".git");
+    sc.arg(programPath("git"), "clone", "https://github.com/" + mRepoName + ".git");
     // Git clone sends output to system error for some stupid reason
     ensureSysCallOkay(sc.systemErr(), "fatal:", "cloning repo");
   }
 
+  // ------------------------------------------------------------------
+  // Arguments
+  // ------------------------------------------------------------------
+
+  private void processOurArgs() {
+    var name = config().name();
+    if (nullOrEmpty(name))
+      setError("Please specify a name, e.g. 'jpsember/dev'");
+    mRepoName = chomp(name, ".git");
+
+    var hash = config().hash().toLowerCase();
+    checkState(!nullOrEmpty(hash), "for now, please supply an explicit commit hash");
+    var versionNumber = config().version();
+    checkState(!nullOrEmpty(versionNumber), "please specify a version to assign to this commit");
+    mCommitHash = hash;
+    mVersionNumber = versionNumber;
+  }
+
+  private String mRepoName;
+  private String mCommitHash;
+  private String mVersionNumber;
+
+  // ------------------------------------------------------------------
+
   private void checkoutDesiredCommit() {
+    var commitHash = mCommitHash;
+
     // Ensure that a commit with the requested hash exists
-    getCommitMessage(commitHash());
+    getCommitMessage(commitHash);
 
     var sc = newSysCall(null);
-    sc.arg(programPath("git"), "checkout", commitHash());
+    sc.arg(programPath("git"), "checkout", commitHash);
     sc.call();
-    ensureSysCallOkay(sc.systemErr(), "error:", "checking out commit " + commitHash());
+    ensureSysCallOkay(sc.systemErr(), "error:", "checking out commit " + commitHash);
   }
 
   private void modifyPom() {
@@ -116,7 +149,7 @@ public class GetRepoOper extends AppOper {
 
     log("found group:", nodeGroupId, "artifact:", nodeArtifactId, "version:", version);
 
-    version.setTextContent(versionNumber());
+    version.setTextContent(mVersionNumber);
 
     var modifiedPom = toXMLString(doc);
     files().writeString(pomFile, modifiedPom);
@@ -288,38 +321,6 @@ public class GetRepoOper extends AppOper {
     }
     checkState(child != null, "cannot find node named:", name, "for:", parent);
     return child;
-  }
-
-  private void parseOptions() {
-    if (!mOptionsParsed) {
-      mOptionsParsed = true;
-      var hash = config().hash().toLowerCase();
-
-      checkState(!nullOrEmpty(hash), "for now, please supply an explicit commit hash");
-      var versionNumber = config().version();
-      checkState(!nullOrEmpty(versionNumber), "please specify a version to assign to this commit");
-      mCommitHash = hash;
-      mVersionNumber = versionNumber;
-    }
-
-  }
-
-  // ------------------------------------------------------------------
-  // Parsing options (commit hash, version number)
-  // ------------------------------------------------------------------
-
-  private boolean mOptionsParsed;
-  private String mCommitHash;
-  private String mVersionNumber;
-
-  private String commitHash() {
-    parseOptions();
-    return mCommitHash;
-  }
-
-  private String versionNumber() {
-    parseOptions();
-    return mVersionNumber;
   }
 
 }

@@ -36,7 +36,7 @@ public class Main extends App {
   public static void main(String[] args) {
     loadTools();
     App app = new Main();
-    //app.setCustomArgs("-v --exceptions --help");
+    app.setCustomArgs("-v --exceptions getrepo name jpsember/dev");
     app.startApplication(args);
     app.exitWithReturnCode();
   }
