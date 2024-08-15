@@ -36,7 +36,7 @@ public class Main extends App {
   public static void main(String[] args) {
     loadTools();
     App app = new Main();
-    app.setCustomArgs("-v --exceptions getrepo name jpsember/dev");
+    app.setCustomArgs("-v --exceptions getrepo eclipse name jpsember/dev hash bf6a8f9 version 8.6.5");
     app.startApplication(args);
     app.exitWithReturnCode();
   }

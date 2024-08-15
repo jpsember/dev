@@ -45,7 +45,8 @@ public class GetRepoOper extends AppOper {
     hf.addItem("[ version <x> ]", "version number to assign to Maven dependency");
     b.pr(hf);
     b.br();
-    b.pr("If no hash and version number are given, uses the most recent commit with version = 'LATEST'.");
+    b.pr("If no hash and version number are given, uses the most recent commit with version = '"
+        + LATEST_COMMIT_NAME + "'.");
   }
 
   @Override
@@ -111,12 +112,20 @@ public class GetRepoOper extends AppOper {
     mRepoName = chomp(name, ".git");
 
     var hash = config().hash().toLowerCase();
-    checkState(!nullOrEmpty(hash), "for now, please supply an explicit commit hash");
     var versionNumber = config().version();
-    checkState(!nullOrEmpty(versionNumber), "please specify a version to assign to this commit");
+
+    if (nullOrEmpty(hash) && nullOrEmpty(versionNumber)) {
+      versionNumber = LATEST_COMMIT_NAME;
+    } else {
+      checkState(!nullOrEmpty(hash), "supply an explicit commit hash");
+      checkState(!nullOrEmpty(versionNumber) && !versionNumber.equals(LATEST_COMMIT_NAME),
+          "please specify a version to assign to commit", hash);
+    }
     mCommitHash = hash;
     mVersionNumber = versionNumber;
   }
+
+  private static final String LATEST_COMMIT_NAME = "LATEST";
 
   private String mRepoName;
   private String mCommitHash;
@@ -125,10 +134,21 @@ public class GetRepoOper extends AppOper {
   // ------------------------------------------------------------------
 
   private void checkoutDesiredCommit() {
+
+    // If no hash was given, use latest
+    if (nullOrEmpty(mCommitHash)) {
+      commitMap();
+      mCommitHash = mLatestHash;
+    }
+
     var commitHash = mCommitHash;
 
+    todo("If we've already installed this version, do nothing else");
+
     // Ensure that a commit with the requested hash exists
-    getCommitMessage(commitHash);
+    var message = getCommitMessage(commitHash);
+    log("Checking out commit", commitHash + ", message:", quote(message));
+    log("Installing as version", mVersionNumber);
 
     var sc = newSysCall(null);
     sc.arg(programPath("git"), "checkout", commitHash);
@@ -198,15 +218,18 @@ public class GetRepoOper extends AppOper {
    * name.
    */
   private File programPath(String name) {
+    File f = null;
     if (config().eclipse()) {
-      var f = mExeMap.get(name);
+        f = mExeMap.get(name);
       if (f == null) {
         f = findProgramPath(name);
         mExeMap.put(name, f);
       }
-      return f;
+    } else {
+      f = new File(name);
     }
-    return new File(name);
+    //pr("programPath for:",name,"eclipse:",config().eclipse(),"is:",Files.infoMap(f));
+    return f;
   }
 
   private static File findProgramPath(String progName) {
@@ -231,10 +254,8 @@ public class GetRepoOper extends AppOper {
   // Parsing commit hashes and messages
   // ------------------------------------------------------------------
 
-  private String getCommitMessage(String hash) {
-
+  private Map<String, String> commitMap() {
     if (mCommitMap == null) {
-
       var sc = newSysCall(null);
       sc.arg(programPath("git"), "log", "--oneline");
       var out = sc.systemOut().trim();
@@ -250,17 +271,24 @@ public class GetRepoOper extends AppOper {
           commitHash = logEntry.substring(0, sep);
           commitMessage = logEntry.substring(sep + 1);
         }
+        if (mLatestHash == null)
+          mLatestHash = commitHash;
         mCommitMap.put(commitHash, commitMessage);
       }
-
+      checkState(!mCommitMap.isEmpty(), "Repository has no commits");
     }
-    var message = mCommitMap.get(hash);
+    return mCommitMap;
+  }
+
+  private String getCommitMessage(String hash) {
+    var message = commitMap().get(hash);
     if (message == null)
       badArg("No commit found with hash:", hash);
     return message;
   }
 
   private Map<String, String> mCommitMap;
+  private String mLatestHash;
 
   /**
    * Determining the repo subdirectory within the work directory
