@@ -195,7 +195,6 @@ public class GetRepoOper extends AppOper {
     var modifiedPom = toXMLString(doc);
     files().writeString(pomFile, modifiedPom);
 
-    todo("If we've already installed this version, do nothing else");
     {
       var dir = mavenRepositoryDirectory();
       if (Files.nonEmpty(dir)) {
@@ -265,7 +264,7 @@ public class GetRepoOper extends AppOper {
   }
 
   private static File findProgramPath(String progName) {
-    todo("!consider moving this to java-core?");
+    //todo("!consider moving this to java-core?");
     String[] dirs = { "/usr/local/bin" };
     File progPath = null;
     for (var d : dirs) {
