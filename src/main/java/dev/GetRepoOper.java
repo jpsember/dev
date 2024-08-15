@@ -69,8 +69,12 @@ public class GetRepoOper extends AppOper {
     processOurArgs();
     cloneRepo();
     checkoutDesiredCommit();
-    modifyPom();
-    installRepoToLocalRepository();
+    var existingDir = modifyPom();
+    if (Files.nonEmpty(existingDir) && existingDir.exists() && !mVersionNumber.equals(LATEST_COMMIT_NAME)) {
+      log("...local repository already exists:", existingDir);
+    } else {
+      installRepoToLocalRepository();
+    }
     if (!config().eclipse())
       discardWorkDirectory();
   }
@@ -143,8 +147,6 @@ public class GetRepoOper extends AppOper {
 
     var commitHash = mCommitHash;
 
-    todo("If we've already installed this version, do nothing else");
-
     // Ensure that a commit with the requested hash exists
     var message = getCommitMessage(commitHash);
     log("Checking out commit", commitHash + ", message:", quote(message));
@@ -156,7 +158,26 @@ public class GetRepoOper extends AppOper {
     ensureSysCallOkay(sc.systemErr(), "error:", "checking out commit " + commitHash);
   }
 
-  private void modifyPom() {
+  private File mavenRepositoryDirectory() {
+    if (mMavenDir == null) {
+      var f = new File(Files.homeDirectory(), ".m2");
+      if (!f.isDirectory()) {
+        alert("No maven directory found at default location:", INDENT, f);
+      } else {
+        mMavenDir = f;
+      }
+    }
+    return mMavenDir;
+  }
+
+  private File mMavenDir;
+
+  /**
+   * Returns the directory where the repo will be installed to, or null if the
+   * local Maven repository directory is not known
+   */
+  private File modifyPom() {
+    File mTargetDir = null;
     File pomFile = null;
     pomFile = new File(repoDir(), "pom.xml");
     Files.assertExists(pomFile, "can't find pom.xml file");
@@ -173,6 +194,17 @@ public class GetRepoOper extends AppOper {
 
     var modifiedPom = toXMLString(doc);
     files().writeString(pomFile, modifiedPom);
+
+    todo("If we've already installed this version, do nothing else");
+    {
+      var dir = mavenRepositoryDirectory();
+      if (Files.nonEmpty(dir)) {
+        File target = new File(dir, "repository/" + nodeGroupId.getTextContent().replace('.', '/') + "/"
+            + nodeArtifactId.getTextContent() + "/" + mVersionNumber);
+        mTargetDir = target;
+      }
+    }
+    return mTargetDir;
   }
 
   private void installRepoToLocalRepository() {
@@ -220,7 +252,7 @@ public class GetRepoOper extends AppOper {
   private File programPath(String name) {
     File f = null;
     if (config().eclipse()) {
-        f = mExeMap.get(name);
+      f = mExeMap.get(name);
       if (f == null) {
         f = findProgramPath(name);
         mExeMap.put(name, f);
