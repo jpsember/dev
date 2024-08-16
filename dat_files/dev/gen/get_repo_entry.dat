@@ -1,0 +1,5 @@
+class {
+  string repo_name;
+  string commit_hash;
+  string version;
+}

@@ -5,6 +5,7 @@ import static js.base.Tools.*;
 import java.io.File;
 import java.io.StringWriter;
 import java.util.Map;
+import java.util.Set;
 
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.transform.OutputKeys;
@@ -18,6 +19,7 @@ import org.w3c.dom.Node;
 
 import dev.gen.GetRepoCache;
 import dev.gen.GetRepoConfig;
+import dev.gen.GetRepoEntry;
 import js.app.AppOper;
 import js.app.HelpFormatter;
 import js.base.BasePrinter;
@@ -25,12 +27,12 @@ import js.base.SystemCall;
 import js.file.DirWalk;
 import js.file.FileException;
 import js.file.Files;
-import js.json.JSMap;
 
 public class GetRepoOper extends AppOper {
 
   @Override
   public String userCommand() {
+    todo("update the help to reflect the args file change");
     return "getrepo";
   }
 
@@ -68,18 +70,51 @@ public class GetRepoOper extends AppOper {
 
   @Override
   public void perform() {
-    processOurArgs();
 
-    readRepo(mRepoName, mCommitHash, mVersionNumber);
+    var entries = config().entries();
+
+    if (entries.isEmpty())
+      log("...no entries found in config file");
+    Set<String> processed = hashSet();
+    for (var ent : entries) {
+      var repoName = ent.repoName();
+      if (!processed.add(repoName))
+        badArg("duplicate repo_name:", repoName);
+      processEntry(ent);
+    }
 
     if (!config().eclipse())
       discardWorkDirectory();
     flushCache();
   }
 
+  private void processEntry(GetRepoEntry entry) {
+    log("processing entry:", INDENT, entry);
+    var repoName = entry.repoName();
+    if (nullOrEmpty(repoName))
+      setError("Illegal repo name:", INDENT, entry);
+    repoName = chomp(repoName, ".git");
+
+    var hash = entry.commitHash().toLowerCase();
+    var versionNumber = entry.version();
+
+    if (nullOrEmpty(hash) && nullOrEmpty(versionNumber)) {
+      versionNumber = LATEST_COMMIT_NAME;
+    } else {
+      checkState(!nullOrEmpty(hash), "supply an explicit commit hash");
+      checkState(!nullOrEmpty(versionNumber) && !versionNumber.equals(LATEST_COMMIT_NAME),
+          "please specify a version to assign to commit", hash);
+    }
+    readRepo(repoName, hash, versionNumber);
+  }
+
   private void readRepo(String repoName, String commitHash, String versionNumber) {
 
     log("reading repo", repoName, "commit", commitHash, "to install locally as version", versionNumber);
+
+    mRepoName = repoName;
+    mCommitHash = commitHash;
+    mVersionNumber = versionNumber;
 
     var mp = readCache().repoMap().optJSMapOrEmpty(repoName);
 
@@ -138,36 +173,6 @@ public class GetRepoOper extends AppOper {
     // Git clone sends output to system error for some stupid reason
     ensureSysCallOkay(sc.systemErr(), "fatal:", "cloning repo");
   }
-
-  // ------------------------------------------------------------------
-  // Arguments
-  // ------------------------------------------------------------------
-
-  private void processOurArgs() {
-    var name = config().name();
-    if (nullOrEmpty(name))
-      setError("Please specify a name, e.g. 'jpsember/dev'");
-    mRepoName = chomp(name, ".git");
-
-    var hash = config().hash().toLowerCase();
-    var versionNumber = config().version();
-
-    if (nullOrEmpty(hash) && nullOrEmpty(versionNumber)) {
-      versionNumber = LATEST_COMMIT_NAME;
-    } else {
-      checkState(!nullOrEmpty(hash), "supply an explicit commit hash");
-      checkState(!nullOrEmpty(versionNumber) && !versionNumber.equals(LATEST_COMMIT_NAME),
-          "please specify a version to assign to commit", hash);
-    }
-    mCommitHash = hash;
-    mVersionNumber = versionNumber;
-  }
-
-  private static final String LATEST_COMMIT_NAME = "LATEST";
-
-  private String mRepoName;
-  private String mCommitHash;
-  private String mVersionNumber;
 
   // ------------------------------------------------------------------
   // Cache
@@ -417,4 +422,9 @@ public class GetRepoOper extends AppOper {
     return child;
   }
 
+  private static final String LATEST_COMMIT_NAME = "LATEST";
+
+  private String mRepoName;
+  private String mCommitHash;
+  private String mVersionNumber;
 }

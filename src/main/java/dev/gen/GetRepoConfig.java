@@ -1,20 +1,15 @@
 package dev.gen;
 
+import java.util.List;
 import js.data.AbstractData;
+import js.data.DataUtil;
+import js.json.JSList;
 import js.json.JSMap;
 
 public class GetRepoConfig implements AbstractData {
 
-  public String name() {
-    return mName;
-  }
-
-  public String hash() {
-    return mHash;
-  }
-
-  public String version() {
-    return mVersion;
+  public List<GetRepoEntry> entries() {
+    return mEntries;
   }
 
   public boolean eclipse() {
@@ -26,10 +21,8 @@ public class GetRepoConfig implements AbstractData {
     return new Builder(this);
   }
 
-  protected static final String _0 = "name";
-  protected static final String _1 = "hash";
-  protected static final String _2 = "version";
-  protected static final String _3 = "eclipse";
+  protected static final String _0 = "entries";
+  protected static final String _1 = "eclipse";
 
   @Override
   public String toString() {
@@ -39,10 +32,13 @@ public class GetRepoConfig implements AbstractData {
   @Override
   public JSMap toJson() {
     JSMap m = new JSMap();
-    m.putUnsafe(_0, mName);
-    m.putUnsafe(_1, mHash);
-    m.putUnsafe(_2, mVersion);
-    m.putUnsafe(_3, mEclipse);
+    {
+      JSList j = new JSList();
+      for (GetRepoEntry x : mEntries)
+        j.add(x.toJson());
+      m.put(_0, j);
+    }
+    m.putUnsafe(_1, mEclipse);
     return m;
   }
 
@@ -57,10 +53,8 @@ public class GetRepoConfig implements AbstractData {
   }
 
   private GetRepoConfig(JSMap m) {
-    mName = m.opt(_0, "");
-    mHash = m.opt(_1, "");
-    mVersion = m.opt(_2, "");
-    mEclipse = m.opt(_3, false);
+    mEntries = DataUtil.parseListOfObjects(GetRepoEntry.DEFAULT_INSTANCE, m.optJSList(_0), false);
+    mEclipse = m.opt(_1, false);
   }
 
   public static Builder newBuilder() {
@@ -76,11 +70,7 @@ public class GetRepoConfig implements AbstractData {
     GetRepoConfig other = (GetRepoConfig) object;
     if (other.hashCode() != hashCode())
       return false;
-    if (!(mName.equals(other.mName)))
-      return false;
-    if (!(mHash.equals(other.mHash)))
-      return false;
-    if (!(mVersion.equals(other.mVersion)))
+    if (!(mEntries.equals(other.mEntries)))
       return false;
     if (!(mEclipse == other.mEclipse))
       return false;
@@ -92,27 +82,23 @@ public class GetRepoConfig implements AbstractData {
     int r = m__hashcode;
     if (r == 0) {
       r = 1;
-      r = r * 37 + mName.hashCode();
-      r = r * 37 + mHash.hashCode();
-      r = r * 37 + mVersion.hashCode();
+      for (GetRepoEntry x : mEntries)
+        if (x != null)
+          r = r * 37 + x.hashCode();
       r = r * 37 + (mEclipse ? 1 : 0);
       m__hashcode = r;
     }
     return r;
   }
 
-  protected String mName;
-  protected String mHash;
-  protected String mVersion;
+  protected List<GetRepoEntry> mEntries;
   protected boolean mEclipse;
   protected int m__hashcode;
 
   public static final class Builder extends GetRepoConfig {
 
     private Builder(GetRepoConfig m) {
-      mName = m.mName;
-      mHash = m.mHash;
-      mVersion = m.mVersion;
+      mEntries = DataUtil.immutableCopyOf(m.mEntries) /*DEBUG*/ ;
       mEclipse = m.mEclipse;
     }
 
@@ -130,25 +116,13 @@ public class GetRepoConfig implements AbstractData {
     @Override
     public GetRepoConfig build() {
       GetRepoConfig r = new GetRepoConfig();
-      r.mName = mName;
-      r.mHash = mHash;
-      r.mVersion = mVersion;
+      r.mEntries = mEntries;
       r.mEclipse = mEclipse;
       return r;
     }
 
-    public Builder name(String x) {
-      mName = (x == null) ? "" : x;
-      return this;
-    }
-
-    public Builder hash(String x) {
-      mHash = (x == null) ? "" : x;
-      return this;
-    }
-
-    public Builder version(String x) {
-      mVersion = (x == null) ? "" : x;
+    public Builder entries(List<GetRepoEntry> x) {
+      mEntries = DataUtil.immutableCopyOf((x == null) ? DataUtil.emptyList() : x) /*DEBUG*/ ;
       return this;
     }
 
@@ -162,9 +136,7 @@ public class GetRepoConfig implements AbstractData {
   public static final GetRepoConfig DEFAULT_INSTANCE = new GetRepoConfig();
 
   private GetRepoConfig() {
-    mName = "";
-    mHash = "";
-    mVersion = "";
+    mEntries = DataUtil.emptyList();
   }
 
 }
