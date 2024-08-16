@@ -18,7 +18,6 @@ import org.w3c.dom.Node;
 
 import dev.gen.GetRepoCache;
 import dev.gen.GetRepoConfig;
-import dev.gen.RepoInfoRecord;
 import js.app.AppOper;
 import js.app.HelpFormatter;
 import js.base.BasePrinter;
@@ -26,6 +25,7 @@ import js.base.SystemCall;
 import js.file.DirWalk;
 import js.file.FileException;
 import js.file.Files;
+import js.json.JSMap;
 
 public class GetRepoOper extends AppOper {
 
@@ -79,13 +79,13 @@ public class GetRepoOper extends AppOper {
 
   private void readRepo(String repoName, String commitHash, String versionNumber) {
 
-    RepoInfoRecord mp = null;
+    JSMap mp = null;
 
     if (!versionNumber.equals(LATEST_COMMIT_NAME)) {
-      mp = readCache().cache().getOrDefault(repoName, RepoInfoRecord.DEFAULT_INSTANCE);
+      mp = readCache().repoMap().optJSMapOrEmpty(repoName);
 
-      var existingVersion = mp.commitToVersionMap().get(commitHash);
-      if (existingVersion != null) {
+      String existingVersion = mp.opt(commitHash, "");
+      if (!nullOrEmpty(existingVersion)) {
         checkState(existingVersion.equals(versionNumber), "Repo", repoName, "commit", commitHash,
             "exists in repo but with a different version number:", existingVersion);
         return;
@@ -94,20 +94,19 @@ public class GetRepoOper extends AppOper {
 
     cloneRepo();
     checkoutDesiredCommit();
-    //    var existingDir = 
     modifyPom();
-    //    if (Files.nonEmpty(existingDir) && existingDir.exists() && !mVersionNumber.equals(LATEST_COMMIT_NAME)) {
-    //      log("...local repository already exists:", existingDir);
-    //    } else {
     installRepoToLocalRepository();
-    //    }
-
+   
     if (mp != null) {
-      // Update cache with the new local repo version
 
-      mp = mp.toBuilder();
-      mp.commitToVersionMap().put(commitHash, versionNumber);
-      readCache().cache().put(repoName, mp.toBuilder().commitToVersionMap(mp.commitToVersionMap()));
+      // Create a writable copy of the repo map
+
+      var cm = readCache().repoMap().deepCopy();
+      mp = cm.createMapIfMissing(repoName);
+      // Update cache with the new local repo version
+      mp.put(commitHash, versionNumber);
+
+      readCache().repoMap(cm);
       mCacheModified = true;
       flushCache();
     }

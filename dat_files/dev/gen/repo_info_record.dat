@@ -1,3 +1,0 @@
-class {
-  map string string commit_to_version_map;
-}

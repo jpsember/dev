@@ -1,9 +1,6 @@
 package dev.gen;
 
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import js.data.AbstractData;
-import js.data.DataUtil;
 import js.json.JSMap;
 
 public class GetRepoCache implements AbstractData {
@@ -12,8 +9,8 @@ public class GetRepoCache implements AbstractData {
     return mVersion;
   }
 
-  public Map<String, RepoInfoRecord> cache() {
-    return mCache;
+  public JSMap repoMap() {
+    return mRepoMap;
   }
 
   @Override
@@ -22,7 +19,7 @@ public class GetRepoCache implements AbstractData {
   }
 
   protected static final String _0 = "version";
-  protected static final String _1 = "cache";
+  protected static final String _1 = "repo_map";
 
   @Override
   public String toString() {
@@ -33,12 +30,7 @@ public class GetRepoCache implements AbstractData {
   public JSMap toJson() {
     JSMap m = new JSMap();
     m.putUnsafe(_0, mVersion);
-    {
-      JSMap j = new JSMap();
-      for (Map.Entry<String, RepoInfoRecord> e : mCache.entrySet())
-        j.put(e.getKey(), e.getValue().toJson());
-      m.put(_1, j);
-    }
+    m.putUnsafe(_1, mRepoMap);
     return m;
   }
 
@@ -55,15 +47,10 @@ public class GetRepoCache implements AbstractData {
   private GetRepoCache(JSMap m) {
     mVersion = m.opt(_0, 1);
     {
-      mCache = DataUtil.emptyMap();
-      {
-        JSMap m2 = m.optJSMap("cache");
-        if (m2 != null && !m2.isEmpty()) {
-          Map<String, RepoInfoRecord> mp = new ConcurrentHashMap<>();
-          for (Map.Entry<String, Object> e : m2.wrappedMap().entrySet())
-            mp.put(e.getKey(), RepoInfoRecord.DEFAULT_INSTANCE.parse((JSMap) e.getValue()));
-          mCache = DataUtil.immutableCopyOf(mp) /*DEBUG*/ ;
-        }
+      mRepoMap = JSMap.DEFAULT_INSTANCE;
+      JSMap x = m.optJSMap(_1);
+      if (x != null) {
+        mRepoMap = x.lock();
       }
     }
   }
@@ -83,7 +70,7 @@ public class GetRepoCache implements AbstractData {
       return false;
     if (!(mVersion == other.mVersion))
       return false;
-    if (!(mCache.equals(other.mCache)))
+    if (!(mRepoMap.equals(other.mRepoMap)))
       return false;
     return true;
   }
@@ -94,21 +81,21 @@ public class GetRepoCache implements AbstractData {
     if (r == 0) {
       r = 1;
       r = r * 37 + mVersion;
-      r = r * 37 + mCache.hashCode();
+      r = r * 37 + mRepoMap.hashCode();
       m__hashcode = r;
     }
     return r;
   }
 
   protected int mVersion;
-  protected Map<String, RepoInfoRecord> mCache;
+  protected JSMap mRepoMap;
   protected int m__hashcode;
 
   public static final class Builder extends GetRepoCache {
 
     private Builder(GetRepoCache m) {
       mVersion = m.mVersion;
-      mCache = DataUtil.immutableCopyOf(m.mCache) /*DEBUG*/ ;
+      mRepoMap = m.mRepoMap;
     }
 
     @Override
@@ -126,7 +113,7 @@ public class GetRepoCache implements AbstractData {
     public GetRepoCache build() {
       GetRepoCache r = new GetRepoCache();
       r.mVersion = mVersion;
-      r.mCache = mCache;
+      r.mRepoMap = mRepoMap;
       return r;
     }
 
@@ -135,8 +122,8 @@ public class GetRepoCache implements AbstractData {
       return this;
     }
 
-    public Builder cache(Map<String, RepoInfoRecord> x) {
-      mCache = DataUtil.immutableCopyOf((x == null) ? DataUtil.emptyMap() : x) /*DEBUG*/ ;
+    public Builder repoMap(JSMap x) {
+      mRepoMap = (x == null) ? JSMap.DEFAULT_INSTANCE : x;
       return this;
     }
 
@@ -146,7 +133,7 @@ public class GetRepoCache implements AbstractData {
 
   private GetRepoCache() {
     mVersion = 1;
-    mCache = DataUtil.emptyMap();
+    mRepoMap = JSMap.DEFAULT_INSTANCE;
   }
 
 }
