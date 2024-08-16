@@ -79,25 +79,25 @@ public class GetRepoOper extends AppOper {
 
   private void readRepo(String repoName, String commitHash, String versionNumber) {
 
-    JSMap mp = null;
+    log("reading repo", repoName, "commit", commitHash, "to install locally as version", versionNumber);
 
-    if (!versionNumber.equals(LATEST_COMMIT_NAME)) {
-      mp = readCache().repoMap().optJSMapOrEmpty(repoName);
+    var mp = readCache().repoMap().optJSMapOrEmpty(repoName);
 
-      String existingVersion = mp.opt(commitHash, "");
-      if (!nullOrEmpty(existingVersion)) {
-        checkState(existingVersion.equals(versionNumber), "Repo", repoName, "commit", commitHash,
-            "exists in repo but with a different version number:", existingVersion);
-        return;
-      }
+    String existingVersion = mp.opt(commitHash, "");
+    if (!nullOrEmpty(existingVersion)) {
+      checkState(existingVersion.equals(versionNumber), "Repo", repoName, "commit", commitHash,
+          "exists in repo but with a different version number:", existingVersion);
+      log("...already installed");
+      return;
     }
 
     cloneRepo();
     checkoutDesiredCommit();
     modifyPom();
     installRepoToLocalRepository();
-   
-    if (mp != null) {
+
+    // Don't update the cache if the version is 'LATEST'
+    if (!versionNumber.equals(LATEST_COMMIT_NAME)) {
 
       // Create a writable copy of the repo map
 
@@ -109,6 +109,7 @@ public class GetRepoOper extends AppOper {
       readCache().repoMap(cm);
       mCacheModified = true;
       flushCache();
+      log("...installed");
     }
   }
 
