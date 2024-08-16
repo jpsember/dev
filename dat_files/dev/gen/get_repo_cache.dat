@@ -1,0 +1,6 @@
+class {
+  int version = 1;
+
+  // Map of repo names -> { hash->version map }
+  map string RepoInfoRecord cache;
+}

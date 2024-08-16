@@ -16,7 +16,9 @@ import javax.xml.transform.stream.StreamResult;
 import org.w3c.dom.Document;
 import org.w3c.dom.Node;
 
+import dev.gen.GetRepoCache;
 import dev.gen.GetRepoConfig;
+import dev.gen.RepoInfoRecord;
 import js.app.AppOper;
 import js.app.HelpFormatter;
 import js.base.BasePrinter;
@@ -67,16 +69,48 @@ public class GetRepoOper extends AppOper {
   @Override
   public void perform() {
     processOurArgs();
-    cloneRepo();
-    checkoutDesiredCommit();
-    var existingDir = modifyPom();
-    if (Files.nonEmpty(existingDir) && existingDir.exists() && !mVersionNumber.equals(LATEST_COMMIT_NAME)) {
-      log("...local repository already exists:", existingDir);
-    } else {
-      installRepoToLocalRepository();
-    }
+
+    readRepo(mRepoName, mCommitHash, mVersionNumber);
+
     if (!config().eclipse())
       discardWorkDirectory();
+    flushCache();
+  }
+
+  private void readRepo(String repoName, String commitHash, String versionNumber) {
+
+    RepoInfoRecord mp = null;
+
+    if (!versionNumber.equals(LATEST_COMMIT_NAME)) {
+      mp = readCache().cache().getOrDefault(repoName, RepoInfoRecord.DEFAULT_INSTANCE);
+
+      var existingVersion = mp.commitToVersionMap().get(commitHash);
+      if (existingVersion != null) {
+        checkState(existingVersion.equals(versionNumber), "Repo", repoName, "commit", commitHash,
+            "exists in repo but with a different version number:", existingVersion);
+        return;
+      }
+    }
+
+    cloneRepo();
+    checkoutDesiredCommit();
+    //    var existingDir = 
+    modifyPom();
+    //    if (Files.nonEmpty(existingDir) && existingDir.exists() && !mVersionNumber.equals(LATEST_COMMIT_NAME)) {
+    //      log("...local repository already exists:", existingDir);
+    //    } else {
+    installRepoToLocalRepository();
+    //    }
+
+    if (mp != null) {
+      // Update cache with the new local repo version
+
+      mp = mp.toBuilder();
+      mp.commitToVersionMap().put(commitHash, versionNumber);
+      readCache().cache().put(repoName, mp.toBuilder().commitToVersionMap(mp.commitToVersionMap()));
+      mCacheModified = true;
+      flushCache();
+    }
   }
 
   private void ensureSysCallOkay(String output, String errorTag, String context) {
@@ -136,6 +170,36 @@ public class GetRepoOper extends AppOper {
   private String mVersionNumber;
 
   // ------------------------------------------------------------------
+  // Cache
+  // ------------------------------------------------------------------
+
+  private GetRepoCache.Builder readCache() {
+    if (mCache == null) {
+      mCache = Files.parseAbstractDataOpt(GetRepoCache.DEFAULT_INSTANCE, cacheFile()).toBuilder();
+      final int EXPECTED_VERSION = 1;
+      if (mCache.version() < EXPECTED_VERSION) {
+        mCache = GetRepoCache.newBuilder();
+      } else if (mCache.version() > EXPECTED_VERSION)
+        badState("Cache version is unsupported:", INDENT, mCache);
+    }
+    return mCache;
+  }
+
+  private File cacheFile() {
+    return new File(Files.homeDirectory(), ".getrepo_cache.json");
+  }
+
+  private void flushCache() {
+    if (mCacheModified) {
+      files().writePretty(cacheFile(), mCache);
+      mCacheModified = false;
+    }
+  }
+
+  private GetRepoCache.Builder mCache;
+  private boolean mCacheModified;
+
+  // ------------------------------------------------------------------
 
   private void checkoutDesiredCommit() {
 
@@ -158,26 +222,7 @@ public class GetRepoOper extends AppOper {
     ensureSysCallOkay(sc.systemErr(), "error:", "checking out commit " + commitHash);
   }
 
-  private File mavenRepositoryDirectory() {
-    if (mMavenDir == null) {
-      var f = new File(Files.homeDirectory(), ".m2");
-      if (!f.isDirectory()) {
-        alert("No maven directory found at default location:", INDENT, f);
-      } else {
-        mMavenDir = f;
-      }
-    }
-    return mMavenDir;
-  }
-
-  private File mMavenDir;
-
-  /**
-   * Returns the directory where the repo will be installed to, or null if the
-   * local Maven repository directory is not known
-   */
-  private File modifyPom() {
-    File mTargetDir = null;
+  private void modifyPom() {
     File pomFile = null;
     pomFile = new File(repoDir(), "pom.xml");
     Files.assertExists(pomFile, "can't find pom.xml file");
@@ -194,16 +239,6 @@ public class GetRepoOper extends AppOper {
 
     var modifiedPom = toXMLString(doc);
     files().writeString(pomFile, modifiedPom);
-
-    {
-      var dir = mavenRepositoryDirectory();
-      if (Files.nonEmpty(dir)) {
-        File target = new File(dir, "repository/" + nodeGroupId.getTextContent().replace('.', '/') + "/"
-            + nodeArtifactId.getTextContent() + "/" + mVersionNumber);
-        mTargetDir = target;
-      }
-    }
-    return mTargetDir;
   }
 
   private void installRepoToLocalRepository() {
