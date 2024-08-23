@@ -7,6 +7,7 @@ import java.io.File;
 import dev.gen.UninstallConfig;
 import js.app.AppOper;
 import js.base.BasePrinter;
+import js.file.Files;
 
 public class UninstallOper extends AppOper {
 
@@ -43,9 +44,9 @@ public class UninstallOper extends AppOper {
     var program = config().program(); //readIfMissing(config().program());
     checkNonEmpty(program, "missing argument: program");
 
-    var binDir = new File("/usr/local/bin");
+    var binDir = binDirectory(); //new File("/usr/local/bin");
     var scriptFile = new File(binDir, program);
-    var jarFile = new File(binDir, "jpsember_jars/" + program + "-1.0-jar-with-dependencies.jar");
+    var jarFile = new File(binDir, program + "-1.0-jar-with-dependencies.jar");
 
     log("deleting program", program, "including driver:", scriptFile, "and jar:", jarFile);
 
@@ -63,4 +64,15 @@ public class UninstallOper extends AppOper {
 
   private UninstallConfig mConfig;
 
+  public static File binDirectory() {
+    todo("!modify Files version");
+    if (sBinDir == null) {
+      var d = new File(Files.homeDirectory(), "bin");
+      Files.assertDirectoryExists(d, "please create a 'bin' subdirectory in the home directory");
+      sBinDir = d;
+    }
+    return sBinDir;
+  }
+
+  private static File sBinDir;
 }
