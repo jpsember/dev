@@ -36,9 +36,5 @@ target
 #
 sample_project*
 
-# For testing the getrepo operation
-#
-getrepo-args.json
-
 # For now, omit this directory
 bin_file
