@@ -32,7 +32,6 @@ public class GetRepoOper extends AppOper {
 
   @Override
   public String userCommand() {
-    todo("update the help to reflect the args file change");
     return "getrepo";
   }
 
@@ -109,6 +108,8 @@ public class GetRepoOper extends AppOper {
   }
 
   private void readRepo(String repoName, String commitHash, String versionNumber) {
+
+    discardWorkDirectory();
 
     log("reading repo", repoName, "commit", commitHash, "to install locally as version", versionNumber);
 
@@ -238,7 +239,8 @@ public class GetRepoOper extends AppOper {
     var nodeArtifactId = getNode(proj, "artifactId");
     var version = getNode(proj, "version");
 
-    log("found group:", nodeGroupId, "artifact:", nodeArtifactId, "version:", version);
+    log("found group:", nodeGroupId.getNodeName(), "artifact:", nodeArtifactId.getNodeName(), "version:",
+        version.getNodeName());
 
     version.setTextContent(mVersionNumber);
 
