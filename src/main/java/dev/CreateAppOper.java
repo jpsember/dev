@@ -250,7 +250,7 @@ public final class CreateAppOper extends AppOper {
 
   private void compileDatFiles() {
     var s = sysCall();
-    s.arg("/usr/local/bin/datagen");
+    s.arg(programPath("datagen"));
     s.arg("start_dir", mAppDir);
     log("attempting generate data classes");
     s.assertSuccess();
@@ -325,4 +325,75 @@ public final class CreateAppOper extends AppOper {
   private File mAppDir;
   private String mMainPackage;
   private String mMainClassName;
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  // ------------------------------------------------------------------
+  // Locating executable files (when running within Eclipse, it has
+  // a lot of trouble finding certain executables; I guess the PATH
+  // is missing some stuff).
+  // ------------------------------------------------------------------
+
+  /**
+   * Attempt to locate a program file. If eclipse is false, just returns the
+   * name.
+   */
+  private File programPath(String name) {
+    todo("!this code is adapted from GetRepoOper");
+    File f = null;
+
+    {
+      f = mExeMap.get(name);
+      if (f == null) {
+        f = findProgramPath(name);
+        mExeMap.put(name, f);
+      }
+    }
+    //pr("programPath for:",name,"eclipse:",config().eclipse(),"is:",Files.infoMap(f));
+    return f;
+  }
+
+  private static File findProgramPath(String progName) {
+    String[] dirs = { "/usr/local/bin", "/opt/homebrew/bin", };
+    File progPath = null;
+    for (var d : dirs) {
+      var c = new File(d, progName);
+      //pr("...looking for:",Files.infoMap(c));
+      if (c.exists()) {
+        progPath = c;
+        break;
+      }
+    }
+    if (progPath == null) {
+      progPath = new File(progName);
+    }
+    return progPath;
+  }
+
+  private Map<String, File> mExeMap = hashMap();
+
+  public static File binDirectory() {
+    todo("!modify Files version");
+    if (sBinDir == null) {
+      var d = new File(Files.homeDirectory(), "bin");
+      Files.assertDirectoryExists(d, "please create a 'bin' subdirectory in the home directory");
+      sBinDir = d;
+    }
+    return sBinDir;
+  }
+
+  private static File sBinDir;
+
 }

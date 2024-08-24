@@ -131,7 +131,7 @@ public class GetRepoOper extends AppOper {
     modifyPom();
     installRepoToLocalRepository();
 
-    // Don't update the cache if the version is 'LATEST'
+    // Don't update the cache if the version is LATEST_COMMIT_NAME
     if (!versionNumber.equals(LATEST_COMMIT_NAME)) {
 
       // Create a writable copy of the repo map
@@ -422,7 +422,7 @@ public class GetRepoOper extends AppOper {
     return child;
   }
 
-  private static final String LATEST_COMMIT_NAME = "LATEST";
+  private static final String LATEST_COMMIT_NAME = "1000";
 
   private String mRepoName;
   private String mCommitHash;
