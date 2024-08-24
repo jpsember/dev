@@ -17,6 +17,10 @@ public class GetRepoEntry implements AbstractData {
     return mVersion;
   }
 
+  public String groupId() {
+    return mGroupId;
+  }
+
   @Override
   public Builder toBuilder() {
     return new Builder(this);
@@ -25,6 +29,7 @@ public class GetRepoEntry implements AbstractData {
   protected static final String _0 = "repo_name";
   protected static final String _1 = "commit_hash";
   protected static final String _2 = "version";
+  protected static final String _3 = "group_id";
 
   @Override
   public String toString() {
@@ -37,6 +42,7 @@ public class GetRepoEntry implements AbstractData {
     m.putUnsafe(_0, mRepoName);
     m.putUnsafe(_1, mCommitHash);
     m.putUnsafe(_2, mVersion);
+    m.putUnsafe(_3, mGroupId);
     return m;
   }
 
@@ -54,6 +60,7 @@ public class GetRepoEntry implements AbstractData {
     mRepoName = m.opt(_0, "");
     mCommitHash = m.opt(_1, "");
     mVersion = m.opt(_2, "");
+    mGroupId = m.opt(_3, "");
   }
 
   public static Builder newBuilder() {
@@ -75,6 +82,8 @@ public class GetRepoEntry implements AbstractData {
       return false;
     if (!(mVersion.equals(other.mVersion)))
       return false;
+    if (!(mGroupId.equals(other.mGroupId)))
+      return false;
     return true;
   }
 
@@ -86,6 +95,7 @@ public class GetRepoEntry implements AbstractData {
       r = r * 37 + mRepoName.hashCode();
       r = r * 37 + mCommitHash.hashCode();
       r = r * 37 + mVersion.hashCode();
+      r = r * 37 + mGroupId.hashCode();
       m__hashcode = r;
     }
     return r;
@@ -94,6 +104,7 @@ public class GetRepoEntry implements AbstractData {
   protected String mRepoName;
   protected String mCommitHash;
   protected String mVersion;
+  protected String mGroupId;
   protected int m__hashcode;
 
   public static final class Builder extends GetRepoEntry {
@@ -102,6 +113,7 @@ public class GetRepoEntry implements AbstractData {
       mRepoName = m.mRepoName;
       mCommitHash = m.mCommitHash;
       mVersion = m.mVersion;
+      mGroupId = m.mGroupId;
     }
 
     @Override
@@ -121,6 +133,7 @@ public class GetRepoEntry implements AbstractData {
       r.mRepoName = mRepoName;
       r.mCommitHash = mCommitHash;
       r.mVersion = mVersion;
+      r.mGroupId = mGroupId;
       return r;
     }
 
@@ -139,6 +152,11 @@ public class GetRepoEntry implements AbstractData {
       return this;
     }
 
+    public Builder groupId(String x) {
+      mGroupId = (x == null) ? "" : x;
+      return this;
+    }
+
   }
 
   public static final GetRepoEntry DEFAULT_INSTANCE = new GetRepoEntry();
@@ -147,6 +165,7 @@ public class GetRepoEntry implements AbstractData {
     mRepoName = "";
     mCommitHash = "";
     mVersion = "";
+    mGroupId = "";
   }
 
 }

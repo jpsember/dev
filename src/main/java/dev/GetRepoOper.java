@@ -127,20 +127,14 @@ public class GetRepoOper extends AppOper {
   }
 
   private Node getNode(Node parent, String name) {
-    pr("getNode with name:", name, "in parent:", parent.getNodeName());
     Node child = null;
     for (var c : childNodes(parent)) {
-      //      pr("child:", c.getNodeName());
-      //    var ch = parent.getChildNodes();
-      //    for (int i = 0; i < ch.getLength(); i++) {
-      //      var c = ch.item(i);
       if (c.getNodeName().equals(name)) {
         checkState(child == null, "duplicate nodes named:", name, "for:", parent);
         child = c;
       }
     }
     checkState(child != null, "cannot find node named:", name, "for:", parent);
-    pr("...returning node:", child);
     return child;
   }
 
@@ -183,8 +177,7 @@ public class GetRepoOper extends AppOper {
 
     if (mPomModified) {
       var newContent = toXMLString(projectPom);
-      halt("new pom content:", INDENT, newContent);
-
+      files().writeString(projectPomFile, newContent);
     }
     flushCache();
   }
@@ -230,14 +223,18 @@ public class GetRepoOper extends AppOper {
         Node depNode = null;
         for (var n : dependencies) {
           var artifactId = getNode(n, "artifactId");
-          var group = getNode(n, "groupId");
-          var version = getNode(n, "version");
-          pr("parsed:", "grp", group, "art", artifactId, "vers", version);
           if (!artifactId.getTextContent().equals(currentArtifactId))
             continue;
+
+          todo("have an optional groupId for each entry");
+
+          var groupText = getNode(n, "groupId").getTextContent();
+          if (nonEmpty(entry.groupId()) && !entry.groupId().equals(groupText))
+            continue;
+
+          //var version = getNode(n, "version");
           checkState(depNode == null, "duplicate artifact name found");
           depNode = n;
-          pr("...found");
         }
         if (depNode == null) {
           badState("can't find dependency in pom that matches repo:", entry.repoName());
@@ -460,7 +457,7 @@ public class GetRepoOper extends AppOper {
     private Map<String, String> mCommitMap;
     private String mLatestHash;
     private File mRepoDir;
-   
+
   }
 
 }
