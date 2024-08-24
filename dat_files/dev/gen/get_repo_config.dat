@@ -1,8 +1,3 @@
 class {
-
   * GetRepoEntry entries;
-
-
-
-  bool eclipse; // true if running from IDE
 }

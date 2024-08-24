@@ -25,7 +25,6 @@ import js.app.HelpFormatter;
 import js.base.BasePrinter;
 import js.base.SystemCall;
 import js.file.DirWalk;
-import js.file.FileException;
 import js.file.Files;
 
 public class GetRepoOper extends AppOper {
@@ -140,49 +139,6 @@ public class GetRepoOper extends AppOper {
     return child;
   }
 
-  // ------------------------------------------------------------------
-  // Locating executable files (when running within Eclipse, it has
-  // a lot of trouble finding certain executables; I guess the PATH
-  // is missing some stuff).
-  // ------------------------------------------------------------------
-
-  /**
-   * Attempt to locate a program file. If eclipse is false, just returns the
-   * name.
-   */
-  private File programPath(String name) {
-    File f = null;
-    if (config().eclipse()) {
-      f = mExeMap.get(name);
-      if (f == null) {
-        f = findProgramPath(name);
-        mExeMap.put(name, f);
-      }
-    } else {
-      f = new File(name);
-    }
-    //pr("programPath for:",name,"eclipse:",config().eclipse(),"is:",Files.infoMap(f));
-    return f;
-  }
-
-  private static File findProgramPath(String progName) {
-    //todo("!consider moving this to java-core?");
-    String[] dirs = { "/usr/local/bin" };
-    File progPath = null;
-    for (var d : dirs) {
-      var c = new File(d, progName);
-      if (c.exists()) {
-        progPath = c;
-        break;
-      }
-    }
-    if (progPath == null)
-      throw FileException.withMessage("Cannot locate program:", progName);
-    return progPath;
-  }
-
-  private Map<String, File> mExeMap = hashMap();
-
   @Override
   public void perform() {
 
@@ -200,10 +156,6 @@ public class GetRepoOper extends AppOper {
     }
     flushCache();
   }
-
-  // ------------------------------------------------------------------
-  // 
-  // ------------------------------------------------------------------
 
   private class Handler {
 
@@ -295,7 +247,7 @@ public class GetRepoOper extends AppOper {
 
     private void cloneRepo() {
       var sc = newSysCall(workDir());
-      sc.arg(programPath("git"), "clone", "https://github.com/" + mRepoName + ".git");
+      sc.arg(Files.programPath("git"), "clone", "https://github.com/" + mRepoName + ".git");
       // Git clone sends output to system error for some stupid reason
       ensureSysCallOkay(sc.systemErr(), "fatal:", "cloning repo");
     }
@@ -318,7 +270,7 @@ public class GetRepoOper extends AppOper {
       log("Installing as version", mVersionNumber);
 
       var sc = newSysCall(null);
-      sc.arg(programPath("git"), "checkout", commitHash);
+      sc.arg(Files.programPath("git"), "checkout", commitHash);
       sc.call();
       ensureSysCallOkay(sc.systemErr(), "error:", "checking out commit " + commitHash);
     }
@@ -347,7 +299,7 @@ public class GetRepoOper extends AppOper {
       // Perform a "mvn install"
       log("performing 'mvn install'");
       var sc = newSysCall(null);
-      sc.arg(programPath("mvn"), "install");
+      sc.arg(Files.programPath("mvn"), "install");
       sc.call();
       log("...done mvn install");
       ensureSysCallOkay(sc.systemErr(), "error:", "performing 'mvn install'");
@@ -382,7 +334,7 @@ public class GetRepoOper extends AppOper {
     private Map<String, String> commitMap() {
       if (mCommitMap == null) {
         var sc = newSysCall(null);
-        sc.arg(programPath("git"), "log", "--oneline");
+        sc.arg(Files.programPath("git"), "log", "--oneline");
         var out = sc.systemOut().trim();
         mCommitMap = hashMap();
         for (var logEntry : split(out, '\n')) {

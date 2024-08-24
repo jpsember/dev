@@ -12,17 +12,12 @@ public class GetRepoConfig implements AbstractData {
     return mEntries;
   }
 
-  public boolean eclipse() {
-    return mEclipse;
-  }
-
   @Override
   public Builder toBuilder() {
     return new Builder(this);
   }
 
   protected static final String _0 = "entries";
-  protected static final String _1 = "eclipse";
 
   @Override
   public String toString() {
@@ -38,7 +33,6 @@ public class GetRepoConfig implements AbstractData {
         j.add(x.toJson());
       m.put(_0, j);
     }
-    m.putUnsafe(_1, mEclipse);
     return m;
   }
 
@@ -54,7 +48,6 @@ public class GetRepoConfig implements AbstractData {
 
   private GetRepoConfig(JSMap m) {
     mEntries = DataUtil.parseListOfObjects(GetRepoEntry.DEFAULT_INSTANCE, m.optJSList(_0), false);
-    mEclipse = m.opt(_1, false);
   }
 
   public static Builder newBuilder() {
@@ -72,8 +65,6 @@ public class GetRepoConfig implements AbstractData {
       return false;
     if (!(mEntries.equals(other.mEntries)))
       return false;
-    if (!(mEclipse == other.mEclipse))
-      return false;
     return true;
   }
 
@@ -85,21 +76,18 @@ public class GetRepoConfig implements AbstractData {
       for (GetRepoEntry x : mEntries)
         if (x != null)
           r = r * 37 + x.hashCode();
-      r = r * 37 + (mEclipse ? 1 : 0);
       m__hashcode = r;
     }
     return r;
   }
 
   protected List<GetRepoEntry> mEntries;
-  protected boolean mEclipse;
   protected int m__hashcode;
 
   public static final class Builder extends GetRepoConfig {
 
     private Builder(GetRepoConfig m) {
       mEntries = DataUtil.immutableCopyOf(m.mEntries) /*DEBUG*/ ;
-      mEclipse = m.mEclipse;
     }
 
     @Override
@@ -117,17 +105,11 @@ public class GetRepoConfig implements AbstractData {
     public GetRepoConfig build() {
       GetRepoConfig r = new GetRepoConfig();
       r.mEntries = mEntries;
-      r.mEclipse = mEclipse;
       return r;
     }
 
     public Builder entries(List<GetRepoEntry> x) {
       mEntries = DataUtil.immutableCopyOf((x == null) ? DataUtil.emptyList() : x) /*DEBUG*/ ;
-      return this;
-    }
-
-    public Builder eclipse(boolean x) {
-      mEclipse = x;
       return this;
     }
 
