@@ -201,7 +201,7 @@ public class GetRepoOper extends AppOper {
         versionNumber = "";
       }
 
-      todo("propagate the version number to the appropriate version number in the pom for: " + repoName);
+      // todo("propagate the version number to the appropriate version number in the pom for: " + repoName);
       if (nullOrEmpty(hash) && nullOrEmpty(versionNumber)) {
         versionNumber = LATEST_COMMIT_NAME;
       } else {
@@ -217,7 +217,6 @@ public class GetRepoOper extends AppOper {
       var parts = split(x, '/');
       checkArgument(parts.size() == 2, "unexpected parts for:", x);
       var currentArtifactId = parts.get(1);
-      pr("seeking:", currentArtifactId);
 
       {
         Node depNode = null;
@@ -226,13 +225,10 @@ public class GetRepoOper extends AppOper {
           if (!artifactId.getTextContent().equals(currentArtifactId))
             continue;
 
-          todo("have an optional groupId for each entry");
-
           var groupText = getNode(n, "groupId").getTextContent();
           if (nonEmpty(entry.groupId()) && !entry.groupId().equals(groupText))
             continue;
 
-          //var version = getNode(n, "version");
           checkState(depNode == null, "duplicate artifact name found");
           depNode = n;
         }
@@ -243,7 +239,7 @@ public class GetRepoOper extends AppOper {
         var version = getNode(depNode, "version");
         var oldVersionNum = version.getTextContent();
         if (!versionNumber.equals(oldVersionNum)) {
-          pr("updating version from:", oldVersionNum, "to:", versionNumber);
+          log("updating version number in pom from", oldVersionNum, "to", versionNumber);
           version.setTextContent(versionNumber);
           mPomModified = true;
         }
