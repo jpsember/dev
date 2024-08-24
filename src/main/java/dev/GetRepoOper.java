@@ -441,7 +441,7 @@ public class GetRepoOper extends AppOper {
     private String getCommitMessage(String hash) {
       var message = commitMap().get(hash);
       if (message == null)
-        badArg("No commit found with hash:", hash);
+        badArg("Repo", mRepoName, "has no commit hash", hash);
       return message;
     }
 
