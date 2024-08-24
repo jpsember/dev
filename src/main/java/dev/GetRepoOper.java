@@ -275,10 +275,8 @@ public class GetRepoOper extends AppOper {
       cloneRepo();
 
       if (mLatestFlag) {
-        commitMap();
-        commitHash = mLatestHash;
+        commitHash = latestHash();
 
-        todo("if most recent installed 'latest' commit matches the repo's latest commit, do nothing");
         var installed = mp2.opt(CKEY_LAST_RECENT_HASH, "");
         if (installed.equals(commitHash)) {
           log("...most recent installed commit matches latest commit");
@@ -304,12 +302,11 @@ public class GetRepoOper extends AppOper {
 
         var vmapCopy = repoInfo.createMapIfMissing(CKEY_HASH_TO_VERSION_MAP);
 
-        // Don't update the version map if version is LATEST_COMMIT_NAME
-        if (!mLatestFlag) {
+        if (mLatestFlag) {
+          repoInfo.put(CKEY_LAST_RECENT_HASH, latestHash());
+        } else {
           // Update cache with the new local repo version
           vmapCopy.put(commitHash, versionNumber);
-        } else {
-          repoInfo.put(CKEY_LAST_RECENT_HASH, mLatestHash);
         }
 
         readCache().repoMap(repoMapCopy);
@@ -421,6 +418,7 @@ public class GetRepoOper extends AppOper {
 
     private Map<String, String> commitMap() {
       if (mCommitMap == null) {
+        boolean first = true;
         var sc = newSysCall(null);
         sc.arg(Files.programPath("git"), "log", "--oneline");
         var out = sc.systemOut().trim();
@@ -436,8 +434,10 @@ public class GetRepoOper extends AppOper {
             commitHash = logEntry.substring(0, sep);
             commitMessage = logEntry.substring(sep + 1);
           }
-          if (mLatestHash == null)
-            mLatestHash = commitHash;
+          if (first) {
+            mLatestHash2 = commitHash;
+            first = false;
+          }
           mCommitMap.put(commitHash, commitMessage);
         }
         checkState(!mCommitMap.isEmpty(), "Repository has no commits");
@@ -470,11 +470,16 @@ public class GetRepoOper extends AppOper {
       return mRepoDir;
     }
 
+    private String latestHash() {
+      commitMap();
+      return mLatestHash2;
+    }
+
     private String mRepoName;
     private boolean mLatestFlag;
     private String mVersionNumber;
     private Map<String, String> mCommitMap;
-    private String mLatestHash;
+    private String mLatestHash2;
     private File mRepoDir;
 
   }
