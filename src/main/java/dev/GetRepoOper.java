@@ -258,7 +258,7 @@ public class GetRepoOper extends AppOper {
       log("reading repo", repoName, "commit", commitHash, "to install locally as version", versionNumber);
 
       mRepoName = repoName;
-      mLatestFlag = nullOrEmpty(commitHash);
+      var latestCommitFlag = nullOrEmpty(commitHash);
       mVersionNumber = versionNumber;
 
       var mp2 = readCache().repoMap().optJSMapOrEmpty(repoName);
@@ -274,15 +274,13 @@ public class GetRepoOper extends AppOper {
 
       cloneRepo();
 
-      if (mLatestFlag) {
+      if (latestCommitFlag) {
         commitHash = latestHash();
-
         var installed = mp2.opt(CKEY_LAST_RECENT_HASH, "");
         if (installed.equals(commitHash)) {
           log("...most recent installed commit matches latest commit");
           return;
         }
-
       }
 
       checkoutDesiredCommit(commitHash);
@@ -293,24 +291,20 @@ public class GetRepoOper extends AppOper {
       log("...done install to local, discard work dir:", mRepoDir);
 
       {
+        // Create a writable copy of the repo map JSMap
 
-        // Create a writable copy of the repo map
+        var mutableRepoMap = readCache().repoMap().deepCopy();
+        var repoInfoMap = mutableRepoMap.createMapIfMissing(repoName);
+        var hashToVersionMap = repoInfoMap.createMapIfMissing(CKEY_HASH_TO_VERSION_MAP);
 
-        var repoMapCopy = readCache().repoMap().deepCopy();
-
-        var repoInfo = repoMapCopy.createMapIfMissing(repoName);
-
-        var vmapCopy = repoInfo.createMapIfMissing(CKEY_HASH_TO_VERSION_MAP);
-
-        if (mLatestFlag) {
-          repoInfo.put(CKEY_LAST_RECENT_HASH, latestHash());
+        if (latestCommitFlag) {
+          repoInfoMap.put(CKEY_LAST_RECENT_HASH, latestHash());
         } else {
           // Update cache with the new local repo version
-          vmapCopy.put(commitHash, versionNumber);
+          hashToVersionMap.put(commitHash, versionNumber);
         }
 
-        readCache().repoMap(repoMapCopy);
-
+        readCache().repoMap(mutableRepoMap);
         mCacheModified = true;
         flushCache();
         log("...installed");
@@ -381,7 +375,6 @@ public class GetRepoOper extends AppOper {
     }
 
     private void installRepoToLocalRepository() {
-      // Perform a "mvn install"
       log("performing 'mvn install'");
       var sc = newSysCall(null);
       sc.arg(Files.programPath("mvn"), "install");
@@ -435,7 +428,7 @@ public class GetRepoOper extends AppOper {
             commitMessage = logEntry.substring(sep + 1);
           }
           if (first) {
-            mLatestHash2 = commitHash;
+            mHashOfLatestCommit = commitHash;
             first = false;
           }
           mCommitMap.put(commitHash, commitMessage);
@@ -472,14 +465,13 @@ public class GetRepoOper extends AppOper {
 
     private String latestHash() {
       commitMap();
-      return mLatestHash2;
+      return mHashOfLatestCommit;
     }
 
     private String mRepoName;
-    private boolean mLatestFlag;
     private String mVersionNumber;
     private Map<String, String> mCommitMap;
-    private String mLatestHash2;
+    private String mHashOfLatestCommit;
     private File mRepoDir;
 
   }
