@@ -109,8 +109,7 @@ public class GetRepoOper extends AppOper {
 
   private void readRepo(String repoName, String commitHash, String versionNumber) {
 
-    discardWorkDirectory();
-
+   
     log("reading repo", repoName, "commit", commitHash, "to install locally as version", versionNumber);
 
     mRepoName = repoName;
@@ -127,10 +126,17 @@ public class GetRepoOper extends AppOper {
       return;
     }
 
+    log("...about to discard work dir:",mRepoDir);
+    discardWorkDirectory();
+
     cloneRepo();
     checkoutDesiredCommit();
     modifyPom();
     installRepoToLocalRepository();
+
+    log("...done install to local, discard work dir:",mRepoDir);
+    
+    discardWorkDirectory();
 
     // Don't update the cache if the version is LATEST_COMMIT_NAME
     if (!versionNumber.equals(LATEST_COMMIT_NAME)) {
@@ -275,6 +281,7 @@ public class GetRepoOper extends AppOper {
     if (!Files.empty(mWorkDir)) {
       files().deleteDirectory(mWorkDir, "_SKIP_");
       mWorkDir = null;
+      mRepoDir = null;
     }
   }
 
