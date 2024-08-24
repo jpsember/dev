@@ -52,6 +52,8 @@ public class GetRepoOper extends AppOper {
         + LATEST_COMMIT_NAME + "'.");
   }
 
+  private static final String LATEST_COMMIT_NAME = "1000";
+
   @Override
   public GetRepoConfig defaultArgs() {
     return GetRepoConfig.DEFAULT_INSTANCE;
@@ -66,120 +68,6 @@ public class GetRepoOper extends AppOper {
   }
 
   private GetRepoConfig mConfig;
-
-  @Override
-  public void perform() {
-
-    var entries = config().entries();
-
-    if (entries.isEmpty())
-      log("...no entries found in config file");
-    Set<String> processed = hashSet();
-    for (var ent : entries) {
-      var repoName = ent.repoName();
-      if (!processed.add(repoName))
-        badArg("duplicate repo_name:", repoName);
-      processEntry(ent);
-    }
-
-    if (!config().eclipse())
-      discardWorkDirectory();
-    flushCache();
-  }
-
-  private void processEntry(GetRepoEntry entry) {
-    log("processing entry:", INDENT, entry);
-    var repoName = entry.repoName();
-    if (nullOrEmpty(repoName))
-      setError("Illegal repo name:", INDENT, entry);
-    repoName = chomp(repoName, ".git");
-
-    var hash = entry.commitHash().toLowerCase();
-    var versionNumber = entry.version();
-
-    if (nullOrEmpty(hash) && nullOrEmpty(versionNumber)) {
-      versionNumber = LATEST_COMMIT_NAME;
-    } else {
-      checkState(!nullOrEmpty(hash), "supply an explicit commit hash");
-      checkState(!nullOrEmpty(versionNumber) && !versionNumber.equals(LATEST_COMMIT_NAME),
-          "please specify a version to assign to commit", hash);
-    }
-    readRepo(repoName, hash, versionNumber);
-  }
-
-  private void readRepo(String repoName, String commitHash, String versionNumber) {
-
-   
-    log("reading repo", repoName, "commit", commitHash, "to install locally as version", versionNumber);
-
-    mRepoName = repoName;
-    mCommitHash = commitHash;
-    mVersionNumber = versionNumber;
-
-    var mp = readCache().repoMap().optJSMapOrEmpty(repoName);
-
-    String existingVersion = mp.opt(commitHash, "");
-    if (!nullOrEmpty(existingVersion)) {
-      checkState(existingVersion.equals(versionNumber), "Repo", repoName, "commit", commitHash,
-          "exists in repo but with a different version number:", existingVersion);
-      log("...already installed");
-      return;
-    }
-
-    log("...about to discard work dir:",mRepoDir);
-    discardWorkDirectory();
-
-    cloneRepo();
-    checkoutDesiredCommit();
-    modifyPom();
-    installRepoToLocalRepository();
-
-    log("...done install to local, discard work dir:",mRepoDir);
-    
-    discardWorkDirectory();
-
-    // Don't update the cache if the version is LATEST_COMMIT_NAME
-    if (!versionNumber.equals(LATEST_COMMIT_NAME)) {
-
-      // Create a writable copy of the repo map
-
-      var cm = readCache().repoMap().deepCopy();
-      mp = cm.createMapIfMissing(repoName);
-      // Update cache with the new local repo version
-      mp.put(commitHash, versionNumber);
-
-      readCache().repoMap(cm);
-      mCacheModified = true;
-      flushCache();
-      log("...installed");
-    }
-  }
-
-  private void ensureSysCallOkay(String output, String errorTag, String context) {
-    var out2 = "\n" + output;
-    if (out2.contains("\n" + errorTag)) {
-      badState("System call failed for:", context, INDENT, output);
-    }
-  }
-
-  /**
-   * Construct a SystemCall instance. If supplied dir is null, uses repoDir()
-   */
-  private SystemCall newSysCall(File dir) {
-    var sc = new SystemCall();
-    sc.setVerbose(verbose());
-    if (Files.empty(dir))
-      dir = repoDir();
-    sc.directory(dir);
-    return sc;
-  }
-
-  private void cloneRepo() {
-    var sc = newSysCall(workDir());
-    sc.arg(programPath("git"), "clone", "https://github.com/" + mRepoName + ".git");
-    // Git clone sends output to system error for some stupid reason
-    ensureSysCallOkay(sc.systemErr(), "fatal:", "cloning repo");
-  }
 
   // ------------------------------------------------------------------
   // Cache
@@ -212,80 +100,45 @@ public class GetRepoOper extends AppOper {
   private boolean mCacheModified;
 
   // ------------------------------------------------------------------
-
-  private void checkoutDesiredCommit() {
-
-    // If no hash was given, use latest
-    if (nullOrEmpty(mCommitHash)) {
-      commitMap();
-      mCommitHash = mLatestHash;
-    }
-
-    var commitHash = mCommitHash;
-
-    // Ensure that a commit with the requested hash exists
-    var message = getCommitMessage(commitHash);
-    log("Checking out commit", commitHash + ", message:", quote(message));
-    log("Installing as version", mVersionNumber);
-
-    var sc = newSysCall(null);
-    sc.arg(programPath("git"), "checkout", commitHash);
-    sc.call();
-    ensureSysCallOkay(sc.systemErr(), "error:", "checking out commit " + commitHash);
-  }
-
-  private void modifyPom() {
-    File pomFile = null;
-    pomFile = new File(repoDir(), "pom.xml");
-    Files.assertExists(pomFile, "can't find pom.xml file");
-    var doc = parseXML(pomFile);
-
-    Node proj = getNode(doc, "project");
-    var nodeGroupId = getNode(proj, "groupId");
-    var nodeArtifactId = getNode(proj, "artifactId");
-    var version = getNode(proj, "version");
-
-    log("found group:", nodeGroupId.getNodeName(), "artifact:", nodeArtifactId.getNodeName(), "version:",
-        version.getNodeName());
-
-    version.setTextContent(mVersionNumber);
-
-    var modifiedPom = toXMLString(doc);
-    files().writeString(pomFile, modifiedPom);
-  }
-
-  private void installRepoToLocalRepository() {
-    // Perform a "mvn install"
-    log("performing 'mvn install'");
-    var sc = newSysCall(null);
-    sc.arg(programPath("mvn"), "install");
-    sc.call();
-    log("...done mvn install");
-    ensureSysCallOkay(sc.systemErr(), "error:", "performing 'mvn install'");
-  }
-
-  // ------------------------------------------------------------------
-  // Work directory
+  // Parsing, encoding XML
   // ------------------------------------------------------------------
 
-  private File workDir() {
-    if (mWorkDir == null) {
-      var f = new File("_SKIP_gitRepoOperWork");
-      files().deleteDirectory(f, "_SKIP_");
-      mWorkDir = files().mkdirs(f);
-    }
-    return mWorkDir;
-  }
-
-  private void discardWorkDirectory() {
-    if (!Files.empty(mWorkDir)) {
-      files().deleteDirectory(mWorkDir, "_SKIP_");
-      mWorkDir = null;
-      mRepoDir = null;
+  private Document parseXML(File path) {
+    try {
+      var doc = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(path);
+      return doc;
+    } catch (Throwable t) {
+      throw asRuntimeException(t);
     }
   }
 
-  private File mWorkDir;
+  private String toXMLString(Node parent) {
+    try {
+      TransformerFactory tf = TransformerFactory.newInstance();
+      Transformer transformer = tf.newTransformer();
+      transformer.setOutputProperty(OutputKeys.OMIT_XML_DECLARATION, "yes");
+      StringWriter writer = new StringWriter();
+      transformer.transform(new DOMSource(parent), new StreamResult(writer));
+      var output = writer.getBuffer().toString();
+      return output;
+    } catch (Throwable t) {
+      throw asRuntimeException(t);
+    }
+  }
+
+  private Node getNode(Node parent, String name) {
+    Node child = null;
+    var ch = parent.getChildNodes();
+    for (int i = 0; i < ch.getLength(); i++) {
+      var c = ch.item(i);
+      if (c.getNodeName().equals(name)) {
+        checkState(child == null, "duplicate nodes named:", name, "for:", parent);
+        child = c;
+      }
+    }
+    checkState(child != null, "cannot find node named:", name, "for:", parent);
+    return child;
+  }
 
   // ------------------------------------------------------------------
   // Locating executable files (when running within Eclipse, it has
@@ -330,110 +183,260 @@ public class GetRepoOper extends AppOper {
 
   private Map<String, File> mExeMap = hashMap();
 
+  @Override
+  public void perform() {
+
+    var entries = config().entries();
+
+    if (entries.isEmpty())
+      log("...no entries found in config file");
+    Set<String> processed = hashSet();
+    for (var ent : entries) {
+      var repoName = ent.repoName();
+      if (!processed.add(repoName))
+        badArg("duplicate repo_name:", repoName);
+      new Handler().processEntry(ent);
+      //      processEntry(ent);
+    }
+    flushCache();
+  }
+
   // ------------------------------------------------------------------
-  // Parsing commit hashes and messages
+  // 
   // ------------------------------------------------------------------
 
-  private Map<String, String> commitMap() {
-    if (mCommitMap == null) {
+  private class Handler {
+
+    public void processEntry(GetRepoEntry entry) {
+      log("processing entry:", INDENT, entry);
+      var repoName = entry.repoName();
+      if (nullOrEmpty(repoName))
+        setError("Illegal repo name:", INDENT, entry);
+      repoName = chomp(repoName, ".git");
+
+      var hash = entry.commitHash().toLowerCase();
+      var versionNumber = entry.version();
+
+      if (nullOrEmpty(hash) && nullOrEmpty(versionNumber)) {
+        versionNumber = LATEST_COMMIT_NAME;
+      } else {
+        checkState(!nullOrEmpty(hash), "supply an explicit commit hash");
+        checkState(!nullOrEmpty(versionNumber) && !versionNumber.equals(LATEST_COMMIT_NAME),
+            "please specify a version to assign to commit", hash);
+      }
+      readRepo(repoName, hash, versionNumber);
+
+      if (!config().eclipse())
+        discardWorkDirectory();
+
+    }
+
+    private void readRepo(String repoName, String commitHash, String versionNumber) {
+      log("reading repo", repoName, "commit", commitHash, "to install locally as version", versionNumber);
+
+      mRepoName = repoName;
+      mCommitHash = commitHash;
+      mVersionNumber = versionNumber;
+
+      var mp = readCache().repoMap().optJSMapOrEmpty(repoName);
+
+      String existingVersion = mp.opt(commitHash, "");
+      if (!nullOrEmpty(existingVersion)) {
+        checkState(existingVersion.equals(versionNumber), "Repo", repoName, "commit", commitHash,
+            "exists in repo but with a different version number:", existingVersion);
+        log("...already installed");
+        return;
+      }
+
+      cloneRepo();
+      checkoutDesiredCommit();
+      modifyPom();
+      installRepoToLocalRepository();
+
+      log("...done install to local, discard work dir:", mRepoDir);
+
+      // Don't update the cache if the version is LATEST_COMMIT_NAME
+      if (!versionNumber.equals(LATEST_COMMIT_NAME)) {
+
+        // Create a writable copy of the repo map
+
+        var cm = readCache().repoMap().deepCopy();
+        mp = cm.createMapIfMissing(repoName);
+        // Update cache with the new local repo version
+        mp.put(commitHash, versionNumber);
+
+        readCache().repoMap(cm);
+        mCacheModified = true;
+        flushCache();
+        log("...installed");
+      }
+
+      discardWorkDirectory();
+    }
+
+    private void ensureSysCallOkay(String output, String errorTag, String context) {
+      var out2 = "\n" + output;
+      if (out2.contains("\n" + errorTag)) {
+        badState("System call failed for:", context, INDENT, output);
+      }
+    }
+
+    /**
+     * Construct a SystemCall instance. If supplied dir is null, uses repoDir()
+     */
+    private SystemCall newSysCall(File dir) {
+      var sc = new SystemCall();
+      sc.setVerbose(verbose());
+      if (Files.empty(dir))
+        dir = repoDir();
+      sc.directory(dir);
+      return sc;
+    }
+
+    private void cloneRepo() {
+      var sc = newSysCall(workDir());
+      sc.arg(programPath("git"), "clone", "https://github.com/" + mRepoName + ".git");
+      // Git clone sends output to system error for some stupid reason
+      ensureSysCallOkay(sc.systemErr(), "fatal:", "cloning repo");
+    }
+
+    // ------------------------------------------------------------------
+
+    private void checkoutDesiredCommit() {
+
+      // If no hash was given, use latest
+      if (nullOrEmpty(mCommitHash)) {
+        commitMap();
+        mCommitHash = mLatestHash;
+      }
+
+      var commitHash = mCommitHash;
+
+      // Ensure that a commit with the requested hash exists
+      var message = getCommitMessage(commitHash);
+      log("Checking out commit", commitHash + ", message:", quote(message));
+      log("Installing as version", mVersionNumber);
+
       var sc = newSysCall(null);
-      sc.arg(programPath("git"), "log", "--oneline");
-      var out = sc.systemOut().trim();
-      mCommitMap = hashMap();
-      for (var logEntry : split(out, '\n')) {
-        var commitHash = "";
-        var commitMessage = "";
-        var sep = logEntry.indexOf(' ');
-        if (sep < 0) {
-          badArg("no commit message found:", logEntry);
-          commitHash = logEntry;
-        } else {
-          commitHash = logEntry.substring(0, sep);
-          commitMessage = logEntry.substring(sep + 1);
+      sc.arg(programPath("git"), "checkout", commitHash);
+      sc.call();
+      ensureSysCallOkay(sc.systemErr(), "error:", "checking out commit " + commitHash);
+    }
+
+    private void modifyPom() {
+      File pomFile = null;
+      pomFile = new File(repoDir(), "pom.xml");
+      Files.assertExists(pomFile, "can't find pom.xml file");
+      var doc = parseXML(pomFile);
+
+      Node proj = getNode(doc, "project");
+      var nodeGroupId = getNode(proj, "groupId");
+      var nodeArtifactId = getNode(proj, "artifactId");
+      var version = getNode(proj, "version");
+
+      log("found group:", nodeGroupId.getNodeName(), "artifact:", nodeArtifactId.getNodeName(), "version:",
+          version.getNodeName());
+
+      version.setTextContent(mVersionNumber);
+
+      var modifiedPom = toXMLString(doc);
+      files().writeString(pomFile, modifiedPom);
+    }
+
+    private void installRepoToLocalRepository() {
+      // Perform a "mvn install"
+      log("performing 'mvn install'");
+      var sc = newSysCall(null);
+      sc.arg(programPath("mvn"), "install");
+      sc.call();
+      log("...done mvn install");
+      ensureSysCallOkay(sc.systemErr(), "error:", "performing 'mvn install'");
+    }
+
+    // ------------------------------------------------------------------
+    // Work directory
+    // ------------------------------------------------------------------
+
+    private File workDir() {
+      if (mWorkDir == null) {
+        var f = new File("_SKIP_gitRepoOperWork");
+        files().deleteDirectory(f, "_SKIP_");
+        mWorkDir = files().mkdirs(f);
+      }
+      return mWorkDir;
+    }
+
+    private void discardWorkDirectory() {
+      if (!Files.empty(mWorkDir)) {
+        files().deleteDirectory(mWorkDir, "_SKIP_");
+        mWorkDir = null;
+      }
+    }
+
+    private File mWorkDir;
+
+    // ------------------------------------------------------------------
+    // Parsing commit hashes and messages
+    // ------------------------------------------------------------------
+
+    private Map<String, String> commitMap() {
+      if (mCommitMap == null) {
+        var sc = newSysCall(null);
+        sc.arg(programPath("git"), "log", "--oneline");
+        var out = sc.systemOut().trim();
+        mCommitMap = hashMap();
+        for (var logEntry : split(out, '\n')) {
+          var commitHash = "";
+          var commitMessage = "";
+          var sep = logEntry.indexOf(' ');
+          if (sep < 0) {
+            badArg("no commit message found:", logEntry);
+            commitHash = logEntry;
+          } else {
+            commitHash = logEntry.substring(0, sep);
+            commitMessage = logEntry.substring(sep + 1);
+          }
+          if (mLatestHash == null)
+            mLatestHash = commitHash;
+          mCommitMap.put(commitHash, commitMessage);
         }
-        if (mLatestHash == null)
-          mLatestHash = commitHash;
-        mCommitMap.put(commitHash, commitMessage);
+        checkState(!mCommitMap.isEmpty(), "Repository has no commits");
       }
-      checkState(!mCommitMap.isEmpty(), "Repository has no commits");
+      return mCommitMap;
     }
-    return mCommitMap;
-  }
 
-  private String getCommitMessage(String hash) {
-    var message = commitMap().get(hash);
-    if (message == null)
-      badArg("No commit found with hash:", hash);
-    return message;
-  }
+    private String getCommitMessage(String hash) {
+      var message = commitMap().get(hash);
+      if (message == null)
+        badArg("No commit found with hash:", hash);
+      return message;
+    }
 
-  private Map<String, String> mCommitMap;
-  private String mLatestHash;
-
-  /**
-   * Determining the repo subdirectory within the work directory
-   */
-  private File repoDir() {
-    if (mRepoDir == null) {
-      // Determine the name of the repo
-      var dw = new DirWalk(workDir()).withRecurse(false).includeDirectories();
-      for (var f : dw.files()) {
-        if (f.isDirectory()) {
-          checkState(mRepoDir == null, "too many directories found in directory listing:", dw.files());
-          mRepoDir = f;
+    /**
+     * Determining the repo subdirectory within the work directory
+     */
+    private File repoDir() {
+      if (mRepoDir == null) {
+        // Determine the name of the repo
+        var dw = new DirWalk(workDir()).withRecurse(false).includeDirectories();
+        for (var f : dw.files()) {
+          if (f.isDirectory()) {
+            checkState(mRepoDir == null, "too many directories found in directory listing:", dw.files());
+            mRepoDir = f;
+          }
         }
+        Files.assertNonEmpty(mRepoDir, "repo dir");
       }
-      Files.assertNonEmpty(mRepoDir, "repo dir");
+      return mRepoDir;
     }
-    return mRepoDir;
+
+    private String mRepoName;
+    private String mCommitHash;
+    private String mVersionNumber;
+    private Map<String, String> mCommitMap;
+    private String mLatestHash;
+    private File mRepoDir;
+
   }
 
-  private File mRepoDir;
-
-  // ------------------------------------------------------------------
-  // Parsing, encoding XML
-  // ------------------------------------------------------------------
-
-  private Document parseXML(File path) {
-    try {
-      var doc = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(path);
-      return doc;
-    } catch (Throwable t) {
-      throw asRuntimeException(t);
-    }
-  }
-
-  private String toXMLString(Node parent) {
-    try {
-      TransformerFactory tf = TransformerFactory.newInstance();
-      Transformer transformer = tf.newTransformer();
-      transformer.setOutputProperty(OutputKeys.OMIT_XML_DECLARATION, "yes");
-      StringWriter writer = new StringWriter();
-      transformer.transform(new DOMSource(parent), new StreamResult(writer));
-      var output = writer.getBuffer().toString();
-      return output;
-    } catch (Throwable t) {
-      throw asRuntimeException(t);
-    }
-  }
-
-  private Node getNode(Node parent, String name) {
-    Node child = null;
-    var ch = parent.getChildNodes();
-    for (int i = 0; i < ch.getLength(); i++) {
-      var c = ch.item(i);
-      if (c.getNodeName().equals(name)) {
-        checkState(child == null, "duplicate nodes named:", name, "for:", parent);
-        child = c;
-      }
-    }
-    checkState(child != null, "cannot find node named:", name, "for:", parent);
-    return child;
-  }
-
-  private static final String LATEST_COMMIT_NAME = "1000";
-
-  private String mRepoName;
-  private String mCommitHash;
-  private String mVersionNumber;
 }
