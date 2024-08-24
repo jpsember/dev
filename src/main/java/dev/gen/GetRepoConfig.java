@@ -12,12 +12,17 @@ public class GetRepoConfig implements AbstractData {
     return mEntries;
   }
 
+  public boolean latest() {
+    return mLatest;
+  }
+
   @Override
   public Builder toBuilder() {
     return new Builder(this);
   }
 
   protected static final String _0 = "entries";
+  protected static final String _1 = "latest";
 
   @Override
   public String toString() {
@@ -33,6 +38,7 @@ public class GetRepoConfig implements AbstractData {
         j.add(x.toJson());
       m.put(_0, j);
     }
+    m.putUnsafe(_1, mLatest);
     return m;
   }
 
@@ -48,6 +54,7 @@ public class GetRepoConfig implements AbstractData {
 
   private GetRepoConfig(JSMap m) {
     mEntries = DataUtil.parseListOfObjects(GetRepoEntry.DEFAULT_INSTANCE, m.optJSList(_0), false);
+    mLatest = m.opt(_1, false);
   }
 
   public static Builder newBuilder() {
@@ -65,6 +72,8 @@ public class GetRepoConfig implements AbstractData {
       return false;
     if (!(mEntries.equals(other.mEntries)))
       return false;
+    if (!(mLatest == other.mLatest))
+      return false;
     return true;
   }
 
@@ -76,18 +85,21 @@ public class GetRepoConfig implements AbstractData {
       for (GetRepoEntry x : mEntries)
         if (x != null)
           r = r * 37 + x.hashCode();
+      r = r * 37 + (mLatest ? 1 : 0);
       m__hashcode = r;
     }
     return r;
   }
 
   protected List<GetRepoEntry> mEntries;
+  protected boolean mLatest;
   protected int m__hashcode;
 
   public static final class Builder extends GetRepoConfig {
 
     private Builder(GetRepoConfig m) {
       mEntries = DataUtil.immutableCopyOf(m.mEntries) /*DEBUG*/ ;
+      mLatest = m.mLatest;
     }
 
     @Override
@@ -105,11 +117,17 @@ public class GetRepoConfig implements AbstractData {
     public GetRepoConfig build() {
       GetRepoConfig r = new GetRepoConfig();
       r.mEntries = mEntries;
+      r.mLatest = mLatest;
       return r;
     }
 
     public Builder entries(List<GetRepoEntry> x) {
       mEntries = DataUtil.immutableCopyOf((x == null) ? DataUtil.emptyList() : x) /*DEBUG*/ ;
+      return this;
+    }
+
+    public Builder latest(boolean x) {
+      mLatest = x;
       return this;
     }
 

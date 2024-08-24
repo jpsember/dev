@@ -169,6 +169,12 @@ public class GetRepoOper extends AppOper {
       var hash = entry.commitHash().toLowerCase();
       var versionNumber = entry.version();
 
+      if (config().latest()) {
+        hash = "";
+        versionNumber = "";
+      }
+      
+      todo("propagate the version number to the appropriate version number in the pom for: "+repoName);
       if (nullOrEmpty(hash) && nullOrEmpty(versionNumber)) {
         versionNumber = LATEST_COMMIT_NAME;
       } else {

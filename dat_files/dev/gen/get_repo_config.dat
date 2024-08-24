@@ -1,3 +1,4 @@
 class {
   * GetRepoEntry entries;
+  bool latest;
 }
