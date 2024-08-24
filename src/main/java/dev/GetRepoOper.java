@@ -178,9 +178,7 @@ public class GetRepoOper extends AppOper {
       }
       readRepo(repoName, hash, versionNumber);
 
-      if (!config().eclipse())
-        discardWorkDirectory();
-
+      discardWorkDirectory();
     }
 
     private void readRepo(String repoName, String commitHash, String versionNumber) {
