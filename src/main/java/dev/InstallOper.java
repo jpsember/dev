@@ -70,7 +70,6 @@ public class InstallOper extends AppOper {
 
     {
       log("calling 'dev getrepo'");
-      todo("have getrepo do nothing if there's no args file, or repos are empty?");
       var s = new SystemCall().directory(repoDir);
       s.setVerbose(verbose());
       s.arg(Files.programPath("dev"), "getrepo");
