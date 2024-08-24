@@ -1,6 +1,9 @@
 class {
-  int version = 1;
+  int version = 2;
 
-  JSMap repo_map; // map of repo names to JSMap of hash -> version
+  JSMap repo_map; // map of repo names to information about repo, which is a JSMap:
+  //                    { "vmap" : JSMap of hash -> version,
+  //                      "last" : hash of last commit }
+  //
 
 }

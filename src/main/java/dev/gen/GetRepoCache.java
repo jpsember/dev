@@ -45,7 +45,7 @@ public class GetRepoCache implements AbstractData {
   }
 
   private GetRepoCache(JSMap m) {
-    mVersion = m.opt(_0, 1);
+    mVersion = m.opt(_0, 2);
     {
       mRepoMap = JSMap.DEFAULT_INSTANCE;
       JSMap x = m.optJSMap(_1);
@@ -132,7 +132,7 @@ public class GetRepoCache implements AbstractData {
   public static final GetRepoCache DEFAULT_INSTANCE = new GetRepoCache();
 
   private GetRepoCache() {
-    mVersion = 1;
+    mVersion = 2;
     mRepoMap = JSMap.DEFAULT_INSTANCE;
   }
 

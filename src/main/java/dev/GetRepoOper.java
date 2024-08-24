@@ -54,6 +54,9 @@ public class GetRepoOper extends AppOper {
 
   private static final String LATEST_COMMIT_NAME = "1000";
 
+  private static final String CKEY_HASH_TO_VERSION_MAP = "vmap";
+  private static final String CKEY_LAST_RECENT_HASH = "recent";
+
   @Override
   public GetRepoConfig defaultArgs() {
     return GetRepoConfig.DEFAULT_INSTANCE;
@@ -76,7 +79,7 @@ public class GetRepoOper extends AppOper {
   private GetRepoCache.Builder readCache() {
     if (mCache == null) {
       mCache = Files.parseAbstractDataOpt(GetRepoCache.DEFAULT_INSTANCE, cacheFile()).toBuilder();
-      final int EXPECTED_VERSION = 1;
+      final int EXPECTED_VERSION = 2;
       if (mCache.version() < EXPECTED_VERSION) {
         mCache = GetRepoCache.newBuilder();
       } else if (mCache.version() > EXPECTED_VERSION)
@@ -201,7 +204,6 @@ public class GetRepoOper extends AppOper {
         versionNumber = "";
       }
 
-      // todo("propagate the version number to the appropriate version number in the pom for: " + repoName);
       if (nullOrEmpty(hash) && nullOrEmpty(versionNumber)) {
         versionNumber = LATEST_COMMIT_NAME;
       } else {
@@ -228,7 +230,7 @@ public class GetRepoOper extends AppOper {
           // If there is more than a single dependency with this artifactId, 
           // we can include a group_id key in the arguments to disambiguate
           // which one we want.
-          
+
           var groupText = getNode(n, "groupId").getTextContent();
           if (nonEmpty(entry.groupId()) && !entry.groupId().equals(groupText))
             continue;
@@ -256,12 +258,13 @@ public class GetRepoOper extends AppOper {
       log("reading repo", repoName, "commit", commitHash, "to install locally as version", versionNumber);
 
       mRepoName = repoName;
-      mCommitHash = commitHash;
+      mLatestFlag = nullOrEmpty(commitHash);
       mVersionNumber = versionNumber;
 
-      var mp = readCache().repoMap().optJSMapOrEmpty(repoName);
+      var mp2 = readCache().repoMap().optJSMapOrEmpty(repoName);
 
-      String existingVersion = mp.opt(commitHash, "");
+      var versionMap = mp2.createMapIfMissing(CKEY_HASH_TO_VERSION_MAP);
+      String existingVersion = versionMap.opt(commitHash, "");
       if (!nullOrEmpty(existingVersion)) {
         checkState(existingVersion.equals(versionNumber), "Repo", repoName, "commit", commitHash,
             "exists in repo but with a different version number:", existingVersion);
@@ -270,23 +273,47 @@ public class GetRepoOper extends AppOper {
       }
 
       cloneRepo();
-      checkoutDesiredCommit();
+
+      if (mLatestFlag) {
+        commitMap();
+        commitHash = mLatestHash;
+
+        todo("if most recent installed 'latest' commit matches the repo's latest commit, do nothing");
+        var installed = mp2.opt(CKEY_LAST_RECENT_HASH, "");
+        if (installed.equals(commitHash)) {
+          log("...most recent installed commit matches latest commit");
+          return;
+        }
+
+      }
+
+      checkoutDesiredCommit(commitHash);
+
       modifyPom();
       installRepoToLocalRepository();
 
       log("...done install to local, discard work dir:", mRepoDir);
 
-      // Don't update the cache if the version is LATEST_COMMIT_NAME
-      if (!versionNumber.equals(LATEST_COMMIT_NAME)) {
+      {
 
         // Create a writable copy of the repo map
 
-        var cm = readCache().repoMap().deepCopy();
-        mp = cm.createMapIfMissing(repoName);
-        // Update cache with the new local repo version
-        mp.put(commitHash, versionNumber);
+        var repoMapCopy = readCache().repoMap().deepCopy();
 
-        readCache().repoMap(cm);
+        var repoInfo = repoMapCopy.createMapIfMissing(repoName);
+
+        var vmapCopy = repoInfo.createMapIfMissing(CKEY_HASH_TO_VERSION_MAP);
+
+        // Don't update the version map if version is LATEST_COMMIT_NAME
+        if (!mLatestFlag) {
+          // Update cache with the new local repo version
+          vmapCopy.put(commitHash, versionNumber);
+        } else {
+          repoInfo.put(CKEY_LAST_RECENT_HASH, mLatestHash);
+        }
+
+        readCache().repoMap(repoMapCopy);
+
         mCacheModified = true;
         flushCache();
         log("...installed");
@@ -323,15 +350,7 @@ public class GetRepoOper extends AppOper {
 
     // ------------------------------------------------------------------
 
-    private void checkoutDesiredCommit() {
-
-      // If no hash was given, use latest
-      if (nullOrEmpty(mCommitHash)) {
-        commitMap();
-        mCommitHash = mLatestHash;
-      }
-
-      var commitHash = mCommitHash;
+    private void checkoutDesiredCommit(String commitHash) {
 
       // Ensure that a commit with the requested hash exists
       var message = getCommitMessage(commitHash);
@@ -452,7 +471,7 @@ public class GetRepoOper extends AppOper {
     }
 
     private String mRepoName;
-    private String mCommitHash;
+    private boolean mLatestFlag;
     private String mVersionNumber;
     private Map<String, String> mCommitMap;
     private String mLatestHash;
