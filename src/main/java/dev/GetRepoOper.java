@@ -4,6 +4,7 @@ import static js.base.Tools.*;
 
 import java.io.File;
 import java.io.StringWriter;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -126,21 +127,47 @@ public class GetRepoOper extends AppOper {
   }
 
   private Node getNode(Node parent, String name) {
+    pr("getNode with name:", name, "in parent:", parent.getNodeName());
     Node child = null;
-    var ch = parent.getChildNodes();
-    for (int i = 0; i < ch.getLength(); i++) {
-      var c = ch.item(i);
+    for (var c : childNodes(parent)) {
+      //      pr("child:", c.getNodeName());
+      //    var ch = parent.getChildNodes();
+      //    for (int i = 0; i < ch.getLength(); i++) {
+      //      var c = ch.item(i);
       if (c.getNodeName().equals(name)) {
         checkState(child == null, "duplicate nodes named:", name, "for:", parent);
         child = c;
       }
     }
     checkState(child != null, "cannot find node named:", name, "for:", parent);
+    pr("...returning node:", child);
     return child;
+  }
+
+  private List<Node> childNodes(Node parent) {
+    List<Node> children = arrayList();
+    var ch = parent.getChildNodes();
+    for (int i = 0; i < ch.getLength(); i++) {
+      children.add(ch.item(i));
+    }
+    return children;
   }
 
   @Override
   public void perform() {
+
+    var projectPomFile = new File("pom.xml");
+    Files.assertExists(projectPomFile, "can't find project pom.xml file");
+
+    var projectPom = parseXML(projectPomFile);
+    var depsNode = getNode(getNode(projectPom, "project"), "dependencies");
+
+    List<Node> depList = arrayList();
+    for (var dc : childNodes(depsNode)) {
+      if (dc.getNodeName().equals("dependency")) {
+        depList.add(dc);
+      }
+    }
 
     var entries = config().entries();
 
@@ -151,15 +178,22 @@ public class GetRepoOper extends AppOper {
       var repoName = ent.repoName();
       if (!processed.add(repoName))
         badArg("duplicate repo_name:", repoName);
-      new Handler().processEntry(ent);
-      //      processEntry(ent);
+      new Handler().processEntry(ent, depList);
+    }
+
+    if (mPomModified) {
+      var newContent = toXMLString(projectPom);
+      halt("new pom content:", INDENT, newContent);
+
     }
     flushCache();
   }
 
+  private boolean mPomModified;
+
   private class Handler {
 
-    public void processEntry(GetRepoEntry entry) {
+    public void processEntry(GetRepoEntry entry, List<Node> dependencies) {
       log("processing entry:", INDENT, entry);
       var repoName = entry.repoName();
       if (nullOrEmpty(repoName))
@@ -173,8 +207,8 @@ public class GetRepoOper extends AppOper {
         hash = "";
         versionNumber = "";
       }
-      
-      todo("propagate the version number to the appropriate version number in the pom for: "+repoName);
+
+      todo("propagate the version number to the appropriate version number in the pom for: " + repoName);
       if (nullOrEmpty(hash) && nullOrEmpty(versionNumber)) {
         versionNumber = LATEST_COMMIT_NAME;
       } else {
@@ -183,6 +217,40 @@ public class GetRepoOper extends AppOper {
             "please specify a version to assign to commit", hash);
       }
       readRepo(repoName, hash, versionNumber);
+
+      // Modify the dependency that matches this repo
+
+      var x = entry.repoName();
+      var parts = split(x, '/');
+      checkArgument(parts.size() == 2, "unexpected parts for:", x);
+      var currentArtifactId = parts.get(1);
+      pr("seeking:", currentArtifactId);
+
+      {
+        Node depNode = null;
+        for (var n : dependencies) {
+          var artifactId = getNode(n, "artifactId");
+          var group = getNode(n, "groupId");
+          var version = getNode(n, "version");
+          pr("parsed:", "grp", group, "art", artifactId, "vers", version);
+          if (!artifactId.getTextContent().equals(currentArtifactId))
+            continue;
+          checkState(depNode == null, "duplicate artifact name found");
+          depNode = n;
+          pr("...found");
+        }
+        if (depNode == null) {
+          badState("can't find dependency in pom that matches repo:", entry.repoName());
+        }
+
+        var version = getNode(depNode, "version");
+        var oldVersionNum = version.getTextContent();
+        if (!versionNumber.equals(oldVersionNum)) {
+          pr("updating version from:", oldVersionNum, "to:", versionNumber);
+          version.setTextContent(versionNumber);
+          mPomModified = true;
+        }
+      }
 
       discardWorkDirectory();
     }
@@ -280,10 +348,10 @@ public class GetRepoOper extends AppOper {
     }
 
     private void modifyPom() {
-      File pomFile = null;
-      pomFile = new File(repoDir(), "pom.xml");
-      Files.assertExists(pomFile, "can't find pom.xml file");
-      var doc = parseXML(pomFile);
+      File depPomFile = null;
+      depPomFile = new File(repoDir(), "pom.xml");
+      Files.assertExists(depPomFile, "can't find pom.xml file");
+      var doc = parseXML(depPomFile);
 
       Node proj = getNode(doc, "project");
       var nodeGroupId = getNode(proj, "groupId");
@@ -296,7 +364,7 @@ public class GetRepoOper extends AppOper {
       version.setTextContent(mVersionNumber);
 
       var modifiedPom = toXMLString(doc);
-      files().writeString(pomFile, modifiedPom);
+      files().writeString(depPomFile, modifiedPom);
     }
 
     private void installRepoToLocalRepository() {
@@ -392,7 +460,7 @@ public class GetRepoOper extends AppOper {
     private Map<String, String> mCommitMap;
     private String mLatestHash;
     private File mRepoDir;
-
+   
   }
 
 }
