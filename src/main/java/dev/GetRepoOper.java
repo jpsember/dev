@@ -225,6 +225,10 @@ public class GetRepoOper extends AppOper {
           if (!artifactId.getTextContent().equals(currentArtifactId))
             continue;
 
+          // If there is more than a single dependency with this artifactId, 
+          // we can include a group_id key in the arguments to disambiguate
+          // which one we want.
+          
           var groupText = getNode(n, "groupId").getTextContent();
           if (nonEmpty(entry.groupId()) && !entry.groupId().equals(groupText))
             continue;
