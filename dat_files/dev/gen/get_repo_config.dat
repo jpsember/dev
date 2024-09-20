@@ -1,4 +1,5 @@
 class {
   * GetRepoEntry entries;
   bool latest;
+  bool purge;
 }

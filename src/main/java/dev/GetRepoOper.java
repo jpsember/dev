@@ -78,7 +78,11 @@ public class GetRepoOper extends AppOper {
 
   private GetRepoCache.Builder readCache() {
     if (mCache == null) {
-      mCache = Files.parseAbstractDataOpt(GetRepoCache.DEFAULT_INSTANCE, cacheFile()).toBuilder();
+      if (config().purge()) {
+        mCache = GetRepoCache.newBuilder();
+        mCacheModified = true;
+      } else
+        mCache = Files.parseAbstractDataOpt(GetRepoCache.DEFAULT_INSTANCE, cacheFile()).toBuilder();
       final int EXPECTED_VERSION = 2;
       if (mCache.version() < EXPECTED_VERSION) {
         mCache = GetRepoCache.newBuilder();

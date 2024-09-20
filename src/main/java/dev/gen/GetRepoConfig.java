@@ -16,6 +16,10 @@ public class GetRepoConfig implements AbstractData {
     return mLatest;
   }
 
+  public boolean purge() {
+    return mPurge;
+  }
+
   @Override
   public Builder toBuilder() {
     return new Builder(this);
@@ -23,6 +27,7 @@ public class GetRepoConfig implements AbstractData {
 
   protected static final String _0 = "entries";
   protected static final String _1 = "latest";
+  protected static final String _2 = "purge";
 
   @Override
   public String toString() {
@@ -39,6 +44,7 @@ public class GetRepoConfig implements AbstractData {
       m.put(_0, j);
     }
     m.putUnsafe(_1, mLatest);
+    m.putUnsafe(_2, mPurge);
     return m;
   }
 
@@ -55,6 +61,7 @@ public class GetRepoConfig implements AbstractData {
   private GetRepoConfig(JSMap m) {
     mEntries = DataUtil.parseListOfObjects(GetRepoEntry.DEFAULT_INSTANCE, m.optJSList(_0), false);
     mLatest = m.opt(_1, false);
+    mPurge = m.opt(_2, false);
   }
 
   public static Builder newBuilder() {
@@ -74,6 +81,8 @@ public class GetRepoConfig implements AbstractData {
       return false;
     if (!(mLatest == other.mLatest))
       return false;
+    if (!(mPurge == other.mPurge))
+      return false;
     return true;
   }
 
@@ -86,6 +95,7 @@ public class GetRepoConfig implements AbstractData {
         if (x != null)
           r = r * 37 + x.hashCode();
       r = r * 37 + (mLatest ? 1 : 0);
+      r = r * 37 + (mPurge ? 1 : 0);
       m__hashcode = r;
     }
     return r;
@@ -93,6 +103,7 @@ public class GetRepoConfig implements AbstractData {
 
   protected List<GetRepoEntry> mEntries;
   protected boolean mLatest;
+  protected boolean mPurge;
   protected int m__hashcode;
 
   public static final class Builder extends GetRepoConfig {
@@ -100,6 +111,7 @@ public class GetRepoConfig implements AbstractData {
     private Builder(GetRepoConfig m) {
       mEntries = DataUtil.immutableCopyOf(m.mEntries) /*DEBUG*/ ;
       mLatest = m.mLatest;
+      mPurge = m.mPurge;
     }
 
     @Override
@@ -118,6 +130,7 @@ public class GetRepoConfig implements AbstractData {
       GetRepoConfig r = new GetRepoConfig();
       r.mEntries = mEntries;
       r.mLatest = mLatest;
+      r.mPurge = mPurge;
       return r;
     }
 
@@ -128,6 +141,11 @@ public class GetRepoConfig implements AbstractData {
 
     public Builder latest(boolean x) {
       mLatest = x;
+      return this;
+    }
+
+    public Builder purge(boolean x) {
+      mPurge = x;
       return this;
     }
 
