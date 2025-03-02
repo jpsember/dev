@@ -171,10 +171,13 @@ public class InstallOper extends AppOper {
     log("cleanUpMavenRepos");
     File mvnRepo = new File(Files.homeDirectory(), ".m2/repository");
     Files.assertDirectoryExists(mvnRepo, "cleaning up maven repos");
-    var dw = new DirWalk(mvnRepo).withExtensions(".lastUpdated");
+    var dw = new DirWalk(mvnRepo);
     for (var f : dw.files()) {
+      if (!Files.getExtension(f).equals("lastUpdated")) {
+        continue;
+      }
       log("...cleaning:", f);
-      todo("delete: " + f);
+      Files.S.deleteFile(f);
     }
   }
 
