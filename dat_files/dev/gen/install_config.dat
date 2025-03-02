@@ -4,4 +4,5 @@ class {
   string main_class; // Fully-qualified name of class containing main method, e.g., 'js.gitdiff.GitDiffApp'
   bool skip_tests;
   string branch;
+  bool force;        // force maven updates
 }

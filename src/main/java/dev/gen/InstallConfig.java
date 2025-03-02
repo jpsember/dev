@@ -25,6 +25,10 @@ public class InstallConfig implements AbstractData {
     return mBranch;
   }
 
+  public boolean force() {
+    return mForce;
+  }
+
   @Override
   public Builder toBuilder() {
     return new Builder(this);
@@ -35,6 +39,7 @@ public class InstallConfig implements AbstractData {
   protected static final String _2 = "main_class";
   protected static final String _3 = "skip_tests";
   protected static final String _4 = "branch";
+  protected static final String _5 = "force";
 
   @Override
   public String toString() {
@@ -49,6 +54,7 @@ public class InstallConfig implements AbstractData {
     m.putUnsafe(_2, mMainClass);
     m.putUnsafe(_3, mSkipTests);
     m.putUnsafe(_4, mBranch);
+    m.putUnsafe(_5, mForce);
     return m;
   }
 
@@ -68,6 +74,7 @@ public class InstallConfig implements AbstractData {
     mMainClass = m.opt(_2, "");
     mSkipTests = m.opt(_3, false);
     mBranch = m.opt(_4, "");
+    mForce = m.opt(_5, false);
   }
 
   public static Builder newBuilder() {
@@ -93,6 +100,8 @@ public class InstallConfig implements AbstractData {
       return false;
     if (!(mBranch.equals(other.mBranch)))
       return false;
+    if (!(mForce == other.mForce))
+      return false;
     return true;
   }
 
@@ -106,6 +115,7 @@ public class InstallConfig implements AbstractData {
       r = r * 37 + mMainClass.hashCode();
       r = r * 37 + (mSkipTests ? 1 : 0);
       r = r * 37 + mBranch.hashCode();
+      r = r * 37 + (mForce ? 1 : 0);
       m__hashcode = r;
     }
     return r;
@@ -116,6 +126,7 @@ public class InstallConfig implements AbstractData {
   protected String mMainClass;
   protected boolean mSkipTests;
   protected String mBranch;
+  protected boolean mForce;
   protected int m__hashcode;
 
   public static final class Builder extends InstallConfig {
@@ -126,6 +137,7 @@ public class InstallConfig implements AbstractData {
       mMainClass = m.mMainClass;
       mSkipTests = m.mSkipTests;
       mBranch = m.mBranch;
+      mForce = m.mForce;
     }
 
     @Override
@@ -147,6 +159,7 @@ public class InstallConfig implements AbstractData {
       r.mMainClass = mMainClass;
       r.mSkipTests = mSkipTests;
       r.mBranch = mBranch;
+      r.mForce = mForce;
       return r;
     }
 
@@ -172,6 +185,11 @@ public class InstallConfig implements AbstractData {
 
     public Builder branch(String x) {
       mBranch = (x == null) ? "" : x;
+      return this;
+    }
+
+    public Builder force(boolean x) {
+      mForce = x;
       return this;
     }
 

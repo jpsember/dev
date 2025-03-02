@@ -77,11 +77,22 @@ public class InstallOper extends AppOper {
 
     File jarFile = null;
     {
-      log("calling 'mvn package'");
+
+      var mvnCommand = "package";
+
+      if (config().force()) {
+        log("using force option");
+        mvnCommand = "clean package --update-snapshots";
+      }
+
+      log("calling 'mvn " + mvnCommand + "'");
       var s = new SystemCall().directory(repoDir);
       s.setVerbose(verbose());
 
-      s.arg(Files.programPath("mvn"), "package");
+      s.arg(Files.programPath("mvn"));
+      for (var x : split(mvnCommand, ' ')) {
+        s.arg(x);
+      }
       if (config().skipTests())
         s.arg("-Dmaven.test.skip=true");
 
