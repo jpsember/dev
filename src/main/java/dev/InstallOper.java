@@ -46,6 +46,13 @@ public class InstallOper extends AppOper {
     var programName = config().program();
     checkNonEmpty(programName, "missing argument: program");
 
+    {
+      if (config().force()) {
+        log("force option in effect; deleting maven .lastUpdated files");
+        cleanUpMavenRepos();
+      }
+    }
+
     var repoName = config().repo();
     if (nullOrEmpty(repoName))
       repoName = programName;
@@ -158,6 +165,17 @@ public class InstallOper extends AppOper {
       files().chmod(scriptFile, 755);
     }
     log("done!");
+  }
+
+  private void cleanUpMavenRepos() {
+    log("cleanUpMavenRepos");
+    File mvnRepo = new File(Files.homeDirectory(), ".m2/repository");
+    Files.assertDirectoryExists(mvnRepo, "cleaning up maven repos");
+    var dw = new DirWalk(mvnRepo).withExtensions(".lastUpdated");
+    for (var f : dw.files()) {
+      log("...cleaning:", f);
+      todo("delete: " + f);
+    }
   }
 
   private InstallConfig mConfig;
