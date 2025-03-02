@@ -3,6 +3,7 @@ package dev;
 import static js.base.Tools.*;
 
 import java.io.File;
+import java.util.List;
 
 import dev.gen.InstallConfig;
 import js.app.AppOper;
@@ -168,17 +169,34 @@ public class InstallOper extends AppOper {
   }
 
   private void cleanUpMavenRepos() {
-    log("cleanUpMavenRepos");
-    File mvnRepo = new File(Files.homeDirectory(), ".m2/repository");
-    Files.assertDirectoryExists(mvnRepo, "cleaning up maven repos");
-    var dw = new DirWalk(mvnRepo);
-    for (var f : dw.files()) {
-      if (!Files.getExtension(f).equals("lastUpdated")) {
-        continue;
+
+    List<File> fileList = arrayList();
+
+    {
+      log("cleaning getrepo cache");
+      File repoCache = new File(Files.homeDirectory(), ".getrepo_cache.json");
+      if (repoCache.exists()) {
+        fileList.add(repoCache);
       }
+    }
+    {
+      log("cleanUpMavenRepos");
+      File mvnRepo = new File(Files.homeDirectory(), ".m2/repository");
+      Files.assertDirectoryExists(mvnRepo, "cleaning up maven repos");
+      var dw = new DirWalk(mvnRepo);
+      for (var f : dw.files()) {
+        if (!Files.getExtension(f).equals("lastUpdated")) {
+          continue;
+        }
+        fileList.add(f);
+      }
+    }
+
+    for (var f : fileList) {
       log("...cleaning:", f);
       Files.S.deleteFile(f);
     }
+
   }
 
   private InstallConfig mConfig;
