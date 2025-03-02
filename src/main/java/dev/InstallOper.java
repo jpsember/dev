@@ -69,12 +69,13 @@ public class InstallOper extends AppOper {
     var installConfig = Files.parseAbstractDataOpt(InstallConfig.DEFAULT_INSTANCE, driverSrc);
 
     {
-      log("calling 'dev getrepo'");
+      log("calling 'dev getrepo', verbosity:", verbose());
       var s = new SystemCall().directory(repoDir);
       s.setVerbose(verbose());
       s.arg(Files.programPath("dev"), "getrepo");
       if (verbose())
         s.arg("-v");
+      s.assertSuccess();
     }
 
     File jarFile = null;
