@@ -73,6 +73,8 @@ public class InstallOper extends AppOper {
       var s = new SystemCall().directory(repoDir);
       s.setVerbose(verbose());
       s.arg(Files.programPath("dev"), "getrepo");
+      if (verbose())
+        s.arg("-v");
     }
 
     File jarFile = null;
