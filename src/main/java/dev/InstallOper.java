@@ -21,7 +21,7 @@ public class InstallOper extends AppOper {
 
   @Override
   public String shortHelp() {
-    return "installs one of my programs from github, including a shell script to run it";
+    return "installs one of my programs from github, including a shell script to run it; use force option if maven complains";
   }
 
   @Override
@@ -81,6 +81,8 @@ public class InstallOper extends AppOper {
       var s = new SystemCall().directory(repoDir);
       s.setVerbose(verbose());
       s.arg(Files.programPath("dev"), "getrepo");
+      if (config().force())
+        s.arg("purge");
       if (verbose())
         s.arg("-v");
       s.assertSuccess();

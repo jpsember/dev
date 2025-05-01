@@ -46,6 +46,7 @@ public class GetRepoOper extends AppOper {
     hf.addItem(" name <user/repo>", "GitHub repository");
     hf.addItem("[ hash <hhhhhhh> ]", "commit hash");
     hf.addItem("[ version <x> ]", "version number to assign to Maven dependency");
+    hf.addItem("[ purge ]","purge our cached info about GitHub");
     b.pr(hf);
     b.br();
     b.pr("If no hash and version number are given, uses the most recent commit with version = '"
@@ -338,7 +339,7 @@ public class GetRepoOper extends AppOper {
 
     private void cloneRepo() {
       var sc = newSysCall(workDir());
-      sc.arg(Files.programPath("git"), "clone", "https://github.com/" + mRepoName + ".git");
+      sc.arg(Files.programPath("git"), "clone", "https://github.com/jpsember/" + mRepoName + ".git");
       // Git clone sends output to system error for some stupid reason
       ensureSysCallOkay(sc.systemErr(), "fatal:", "cloning repo");
     }
