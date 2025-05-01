@@ -339,7 +339,7 @@ public class GetRepoOper extends AppOper {
 
     private void cloneRepo() {
       var sc = newSysCall(workDir());
-      sc.arg(Files.programPath("git"), "clone", "https://github.com/jpsember/" + mRepoName + ".git");
+      sc.arg(Files.programPath("git"), "clone", "https://github.com/" + mRepoName + ".git");
       // Git clone sends output to system error for some stupid reason
       ensureSysCallOkay(sc.systemErr(), "fatal:", "cloning repo");
     }
