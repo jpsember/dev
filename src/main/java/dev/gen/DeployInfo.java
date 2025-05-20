@@ -1,5 +1,6 @@
 package dev.gen;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import js.data.AbstractData;
@@ -85,7 +86,7 @@ public class DeployInfo implements AbstractData {
     mVersion = m.opt(_0, "");
     mFiles = DataUtil.parseListOfObjects(FileEntry.DEFAULT_INSTANCE, m.optJSList(_1), false);
     mCreateDirs = DataUtil.parseListOfObjects(FileEntry.DEFAULT_INSTANCE, m.optJSList(_2), false);
-    mVariables = DataUtil.immutableCopyOf(DataUtil.parseListOfObjects(m.optJSList(_3), false)) /*DEBUG*/ ;
+    mVariables = DataUtil.parseListOfObjects(m.optJSList(_3), false);
     {
       mCheckPassphrase = DataUtil.EMPTY_BYTE_ARRAY;
       Object x = m.optUnsafe(_4);
@@ -153,9 +154,9 @@ public class DeployInfo implements AbstractData {
 
     private Builder(DeployInfo m) {
       mVersion = m.mVersion;
-      mFiles = DataUtil.immutableCopyOf(m.mFiles) /*DEBUG*/ ;
-      mCreateDirs = DataUtil.immutableCopyOf(m.mCreateDirs) /*DEBUG*/ ;
-      mVariables = DataUtil.immutableCopyOf(m.mVariables) /*DEBUG*/ ;
+      mFiles = DataUtil.mutableCopyOf(m.mFiles);
+      mCreateDirs = DataUtil.mutableCopyOf(m.mCreateDirs);
+      mVariables = DataUtil.mutableCopyOf(m.mVariables);
       mCheckPassphrase = m.mCheckPassphrase;
     }
 
@@ -174,9 +175,9 @@ public class DeployInfo implements AbstractData {
     public DeployInfo build() {
       DeployInfo r = new DeployInfo();
       r.mVersion = mVersion;
-      r.mFiles = mFiles;
-      r.mCreateDirs = mCreateDirs;
-      r.mVariables = mVariables;
+      r.mFiles = DataUtil.immutableCopyOf(mFiles);
+      r.mCreateDirs = DataUtil.immutableCopyOf(mCreateDirs);
+      r.mVariables = DataUtil.immutableCopyOf(mVariables);
       r.mCheckPassphrase = mCheckPassphrase;
       return r;
     }
@@ -187,17 +188,17 @@ public class DeployInfo implements AbstractData {
     }
 
     public Builder files(List<FileEntry> x) {
-      mFiles = DataUtil.immutableCopyOf((x == null) ? DataUtil.emptyList() : x) /*DEBUG*/ ;
+      mFiles = (x == null) ? new ArrayList(0) : x;
       return this;
     }
 
     public Builder createDirs(List<FileEntry> x) {
-      mCreateDirs = DataUtil.immutableCopyOf((x == null) ? DataUtil.emptyList() : x) /*DEBUG*/ ;
+      mCreateDirs = (x == null) ? new ArrayList(0) : x;
       return this;
     }
 
     public Builder variables(List<String> x) {
-      mVariables = DataUtil.immutableCopyOf((x == null) ? DataUtil.emptyList() : x) /*DEBUG*/ ;
+      mVariables = (x == null) ? new ArrayList(0) : x;
       return this;
     }
 

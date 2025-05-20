@@ -108,7 +108,7 @@ public class ArchiveRegistry implements AbstractData {
 
     private Builder(ArchiveRegistry m) {
       mVersion = m.mVersion;
-      mEntries = DataUtil.mutableCopyOf(m.mEntries);
+      mEntries = m.mEntries;
     }
 
     @Override
@@ -126,7 +126,7 @@ public class ArchiveRegistry implements AbstractData {
     public ArchiveRegistry build() {
       ArchiveRegistry r = new ArchiveRegistry();
       r.mVersion = mVersion;
-      r.mEntries = DataUtil.immutableCopyOf(mEntries);
+      r.mEntries = mEntries;
       return r;
     }
 
@@ -136,7 +136,7 @@ public class ArchiveRegistry implements AbstractData {
     }
 
     public Builder entries(Map<String, ArchiveEntry> x) {
-      mEntries = DataUtil.mutableCopyOf((x == null) ? DataUtil.emptyMap() : x);
+      mEntries = (x == null) ? DataUtil.emptyMap() : x;
       return this;
     }
 

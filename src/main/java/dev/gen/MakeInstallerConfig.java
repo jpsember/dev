@@ -106,7 +106,7 @@ public class MakeInstallerConfig implements AbstractData {
           Map<String, String> mp = new ConcurrentHashMap<>();
           for (Map.Entry<String, Object> e : m2.wrappedMap().entrySet())
             mp.put(e.getKey(), (String) e.getValue());
-          mPrograms = DataUtil.immutableCopyOf(mp) /*DEBUG*/ ;
+          mPrograms = mp;
         }
       }
     }
@@ -133,7 +133,7 @@ public class MakeInstallerConfig implements AbstractData {
           Map<String, String> mp = new ConcurrentHashMap<>();
           for (Map.Entry<String, Object> e : m2.wrappedMap().entrySet())
             mp.put(e.getKey(), (String) e.getValue());
-          mSourceVariables = DataUtil.immutableCopyOf(mp) /*DEBUG*/ ;
+          mSourceVariables = mp;
         }
       }
     }
@@ -217,11 +217,11 @@ public class MakeInstallerConfig implements AbstractData {
 
     private Builder(MakeInstallerConfig m) {
       mVersionNumber = m.mVersionNumber;
-      mPrograms = DataUtil.immutableCopyOf(m.mPrograms) /*DEBUG*/ ;
+      mPrograms = m.mPrograms;
       mScriptsDir = m.mScriptsDir;
       mOutput = m.mOutput;
       mSecretPassphrase = m.mSecretPassphrase;
-      mSourceVariables = DataUtil.immutableCopyOf(m.mSourceVariables) /*DEBUG*/ ;
+      mSourceVariables = m.mSourceVariables;
       mProjectDirectory = m.mProjectDirectory;
       mFileList = m.mFileList;
     }
@@ -257,7 +257,7 @@ public class MakeInstallerConfig implements AbstractData {
     }
 
     public Builder programs(Map<String, String> x) {
-      mPrograms = DataUtil.immutableCopyOf((x == null) ? DataUtil.emptyMap() : x) /*DEBUG*/ ;
+      mPrograms = (x == null) ? DataUtil.emptyMap() : x;
       return this;
     }
 
@@ -277,7 +277,7 @@ public class MakeInstallerConfig implements AbstractData {
     }
 
     public Builder sourceVariables(Map<String, String> x) {
-      mSourceVariables = DataUtil.immutableCopyOf((x == null) ? DataUtil.emptyMap() : x) /*DEBUG*/ ;
+      mSourceVariables = (x == null) ? DataUtil.emptyMap() : x;
       return this;
     }
 

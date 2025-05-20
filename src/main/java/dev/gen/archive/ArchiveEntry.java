@@ -1,6 +1,7 @@
 package dev.gen.archive;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.List;
 import js.data.AbstractData;
 import js.data.DataUtil;
@@ -47,13 +48,11 @@ public class ArchiveEntry implements AbstractData {
     m.putUnsafe(_0, mVersion);
     m.putUnsafe(_1, mPath.toString());
     m.putUnsafe(_2, mDirectory);
-    if (mFileExtensions != null) {
-      {
-        JSList j = new JSList();
-        for (String x : mFileExtensions)
-          j.add(x);
-        m.put(_3, j);
-      }
+    {
+      JSList j = new JSList();
+      for (String x : mFileExtensions)
+        j.add(x);
+      m.put(_3, j);
     }
     return m;
   }
@@ -78,7 +77,7 @@ public class ArchiveEntry implements AbstractData {
       }
     }
     mDirectory = m.opt(_2, false);
-    mFileExtensions = DataUtil.parseListOfObjects(m.optJSList(_3), true);
+    mFileExtensions = DataUtil.parseListOfObjects(m.optJSList(_3), false);
   }
 
   public static Builder newBuilder() {
@@ -100,12 +99,8 @@ public class ArchiveEntry implements AbstractData {
       return false;
     if (!(mDirectory == other.mDirectory))
       return false;
-    if ((mFileExtensions == null) ^ (other.mFileExtensions == null))
+    if (!(mFileExtensions.equals(other.mFileExtensions)))
       return false;
-    if (mFileExtensions != null) {
-      if (!(mFileExtensions.equals(other.mFileExtensions)))
-        return false;
-    }
     return true;
   }
 
@@ -117,11 +112,9 @@ public class ArchiveEntry implements AbstractData {
       r = r * 37 + mVersion;
       r = r * 37 + mPath.hashCode();
       r = r * 37 + (mDirectory ? 1 : 0);
-      if (mFileExtensions != null) {
-        for (String x : mFileExtensions)
-          if (x != null)
-            r = r * 37 + x.hashCode();
-      }
+      for (String x : mFileExtensions)
+        if (x != null)
+          r = r * 37 + x.hashCode();
       m__hashcode = r;
     }
     return r;
@@ -179,7 +172,7 @@ public class ArchiveEntry implements AbstractData {
     }
 
     public Builder fileExtensions(List<String> x) {
-      mFileExtensions = DataUtil.mutableCopyOf(x);
+      mFileExtensions = (x == null) ? new ArrayList(0) : x;
       return this;
     }
 
@@ -189,6 +182,7 @@ public class ArchiveEntry implements AbstractData {
 
   private ArchiveEntry() {
     mPath = Files.DEFAULT;
+    mFileExtensions = DataUtil.emptyList();
   }
 
 }

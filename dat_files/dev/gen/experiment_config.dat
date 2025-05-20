@@ -1,4 +1,4 @@
-fields {
+class {
   File file_arg;
   string string_arg = "hello";
   bool bool_arg;

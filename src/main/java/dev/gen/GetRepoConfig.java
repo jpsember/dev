@@ -1,5 +1,6 @@
 package dev.gen;
 
+import java.util.ArrayList;
 import java.util.List;
 import js.data.AbstractData;
 import js.data.DataUtil;
@@ -109,7 +110,7 @@ public class GetRepoConfig implements AbstractData {
   public static final class Builder extends GetRepoConfig {
 
     private Builder(GetRepoConfig m) {
-      mEntries = DataUtil.immutableCopyOf(m.mEntries) /*DEBUG*/ ;
+      mEntries = DataUtil.mutableCopyOf(m.mEntries);
       mLatest = m.mLatest;
       mPurge = m.mPurge;
     }
@@ -128,14 +129,14 @@ public class GetRepoConfig implements AbstractData {
     @Override
     public GetRepoConfig build() {
       GetRepoConfig r = new GetRepoConfig();
-      r.mEntries = mEntries;
+      r.mEntries = DataUtil.immutableCopyOf(mEntries);
       r.mLatest = mLatest;
       r.mPurge = mPurge;
       return r;
     }
 
     public Builder entries(List<GetRepoEntry> x) {
-      mEntries = DataUtil.immutableCopyOf((x == null) ? DataUtil.emptyList() : x) /*DEBUG*/ ;
+      mEntries = (x == null) ? new ArrayList(0) : x;
       return this;
     }
 

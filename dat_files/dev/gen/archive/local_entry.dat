@@ -1,6 +1,6 @@
 enum Oper;
 
-fields {
+class {
 
   int version;
 

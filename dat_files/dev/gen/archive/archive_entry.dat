@@ -1,4 +1,4 @@
-fields {
+class {
 
   int version;
 
@@ -12,5 +12,5 @@ fields {
   // others intact.
   // Does not recurse into subdirectories (though this may change)
   //
-  ? * string file_extensions;
+  * string file_extensions;
 }

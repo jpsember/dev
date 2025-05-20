@@ -1,4 +1,4 @@
-fields {
+class {
   string version = "2.0";
   map string LocalEntry entries;
 }

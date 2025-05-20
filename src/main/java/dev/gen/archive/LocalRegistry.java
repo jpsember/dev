@@ -108,7 +108,7 @@ public class LocalRegistry implements AbstractData {
 
     private Builder(LocalRegistry m) {
       mVersion = m.mVersion;
-      mEntries = DataUtil.mutableCopyOf(m.mEntries);
+      mEntries = m.mEntries;
     }
 
     @Override
@@ -126,7 +126,7 @@ public class LocalRegistry implements AbstractData {
     public LocalRegistry build() {
       LocalRegistry r = new LocalRegistry();
       r.mVersion = mVersion;
-      r.mEntries = DataUtil.immutableCopyOf(mEntries);
+      r.mEntries = mEntries;
       return r;
     }
 
@@ -136,7 +136,7 @@ public class LocalRegistry implements AbstractData {
     }
 
     public Builder entries(Map<String, LocalEntry> x) {
-      mEntries = DataUtil.mutableCopyOf((x == null) ? DataUtil.emptyMap() : x);
+      mEntries = (x == null) ? DataUtil.emptyMap() : x;
       return this;
     }
 

@@ -1,4 +1,4 @@
-fields {
+class {
   File parent_dir;  // If nonempty, the directory to contain the app
   string name; // name of app; e.g. "dfa"
   bool omit_json_args;
