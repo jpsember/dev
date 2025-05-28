@@ -36,7 +36,7 @@ import js.testutil.MyTestCase;
 public class JsonConvertTest extends MyTestCase {
 
   @Test
-  public void sample() {
+  public void sample() { 
     addArg("json-convert");
     addArg(testDataDir());
     addArg(generatedDir());
