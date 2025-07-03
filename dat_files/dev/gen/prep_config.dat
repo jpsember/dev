@@ -1,0 +1,5 @@
+class {
+    File dir;
+    bool save;
+    bool restore;
+}
