@@ -4,6 +4,12 @@
 #
 !!FILTER!!
 
+>>>sh
+
+# Omit entire file
+#
+!!FILTER!!
+
 
 # The first pattern indicates that if it occurs in the file, the entire
 # file should be deleted
