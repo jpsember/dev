@@ -17,7 +17,7 @@ import java.util.regex.Pattern;
 public class PrepOper extends AppOper {
 
   private static final int MAX_BACKUP_SETS = 5;
-  private static final boolean SINGLE_SET = true;
+  private static final boolean SINGLE_SET = false && alert("SINGLE_SET in effect");
 
   @Override
   public String userCommand() {
@@ -53,7 +53,7 @@ public class PrepOper extends AppOper {
 
   @Override
   public void perform() {
-    alertVerbose();
+    //alertVerbose();
     log("Project directory:", projectDir());
     log("Cache directory:", cacheDir());
     log("Saving:", saving(), "Restoring:", restoring());
@@ -65,6 +65,28 @@ public class PrepOper extends AppOper {
     }
   }
 
+
+  private boolean saving() {
+    if (mSaving == null) {
+      if (config().save())
+        mSaving = true;
+      else if (config().restore())
+        mSaving = false;
+      else
+        throw setError("Specify save or restore operation");
+    }
+    return mSaving;
+  }
+
+  private boolean restoring() {
+    return !saving();
+  }
+
+  /**
+   * Determine the project directory by looking in the config directory
+   * (or the current directory, if none was specified) or one of its parents
+   * for a ".git" subdirectory
+   */
   private File projectDir() {
     if (mProjectDir == null) {
       var begin = config().dir();
@@ -88,6 +110,10 @@ public class PrepOper extends AppOper {
     return mProjectDir;
   }
 
+  /**
+   * Determine the project cache directory.  This is where it will store
+   * sets of backups (each within a separate numbered subdirectory)
+   */
   private File cacheDir() {
     if (mCacheDir == null) {
       var p = projectDir().toString();
@@ -99,35 +125,27 @@ public class PrepOper extends AppOper {
     return mCacheDir;
   }
 
-  private boolean saving() {
-    if (mSaving == null) {
-      if (config().save())
-        mSaving = true;
-      else if (config().restore())
-        mSaving = false;
-      else
-        throw setError("Specify save or restore operation");
-    }
-    return mSaving;
-  }
-
-  private boolean restoring() {
-    return !saving();
-  }
-
+  /**
+   * Construct a DirWalk for a directory.  It will walk through all supported source file types
+   */
   private DirWalk getWalker(File dir) {
-    return new DirWalk(dir).withExtensions("java", "rs");
+    return new DirWalk(dir).withExtensions(split(config().sourceFileExtensions(), ' '));
   }
 
   private void doSave() {
     int modifiedFilesWithinProject = 0;
+
     var w = getWalker(projectDir());
-    for (var f : w.files()) {
 
-      log("file:", w.rel(f));
-      var text = Files.readString(f);
+    for (var sourceFile : w.files()) {
 
-      var newText = new StringBuilder(text);
+      log("file:", w.rel(sourceFile));
+      var currText = Files.readString(sourceFile);
+
+      // Construct a copy of the source file that we can
+      // edit as we handle pattern matches
+      //
+      var newText = new StringBuilder(currText);
 
       int matchesWithinFile = 0;
       boolean deleteFile = false;
@@ -138,10 +156,12 @@ public class PrepOper extends AppOper {
       for (var p : patterns()) {
         patIndex++;
 
-        var m = p.matcher(text);
+        var m = p.matcher(currText);
         while (m.find()) {
           matchesWithinFile++;
 
+          // The first pattern is special: if a match is found, the entire file is deleted.
+          //
           if (patIndex == 0) {
             deleteFile = true;
             break outer;
@@ -162,21 +182,21 @@ public class PrepOper extends AppOper {
 
       if (matchesWithinFile != 0) {
         modifiedFilesWithinProject++;
-        var rel = w.rel(f);
+        var rel = w.rel(sourceFile);
         var dest = new File(getSaveDir(), rel.toString());
         log("...match found:", INDENT, rel);
         log("...saving to:", INDENT, dest);
         files().mkdirs(Files.parent(dest));
-        files().copyFile(f, dest);
+        files().copyFile(sourceFile, dest);
 
         if (deleteFile) {
           log("...filtering entire file:", rel);
-          files().deleteFile(f);
+          files().deleteFile(sourceFile);
         } else {
           // Write new filtered form
           var filteredContent = newText.toString();
           log("...writing filtered version of:", rel, INDENT, filteredContent);
-          files().writeString(f, filteredContent);
+          files().writeString(sourceFile, filteredContent);
         }
       }
     }
@@ -189,22 +209,6 @@ public class PrepOper extends AppOper {
   private File getSaveDir() {
     if (mSaveDir == null) {
       var found = auxGetCacheDirs();
-//      pr(VERT_SP, "************ CREATING NEW SAVE DIR", VERT_SP);
-//      var w = new DirWalk(cacheDir()).withRecurse(false).includeDirectories();
-//      List<File> found = arrayList();
-//
-//      for (var f : w.files()) {
-//        if (f.isDirectory()) {
-//          if (false && alert("deleting all existing")) {
-//            files().deleteDirectory(f, "prep_oper_cache");
-//            continue;
-//          }
-//          found.add(f);
-//        }
-//      }
-//      found.sort(Files.COMPARATOR);
-//      log("found backup dirs:", INDENT, found);
-
       while (found.size() > MAX_BACKUP_SETS || (!found.isEmpty() && SINGLE_SET)) {
         var oldest = found.remove(0);
         files().deleteDirectory(oldest, "prep_oper_cache");
@@ -242,6 +246,9 @@ public class PrepOper extends AppOper {
     log("# files restored:", restoreCount);
   }
 
+  /**
+   * Construct a sorted list of all cache subdirectories found for the project
+   */
   private List<File> auxGetCacheDirs() {
     var w = new DirWalk(cacheDir()).withRecurse(false).includeDirectories();
     List<File> found = arrayList();
@@ -258,14 +265,6 @@ public class PrepOper extends AppOper {
   private File getRestoreDir() {
     if (mRestoreDir == null) {
       var found = auxGetCacheDirs();
-//      var w = new DirWalk(cacheDir()).withRecurse(false).includeDirectories();
-//      List<File> found = arrayList();
-//      for (var f : w.files()) {
-//        if (f.isDirectory()) {
-//          found.add(f);
-//        }
-//      }
-//      found.sort(Files.COMPARATOR);
       mRestoreDir = Files.DEFAULT;
       if (!found.isEmpty()) mRestoreDir = last(found);
     }

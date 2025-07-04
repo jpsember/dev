@@ -2,4 +2,8 @@ class {
     File dir;
     bool save;
     bool restore;
+
+    // Space delimited list of source file extensions to examine
+    //
+    string source_file_extensions = "java rs";
 }
