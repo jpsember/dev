@@ -1,3 +1,9 @@
+# The first pattern indicates that if it occurs in the file, the entire
+# file should be deleted
+#
+//!FILTER!
+
+
 #  pr("hello",(1+3));
 #
 pr\([^;]*;

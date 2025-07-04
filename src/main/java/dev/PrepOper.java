@@ -115,17 +115,6 @@ public class PrepOper extends AppOper {
     return !saving();
   }
 
-  private static boolean isSpaceOrTab(char c) {
-    return (c == ' ' || c == (char) 0x09);
-  }
-
-  private int[] extendWithinWhiteSpace(String text, int a, int b) {
-    while (a - 1 >= 0 && isSpaceOrTab(text.charAt(a - 1)))
-      a--;
-    while (b < text.length() && isSpaceOrTab(text.charAt(b))) b++;
-    return new int[]{a, b};
-  }
-
   private void doSave() {
     int modifiedFilesWithinProject = 0;
     var w = new DirWalk(projectDir()).withExtensions("java", "rs");
@@ -137,14 +126,22 @@ public class PrepOper extends AppOper {
       var newText = new StringBuilder(text);
 
       int matchesWithinFile = 0;
+      boolean deleteFile = false;
 
       // Apply each of the patterns
+      var patIndex = INIT_INDEX;
+      outer:
       for (var p : patterns()) {
+        patIndex++;
 
         var m = p.matcher(text);
         while (m.find()) {
           matchesWithinFile++;
 
+          if (patIndex == 0) {
+            deleteFile = true;
+            break outer;
+          }
           var start = m.start();
           var end = m.end();
 
@@ -155,57 +152,6 @@ public class PrepOper extends AppOper {
             if (c != '\n')
               newText.setCharAt(j, ' ');
           }
-
-//          // If the matching text is alone on its line (except for whitespace),
-//          // delete the whole line; otherwise, just the text itself
-//          var wsExtent = extendWithinWhiteSpace(text, start, end);
-//          var a = wsExtent[0];
-//          var b = wsExtent[1];
-//
-//          var deleteLine = false;
-//          var trimLeft = start;
-//          var trimRight = end;
-//          {
-//            if ((a - 1 < 0 || text.charAt(a - 1) == '\n')  && (b == text.length() || text.charAt(b) == '\n')) {
-//              trimLeft = a;
-//              trimRight = b;
-//              deleteLine = true;
-//            }
-//          }
-//
-//          if (deleteLine) {
-//
-//          }
-//          // find start of line containing start, and end of line containing end
-//          int j = start;
-//          boolean startLineFlag = false;
-//          while (true) {
-//            if (j - 1 < 0) {
-//              startLineFlag = true;
-//              break;
-//            }
-//            char c = text.charAt(j - 1);
-//            if (!(c == 0x20 || c == 0x09)) {
-//              if (c == '\n') startLineFlag = true;
-//              break;
-//            }
-//            j--;
-//          }
-//          boolean endLineFlag = false;
-//          int k = end;
-//          while (true) {
-//            if (k >= text.length()) {
-//              endLineFlag = true;
-//              break;
-//            }
-//            char c = text.charAt(k);
-//            if (!(c == 0x20 || c == 0x09)) {
-//              if (c == '\n') endLineFlag = true;
-//              break;
-//            }
-//            k++;
-//          }
-
         }
       }
 
@@ -219,10 +165,15 @@ public class PrepOper extends AppOper {
         files().mkdirs(Files.parent(dest));
         files().copyFile(f, dest);
 
-        // Write new filtered form
-        var filteredContent = newText.toString();
-        log("...writing filtered version of:", rel, INDENT, filteredContent);
-        files().writeString(f, filteredContent);
+        if (deleteFile) {
+          log("...filtering entire file:", rel);
+          files().deleteFile(f);
+        } else {
+          // Write new filtered form
+          var filteredContent = newText.toString();
+          log("...writing filtered version of:", rel, INDENT, filteredContent);
+          files().writeString(f, filteredContent);
+        }
       }
     }
 
