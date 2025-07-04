@@ -340,7 +340,6 @@ public class PrepOper extends AppOper {
           mNewText.setCharAt(i, ERASE_CHAR);
 
         mMatchesWithinFile++;
-
       }
     }
 
@@ -357,19 +356,23 @@ public class PrepOper extends AppOper {
 
     var lineContainedChars = false;
     int bufferedSpaceCount = 0;
+    var eraseFound = false;
     int i = 0;
     while (i < s.length()) {
       var c = s.charAt(i++);
       if (c == '\n') {
         // If the line had some non-whitespace characters
-        if (lineContainedChars) {
+        if (lineContainedChars || !eraseFound) {
           out.append('\n');
         }
         lineContainedChars = false;
         bufferedSpaceCount = 0;
+        eraseFound = false;
       } else if (c <= ' ') {
         bufferedSpaceCount++;
-      } else if (c != ERASE_CHAR) {
+      } else if (c == ERASE_CHAR) {
+        eraseFound = true;
+      } else {
         lineContainedChars = true;
         for (int j = 0; j < bufferedSpaceCount; j++) {
           out.append(' ');
