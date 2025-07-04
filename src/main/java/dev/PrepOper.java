@@ -85,7 +85,7 @@ public class PrepOper extends AppOper {
   /**
    * Determine the project directory by looking in the config directory
    * (or the current directory, if none was specified) or one of its parents
-   * for a ".git" subdirectory
+   * for a ".git" subdirectory (or whatever the config.project_file specifies)
    */
   private File projectDir() {
     if (mProjectDir == null) {
@@ -97,8 +97,8 @@ public class PrepOper extends AppOper {
       // Find project root
       var cursor = begin;
       while (true) {
-        var gitDir = new File(cursor, ".git");
-        if (gitDir.isDirectory()) {
+        var projectFile = new File(cursor, config().projectFile().toString());
+        if (projectFile.exists()) {
           mProjectDir = cursor;
           break;
         }
@@ -116,10 +116,16 @@ public class PrepOper extends AppOper {
    */
   private File cacheDir() {
     if (mCacheDir == null) {
-      var p = projectDir().toString();
-      p = p.replaceAll("[\\x3a\\x5c\\x2f\\x20]", "_");
-      log("cache dir:", projectDir(), "=>", p);
-      mCacheDir = Files.getDesktopFile(".prep_oper_cache/" + p);
+      var pathExp = config().cachePathExpr();
+      if (nullOrEmpty(pathExp))
+        pathExp = projectDir().toString();
+      pathExp = pathExp.replaceAll("[\\x3a\\x5c\\x2f\\x20]", "_");
+      log("cache dir:", projectDir(), "=>", pathExp);
+      String rel = config().cacheFilename() + "/" + pathExp;
+      if (Files.empty(config().cacheDir()))
+        mCacheDir = Files.getDesktopFile(rel);
+      else
+        mCacheDir = new File(config().cacheDir(), rel);
       files().mkdirs(mCacheDir);
     }
     return mCacheDir;
@@ -205,8 +211,7 @@ public class PrepOper extends AppOper {
           // Write new filtered form
           var filteredContent = newText.toString();
           log("...writing filtered version of:", rel, INDENT, filteredContent);
-          if (!alert("NOT writing!"))
-            files().writeString(sourceFile, filteredContent);
+          files().writeString(sourceFile, filteredContent);
         }
       }
     }

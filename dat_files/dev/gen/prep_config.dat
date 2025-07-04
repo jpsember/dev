@@ -3,6 +3,8 @@ class {
     bool save;
     bool restore;
 
+    File project_file = ".git";
+
     // Space delimited list of source file extensions to examine
     //
     string source_file_extensions = "java rs";
@@ -11,4 +13,16 @@ class {
     // Otherwise, uses defaults.
     //
     File pattern_file;
+
+    // ---- These are exposed only for unit tests
+
+    // If empty, uses a hidden file on the desktop
+    //
+    File cache_dir;
+
+    File cache_filename = ".prep_oper_cache";
+
+    // A substring to insert in the cache path to distinguish from other projects.
+    // If empty, uses something derived from the full project path.
+    string cache_path_expr;
 }
