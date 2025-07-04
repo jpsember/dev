@@ -56,6 +56,7 @@ public class PrepOper extends AppOper {
 
   @Override
   public void perform() {
+    files().withDryRun(dryRun());
     //alertVerbose();
     log("Project directory:", projectDir());
     log("Cache directory:", cacheDir());
@@ -204,7 +205,6 @@ public class PrepOper extends AppOper {
       log("file:", w.rel(sourceFile));
       var currText = Files.readString(sourceFile);
       applyFilter(currText, patterns);
-
 
       if (mDeleteFileFlag || mMatchesWithinFile != 0) {
         modifiedFilesWithinProject++;
