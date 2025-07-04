@@ -23,6 +23,10 @@ public class PrepConfig implements AbstractData {
     return mSourceFileExtensions;
   }
 
+  public File patternFile() {
+    return mPatternFile;
+  }
+
   @Override
   public Builder toBuilder() {
     return new Builder(this);
@@ -32,6 +36,7 @@ public class PrepConfig implements AbstractData {
   protected static final String _1 = "save";
   protected static final String _2 = "restore";
   protected static final String _3 = "source_file_extensions";
+  protected static final String _4 = "pattern_file";
 
   @Override
   public String toString() {
@@ -45,6 +50,7 @@ public class PrepConfig implements AbstractData {
     m.putUnsafe(_1, mSave);
     m.putUnsafe(_2, mRestore);
     m.putUnsafe(_3, mSourceFileExtensions);
+    m.putUnsafe(_4, mPatternFile.toString());
     return m;
   }
 
@@ -69,6 +75,13 @@ public class PrepConfig implements AbstractData {
     mSave = m.opt(_1, false);
     mRestore = m.opt(_2, false);
     mSourceFileExtensions = m.opt(_3, "java rs");
+    {
+      mPatternFile = Files.DEFAULT;
+      String x = m.opt(_4, (String) null);
+      if (x != null) {
+        mPatternFile = new File(x);
+      }
+    }
   }
 
   public static Builder newBuilder() {
@@ -92,6 +105,8 @@ public class PrepConfig implements AbstractData {
       return false;
     if (!(mSourceFileExtensions.equals(other.mSourceFileExtensions)))
       return false;
+    if (!(mPatternFile.equals(other.mPatternFile)))
+      return false;
     return true;
   }
 
@@ -104,6 +119,7 @@ public class PrepConfig implements AbstractData {
       r = r * 37 + (mSave ? 1 : 0);
       r = r * 37 + (mRestore ? 1 : 0);
       r = r * 37 + mSourceFileExtensions.hashCode();
+      r = r * 37 + mPatternFile.hashCode();
       m__hashcode = r;
     }
     return r;
@@ -113,6 +129,7 @@ public class PrepConfig implements AbstractData {
   protected boolean mSave;
   protected boolean mRestore;
   protected String mSourceFileExtensions;
+  protected File mPatternFile;
   protected int m__hashcode;
 
   public static final class Builder extends PrepConfig {
@@ -122,6 +139,7 @@ public class PrepConfig implements AbstractData {
       mSave = m.mSave;
       mRestore = m.mRestore;
       mSourceFileExtensions = m.mSourceFileExtensions;
+      mPatternFile = m.mPatternFile;
     }
 
     @Override
@@ -142,6 +160,7 @@ public class PrepConfig implements AbstractData {
       r.mSave = mSave;
       r.mRestore = mRestore;
       r.mSourceFileExtensions = mSourceFileExtensions;
+      r.mPatternFile = mPatternFile;
       return r;
     }
 
@@ -165,6 +184,11 @@ public class PrepConfig implements AbstractData {
       return this;
     }
 
+    public Builder patternFile(File x) {
+      mPatternFile = (x == null) ? Files.DEFAULT : x;
+      return this;
+    }
+
   }
 
   public static final PrepConfig DEFAULT_INSTANCE = new PrepConfig();
@@ -172,6 +196,7 @@ public class PrepConfig implements AbstractData {
   private PrepConfig() {
     mDir = Files.DEFAULT;
     mSourceFileExtensions = "java rs";
+    mPatternFile = Files.DEFAULT;
   }
 
 }

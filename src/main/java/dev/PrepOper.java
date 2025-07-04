@@ -155,9 +155,20 @@ public class PrepOper extends AppOper {
       outer:
       for (var p : patterns()) {
         patIndex++;
-
         var m = p.matcher(currText);
         while (m.find()) {
+          // Make sure the text is either at the start of a line, or
+          // is preceded by some whitespace.
+          var start = m.start();
+          var end = m.end();
+
+          log("...found match for pattern:", p, "at start:", start, "to:", end, "text:", currText.substring(start, end));
+
+          if (!(start == 0 || currText.charAt(start - 1) <= ' ')) {
+            log("...pattern does NOT occur at start of line, ignoring");
+            continue;
+          }
+
           matchesWithinFile++;
 
           // The first pattern is special: if a match is found, the entire file is deleted.
@@ -166,8 +177,6 @@ public class PrepOper extends AppOper {
             deleteFile = true;
             break outer;
           }
-          var start = m.start();
-          var end = m.end();
 
           // Replace all non-linefeed characters from start to end with spaces.
           // Do this in the new text buffer, not the one we're matching within.
@@ -276,13 +285,27 @@ public class PrepOper extends AppOper {
   private List<Pattern> patterns() {
     if (mPatterns == null) {
       List<Pattern> p = arrayList();
-      var text = Files.readString(this.getClass(), "prep_default.txt");
+      String text;
+
+      var patFile = config().patternFile();
+      if (Files.nonEmpty(patFile)) {
+        Files.assertExists(patFile, "pattern_file");
+        text = Files.readString(patFile);
+      } else
+        text = Files.readString(this.getClass(), "prep_default.txt");
+
       for (var x : split(text, '\n')) {
         x = x.trim();
         if (x.startsWith("#")) continue;
         if (x.isEmpty()) continue;
-        var expr = RegExp.pattern(x);
-        p.add(expr);
+
+        // If the pattern ends with '(;', replace this suffix with
+        // something that accepts any amount of text following ( that does NOT include
+        // a semicolon, followed by a semicolon.
+        var y = chomp(x, "(;");
+        if (y != x)
+          x = y + "\\x28[^;]*;";
+        p.add(RegExp.pattern(x));
       }
       mPatterns = p;
     }

@@ -6,4 +6,9 @@ class {
     // Space delimited list of source file extensions to examine
     //
     string source_file_extensions = "java rs";
+
+    // If not empty, where to look for patterns.
+    // Otherwise, uses defaults.
+    //
+    File pattern_file;
 }
