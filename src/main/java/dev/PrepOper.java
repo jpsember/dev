@@ -115,9 +115,13 @@ public class PrepOper extends AppOper {
     return !saving();
   }
 
+  private DirWalk getWalker(File dir) {
+    return new DirWalk(dir).withExtensions("java", "rs");
+  }
+
   private void doSave() {
     int modifiedFilesWithinProject = 0;
-    var w = new DirWalk(projectDir()).withExtensions("java", "rs");
+    var w = getWalker(projectDir());
     for (var f : w.files()) {
 
       log("file:", w.rel(f));
@@ -184,21 +188,22 @@ public class PrepOper extends AppOper {
 
   private File getSaveDir() {
     if (mSaveDir == null) {
-      pr(VERT_SP, "************ CREATING NEW SAVE DIR", VERT_SP);
-      var w = new DirWalk(cacheDir()).withRecurse(false).includeDirectories();
-      List<File> found = arrayList();
-
-      for (var f : w.files()) {
-        if (f.isDirectory()) {
-          if (false && alert("deleting all existing")) {
-            files().deleteDirectory(f, "prep_oper_cache");
-            continue;
-          }
-          found.add(f);
-        }
-      }
-      found.sort(Files.COMPARATOR);
-      log("found backup dirs:", INDENT, found);
+      var found = auxGetCacheDirs();
+//      pr(VERT_SP, "************ CREATING NEW SAVE DIR", VERT_SP);
+//      var w = new DirWalk(cacheDir()).withRecurse(false).includeDirectories();
+//      List<File> found = arrayList();
+//
+//      for (var f : w.files()) {
+//        if (f.isDirectory()) {
+//          if (false && alert("deleting all existing")) {
+//            files().deleteDirectory(f, "prep_oper_cache");
+//            continue;
+//          }
+//          found.add(f);
+//        }
+//      }
+//      found.sort(Files.COMPARATOR);
+//      log("found backup dirs:", INDENT, found);
 
       while (found.size() > MAX_BACKUP_SETS || (!found.isEmpty() && SINGLE_SET)) {
         var oldest = found.remove(0);
@@ -219,8 +224,55 @@ public class PrepOper extends AppOper {
   private File mSaveDir;
 
   private void doRestore() {
-    throw notFinished();
+    var restDir = getRestoreDir();
+    if (Files.empty(restDir))
+      throw setError("No cache directories found to restore from");
+    var w = getWalker(restDir);
+    int restoreCount = 0;
+    for (var f : w.filesRelative()) {
+      File source = w.abs(f);
+      File dest = new File(projectDir(), f.getPath());
+      log("restoring:", INDENT, source, CR, dest);
+      files().mkdirs(Files.parent(dest));
+      files().copyFile(source, dest, true);
+      restoreCount++;
+    }
+    if (restoreCount == 0)
+      pr("*** No files were restored!");
+    log("# files restored:", restoreCount);
   }
+
+  private List<File> auxGetCacheDirs() {
+    var w = new DirWalk(cacheDir()).withRecurse(false).includeDirectories();
+    List<File> found = arrayList();
+    for (var f : w.files()) {
+      if (f.isDirectory()) {
+        found.add(f);
+      }
+    }
+    found.sort(Files.COMPARATOR);
+    log("found cache dirs:", INDENT, found);
+    return found;
+  }
+
+  private File getRestoreDir() {
+    if (mRestoreDir == null) {
+      var found = auxGetCacheDirs();
+//      var w = new DirWalk(cacheDir()).withRecurse(false).includeDirectories();
+//      List<File> found = arrayList();
+//      for (var f : w.files()) {
+//        if (f.isDirectory()) {
+//          found.add(f);
+//        }
+//      }
+//      found.sort(Files.COMPARATOR);
+      mRestoreDir = Files.DEFAULT;
+      if (!found.isEmpty()) mRestoreDir = last(found);
+    }
+    return mRestoreDir;
+  }
+
+  private File mRestoreDir;
 
   private List<Pattern> patterns() {
     if (mPatterns == null) {
