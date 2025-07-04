@@ -8,6 +8,8 @@
 pr\([^;]*;
 
 
+//~\[[^~]*//~\]
+
 
 # Importing my tools
 #

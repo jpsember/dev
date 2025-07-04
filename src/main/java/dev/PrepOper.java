@@ -147,9 +147,7 @@ public class PrepOper extends AppOper {
 
       log("file:", w.rel(sourceFile));
       var currText = Files.readString(sourceFile);
-
-      var newText = applyFilter(currText);
-
+      applyFilter(currText);
 
       if (mMatchesWithinFile != 0) {
         modifiedFilesWithinProject++;
@@ -165,7 +163,7 @@ public class PrepOper extends AppOper {
           files().deleteFile(sourceFile);
         } else {
           // Write new filtered form
-          var filteredContent = newText.toString();
+          var filteredContent = mNewText.toString();
           log("...writing filtered version of:", rel, INDENT, filteredContent);
           files().writeString(sourceFile, filteredContent);
         }
@@ -275,19 +273,17 @@ public class PrepOper extends AppOper {
   }
 
 
-  private String applyFilter(String currText) {
+  private static final char ERASE_CHAR = 0x7f;
 
-    // Construct a copy of the source file that we can
-    // edit as we handle pattern matches
-    //
-    var newText = new StringBuilder(currText);
+  private void applyFilter(String currText) {
+
+    mNewText = new StringBuilder(currText);
 
     mMatchesWithinFile = 0;
     mDeleteFileFlag = false;
 
     // Apply each of the patterns
     var patIndex = INIT_INDEX;
-    outer:
     for (var p : patterns()) {
       patIndex++;
       var m = p.matcher(currText);
@@ -297,12 +293,16 @@ public class PrepOper extends AppOper {
         var start = m.start();
         var end = m.end();
 
-        log("...found match for pattern:", p, "at start:", start, "to:", end, "text:", currText.substring(start, end));
+        if (verbose())
+          log("...found match for pattern:", p, "at start:", start, "to:", end, "text:", currText.substring(start, end));
 
         if (!(start == 0 || currText.charAt(start - 1) <= ' ')) {
           log("...pattern does NOT occur at start of line, ignoring");
           continue;
         }
+
+        for (int i = start; i < end; i++)
+          mNewText.setCharAt(i, ERASE_CHAR);
 
         mMatchesWithinFile++;
 
@@ -310,19 +310,49 @@ public class PrepOper extends AppOper {
         //
         if (patIndex == 0) {
           mDeleteFileFlag = true;
-          break outer;
-        }
-
-        // Replace all non-linefeed characters from start to end with spaces.
-        // Do this in the new text buffer, not the one we're matching within.
-        for (int j = start; j < end; j++) {
-          char c = newText.charAt(j);
-          if (c != '\n')
-            newText.setCharAt(j, ' ');
+          return;
         }
       }
     }
-    return newText.toString();
+
+    if (mMatchesWithinFile != 0)
+      pass2();
+  }
+
+  private void pass2() {
+    var s = mNewText;
+    // Ensure file ends with linefeed
+    addLF(s);
+
+    var out = new StringBuilder();
+
+    var lineContainedChars = false;
+    int bufferedSpaceCount = 0;
+//~[
+//~]
+    int i = 0;
+    while (i < s.length()) {
+      var c = s.charAt(i++);
+      if (c == '\n') {
+        // If the line had some non-whitespace characters
+        if (lineContainedChars) {
+          out.append('\n');
+        }
+        lineContainedChars = false;
+        bufferedSpaceCount = 0;
+      } else if (c <= ' ') {
+        bufferedSpaceCount++;
+      } else if (c != ERASE_CHAR) {
+        lineContainedChars = true;
+        for (int j = 0; j < bufferedSpaceCount; j++) {
+          out.append(' ');
+        }
+        bufferedSpaceCount = 0;
+        out.append(c);
+      }
+    }
+    mNewText.setLength(0);
+    mNewText.append(out);
   }
 
   private List<Pattern> mPatterns;
@@ -333,5 +363,6 @@ public class PrepOper extends AppOper {
 
   private boolean mDeleteFileFlag;
   private int mMatchesWithinFile;
+  private StringBuilder mNewText;
 
 }

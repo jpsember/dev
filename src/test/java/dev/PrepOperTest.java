@@ -32,7 +32,7 @@ import static js.base.Tools.*;
 public class PrepOperTest extends DevTestBase {
 
   @Test
-  public void save() {
+  public void save() {rv();
     prepareDirectories();
     // ----------------------------------------------------------------------------------------------
     prepareApp();
