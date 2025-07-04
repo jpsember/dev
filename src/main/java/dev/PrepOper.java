@@ -214,9 +214,7 @@ public class PrepOper extends AppOper {
 
         for (var ext : activeExtensions) {
           var patList = mPatternBank.get(ext);
-          var rec = new PatternRecord();
-          rec.pattern = RegExp.pattern(x);
-          rec.omitFlag = activeOmit;
+          var rec = new PatternRecord(x, activeOmit);
           patList.add(rec);
         }
       }
@@ -225,8 +223,23 @@ public class PrepOper extends AppOper {
   }
 
   private static class PatternRecord {
+    PatternRecord(String description, boolean omitFlag) {
+      this.omitFlag = omitFlag;
+      this.description = description;
+      this.pattern = RegExp.pattern(description);
+    }
+
     boolean omitFlag;
     Pattern pattern;
+    String description;
+
+    @Override
+    public String toString() {
+      var s = "'" + description + "'";
+      if (omitFlag)
+        s += " {omit}";
+      return s;
+    }
   }
 
   private Map<String, List<PatternRecord>> mPatternBank;
