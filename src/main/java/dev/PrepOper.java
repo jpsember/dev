@@ -142,14 +142,17 @@ public class PrepOper extends AppOper {
 
       String text;
       var patFile = config().patternFile();
-      if (Files.empty(patFile)) {
-        var c = new File(".prep_patterns.txt");
-        if (c.exists()) patFile = c;
-      }
-      if (Files.empty(patFile)) {
-        var c = new File(Files.homeDirectory(), ".prep_patterns.txt");
-        if (c.exists())
-          patFile = c;
+
+      if (!config().skipPatternSearch()) {
+        if (Files.empty(patFile)) {
+          var c = new File(".prep_patterns.txt");
+          if (c.exists()) patFile = c;
+        }
+        if (Files.empty(patFile)) {
+          var c = new File(Files.homeDirectory(), ".prep_patterns.txt");
+          if (c.exists())
+            patFile = c;
+        }
       }
 
       if (Files.nonEmpty(patFile)) {

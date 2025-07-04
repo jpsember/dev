@@ -39,6 +39,10 @@ public class PrepConfig implements AbstractData {
     return mCachePathExpr;
   }
 
+  public boolean skipPatternSearch() {
+    return mSkipPatternSearch;
+  }
+
   @Override
   public Builder toBuilder() {
     return new Builder(this);
@@ -52,6 +56,7 @@ public class PrepConfig implements AbstractData {
   protected static final String _5 = "cache_dir";
   protected static final String _6 = "cache_filename";
   protected static final String _7 = "cache_path_expr";
+  protected static final String _8 = "skip_pattern_search";
 
   @Override
   public String toString() {
@@ -69,6 +74,7 @@ public class PrepConfig implements AbstractData {
     m.putUnsafe(_5, mCacheDir.toString());
     m.putUnsafe(_6, mCacheFilename.toString());
     m.putUnsafe(_7, mCachePathExpr);
+    m.putUnsafe(_8, mSkipPatternSearch);
     return m;
   }
 
@@ -121,6 +127,7 @@ public class PrepConfig implements AbstractData {
       }
     }
     mCachePathExpr = m.opt(_7, "");
+    mSkipPatternSearch = m.opt(_8, false);
   }
 
   public static Builder newBuilder() {
@@ -152,6 +159,8 @@ public class PrepConfig implements AbstractData {
       return false;
     if (!(mCachePathExpr.equals(other.mCachePathExpr)))
       return false;
+    if (!(mSkipPatternSearch == other.mSkipPatternSearch))
+      return false;
     return true;
   }
 
@@ -168,6 +177,7 @@ public class PrepConfig implements AbstractData {
       r = r * 37 + mCacheDir.hashCode();
       r = r * 37 + mCacheFilename.hashCode();
       r = r * 37 + mCachePathExpr.hashCode();
+      r = r * 37 + (mSkipPatternSearch ? 1 : 0);
       m__hashcode = r;
     }
     return r;
@@ -181,6 +191,7 @@ public class PrepConfig implements AbstractData {
   protected File mCacheDir;
   protected File mCacheFilename;
   protected String mCachePathExpr;
+  protected boolean mSkipPatternSearch;
   protected int m__hashcode;
 
   public static final class Builder extends PrepConfig {
@@ -194,6 +205,7 @@ public class PrepConfig implements AbstractData {
       mCacheDir = m.mCacheDir;
       mCacheFilename = m.mCacheFilename;
       mCachePathExpr = m.mCachePathExpr;
+      mSkipPatternSearch = m.mSkipPatternSearch;
     }
 
     @Override
@@ -218,6 +230,7 @@ public class PrepConfig implements AbstractData {
       r.mCacheDir = mCacheDir;
       r.mCacheFilename = mCacheFilename;
       r.mCachePathExpr = mCachePathExpr;
+      r.mSkipPatternSearch = mSkipPatternSearch;
       return r;
     }
 
@@ -258,6 +271,11 @@ public class PrepConfig implements AbstractData {
 
     public Builder cachePathExpr(String x) {
       mCachePathExpr = (x == null) ? "" : x;
+      return this;
+    }
+
+    public Builder skipPatternSearch(boolean x) {
+      mSkipPatternSearch = x;
       return this;
     }
 

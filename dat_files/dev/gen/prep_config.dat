@@ -30,4 +30,6 @@ class {
     // A substring to insert in the cache path to distinguish from other projects.
     // If empty, uses something derived from the full project path.
     string cache_path_expr;
+
+    bool skip_pattern_search;
 }
