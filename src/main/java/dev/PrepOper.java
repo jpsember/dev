@@ -148,54 +148,10 @@ public class PrepOper extends AppOper {
       log("file:", w.rel(sourceFile));
       var currText = Files.readString(sourceFile);
 
-      // Construct a copy of the source file that we can
-      // edit as we handle pattern matches
-      //
-      var newText = new StringBuilder(currText);
-
-      int matchesWithinFile = 0;
-      boolean deleteFile = false;
-
-      // Apply each of the patterns
-      var patIndex = INIT_INDEX;
-      outer:
-      for (var p : patterns()) {
-        patIndex++;
-        var m = p.matcher(currText);
-        while (m.find()) {
-          // Make sure the text is either at the start of a line, or
-          // is preceded by some whitespace.
-          var start = m.start();
-          var end = m.end();
-
-          log("...found match for pattern:", p, "at start:", start, "to:", end, "text:", currText.substring(start, end));
-
-          if (!(start == 0 || currText.charAt(start - 1) <= ' ')) {
-            log("...pattern does NOT occur at start of line, ignoring");
-            continue;
-          }
-
-          matchesWithinFile++;
-
-          // The first pattern is special: if a match is found, the entire file is deleted.
-          //
-          if (patIndex == 0) {
-            deleteFile = true;
-            break outer;
-          }
-
-          // Replace all non-linefeed characters from start to end with spaces.
-          // Do this in the new text buffer, not the one we're matching within.
-          for (int j = start; j < end; j++) {
-            char c = newText.charAt(j);
-            if (c != '\n')
-              newText.setCharAt(j, ' ');
-          }
-        }
-      }
+      var newText = applyFilter(currText);
 
 
-      if (matchesWithinFile != 0) {
+      if (mMatchesWithinFile != 0) {
         modifiedFilesWithinProject++;
         var rel = w.rel(sourceFile);
         var dest = new File(getSaveDir(), rel.toString());
@@ -204,7 +160,7 @@ public class PrepOper extends AppOper {
         files().mkdirs(Files.parent(dest));
         files().copyFile(sourceFile, dest);
 
-        if (deleteFile) {
+        if (mDeleteFileFlag) {
           log("...filtering entire file:", rel);
           files().deleteFile(sourceFile);
         } else {
@@ -318,9 +274,64 @@ public class PrepOper extends AppOper {
     return mPatterns;
   }
 
+
+  private String applyFilter(String currText) {
+
+    // Construct a copy of the source file that we can
+    // edit as we handle pattern matches
+    //
+    var newText = new StringBuilder(currText);
+
+    mMatchesWithinFile = 0;
+    mDeleteFileFlag = false;
+
+    // Apply each of the patterns
+    var patIndex = INIT_INDEX;
+    outer:
+    for (var p : patterns()) {
+      patIndex++;
+      var m = p.matcher(currText);
+      while (m.find()) {
+        // Make sure the text is either at the start of a line, or
+        // is preceded by some whitespace.
+        var start = m.start();
+        var end = m.end();
+
+        log("...found match for pattern:", p, "at start:", start, "to:", end, "text:", currText.substring(start, end));
+
+        if (!(start == 0 || currText.charAt(start - 1) <= ' ')) {
+          log("...pattern does NOT occur at start of line, ignoring");
+          continue;
+        }
+
+        mMatchesWithinFile++;
+
+        // The first pattern is special: if a match is found, the entire file is deleted.
+        //
+        if (patIndex == 0) {
+          mDeleteFileFlag = true;
+          break outer;
+        }
+
+        // Replace all non-linefeed characters from start to end with spaces.
+        // Do this in the new text buffer, not the one we're matching within.
+        for (int j = start; j < end; j++) {
+          char c = newText.charAt(j);
+          if (c != '\n')
+            newText.setCharAt(j, ' ');
+        }
+      }
+    }
+    return newText.toString();
+  }
+
   private List<Pattern> mPatterns;
   private PrepConfig mConfig;
   private File mProjectDir;
   private File mCacheDir;
   private Boolean mSaving;
+
+  private boolean mDeleteFileFlag;
+  private int mMatchesWithinFile;
+
 }
