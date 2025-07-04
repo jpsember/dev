@@ -23,23 +23,19 @@
  **/
 package dev;
 
-import js.data.DataUtil;
-import js.testutil.MyTestCase;
 import org.junit.Test;
 
 import java.io.File;
-import java.util.List;
 
 import static js.base.Tools.*;
 
-public class PrepOperTest extends MyTestCase {
+public class PrepOperTest extends DevTestBase {
 
   @Test
   public void save() {
     prepareDirectories();
     // ----------------------------------------------------------------------------------------------
     prepareApp();
-    todo("refactor to make addArg, etc part of a DevOperTestCase class");
     perform("save");
     // ----------------------------------------------------------------------------------------------
     assertGenerated();
@@ -50,7 +46,6 @@ public class PrepOperTest extends MyTestCase {
     prepareDirectories();
     // ----------------------------------------------------------------------------------------------
     prepareApp();
-    todo("refactor to make addArg, etc part of a DevOperTestCase class");
     perform("save");
     prepareApp();
     perform("restore");
@@ -59,28 +54,16 @@ public class PrepOperTest extends MyTestCase {
   }
 
   private void prepareApp() {
+    loadTools();
     clearArgs();
-    addArg("prep");
+    setOper("prep");
     addArg("dir", sourceDir());
     addArg("project_file", "_proj_file_");
     addArg("cache_dir", files().mkdirs(cacheDir()));
-    addArg("cache_filename","prep_oper");
-    addArg("cache_path_expr","xxx");
+    addArg("cache_filename", "prep_oper");
+    addArg("cache_path_expr", "xxx");
   }
 
-//  private void doit() {
-//    prepareDirectories();
-//    prepareApp();
-//    todo("refactor to make addArg, etc part of a DevOperTestCase class");
-//    perform("save");
-////
-////    addArg("save");
-////    addArg("dir", target);
-////    addArg("project_file", "_proj_file_");
-//
-////    runApp();
-//    assertGenerated();
-//  }
 
   private void prepareDirectories() {
     var src = testDataDir();
@@ -91,23 +74,7 @@ public class PrepOperTest extends MyTestCase {
 
   private void perform(String action) {
     addArg(action);
-//    var src = testDataDir();
-//    var target = generatedDir();
-//    files().copyDirectory(src, target);
     runApp();
-  }
-
-  private void addArg(Object... args) {
-    for (Object a : args) {
-      mArgs.add(a.toString());
-    }
-  }
-
-  private void runApp() {
-    if (verbose())
-      addArg("--verbose");
-    new Main().startApplication(DataUtil.toStringArray(args()));
-    args().clear();
   }
 
   private File sourceDir() {
@@ -117,15 +84,5 @@ public class PrepOperTest extends MyTestCase {
   private File cacheDir() {
     return new File(generatedDir(), "cache");
   }
-
-  private void clearArgs() {
-    mArgs.clear();
-  }
-
-  private List<String> args() {
-    return mArgs;
-  }
-
-  private List<String> mArgs = arrayList();
 
 }
