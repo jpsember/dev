@@ -23,10 +23,6 @@ public class PrepConfig implements AbstractData {
     return mProjectFile;
   }
 
-  public String sourceFileExtensions() {
-    return mSourceFileExtensions;
-  }
-
   public File patternFile() {
     return mPatternFile;
   }
@@ -52,11 +48,10 @@ public class PrepConfig implements AbstractData {
   protected static final String _1 = "save";
   protected static final String _2 = "restore";
   protected static final String _3 = "project_file";
-  protected static final String _4 = "source_file_extensions";
-  protected static final String _5 = "pattern_file";
-  protected static final String _6 = "cache_dir";
-  protected static final String _7 = "cache_filename";
-  protected static final String _8 = "cache_path_expr";
+  protected static final String _4 = "pattern_file";
+  protected static final String _5 = "cache_dir";
+  protected static final String _6 = "cache_filename";
+  protected static final String _7 = "cache_path_expr";
 
   @Override
   public String toString() {
@@ -70,11 +65,10 @@ public class PrepConfig implements AbstractData {
     m.putUnsafe(_1, mSave);
     m.putUnsafe(_2, mRestore);
     m.putUnsafe(_3, mProjectFile.toString());
-    m.putUnsafe(_4, mSourceFileExtensions);
-    m.putUnsafe(_5, mPatternFile.toString());
-    m.putUnsafe(_6, mCacheDir.toString());
-    m.putUnsafe(_7, mCacheFilename.toString());
-    m.putUnsafe(_8, mCachePathExpr);
+    m.putUnsafe(_4, mPatternFile.toString());
+    m.putUnsafe(_5, mCacheDir.toString());
+    m.putUnsafe(_6, mCacheFilename.toString());
+    m.putUnsafe(_7, mCachePathExpr);
     return m;
   }
 
@@ -105,29 +99,28 @@ public class PrepConfig implements AbstractData {
         mProjectFile = new File(x);
       }
     }
-    mSourceFileExtensions = m.opt(_4, "java rs");
     {
       mPatternFile = Files.DEFAULT;
-      String x = m.opt(_5, (String) null);
+      String x = m.opt(_4, (String) null);
       if (x != null) {
         mPatternFile = new File(x);
       }
     }
     {
       mCacheDir = Files.DEFAULT;
-      String x = m.opt(_6, (String) null);
+      String x = m.opt(_5, (String) null);
       if (x != null) {
         mCacheDir = new File(x);
       }
     }
     {
-      mCacheFilename = _D7;
-      String x = m.opt(_7, (String) null);
+      mCacheFilename = _D6;
+      String x = m.opt(_6, (String) null);
       if (x != null) {
         mCacheFilename = new File(x);
       }
     }
-    mCachePathExpr = m.opt(_8, "");
+    mCachePathExpr = m.opt(_7, "");
   }
 
   public static Builder newBuilder() {
@@ -151,8 +144,6 @@ public class PrepConfig implements AbstractData {
       return false;
     if (!(mProjectFile.equals(other.mProjectFile)))
       return false;
-    if (!(mSourceFileExtensions.equals(other.mSourceFileExtensions)))
-      return false;
     if (!(mPatternFile.equals(other.mPatternFile)))
       return false;
     if (!(mCacheDir.equals(other.mCacheDir)))
@@ -173,7 +164,6 @@ public class PrepConfig implements AbstractData {
       r = r * 37 + (mSave ? 1 : 0);
       r = r * 37 + (mRestore ? 1 : 0);
       r = r * 37 + mProjectFile.hashCode();
-      r = r * 37 + mSourceFileExtensions.hashCode();
       r = r * 37 + mPatternFile.hashCode();
       r = r * 37 + mCacheDir.hashCode();
       r = r * 37 + mCacheFilename.hashCode();
@@ -187,7 +177,6 @@ public class PrepConfig implements AbstractData {
   protected boolean mSave;
   protected boolean mRestore;
   protected File mProjectFile;
-  protected String mSourceFileExtensions;
   protected File mPatternFile;
   protected File mCacheDir;
   protected File mCacheFilename;
@@ -201,7 +190,6 @@ public class PrepConfig implements AbstractData {
       mSave = m.mSave;
       mRestore = m.mRestore;
       mProjectFile = m.mProjectFile;
-      mSourceFileExtensions = m.mSourceFileExtensions;
       mPatternFile = m.mPatternFile;
       mCacheDir = m.mCacheDir;
       mCacheFilename = m.mCacheFilename;
@@ -226,7 +214,6 @@ public class PrepConfig implements AbstractData {
       r.mSave = mSave;
       r.mRestore = mRestore;
       r.mProjectFile = mProjectFile;
-      r.mSourceFileExtensions = mSourceFileExtensions;
       r.mPatternFile = mPatternFile;
       r.mCacheDir = mCacheDir;
       r.mCacheFilename = mCacheFilename;
@@ -254,11 +241,6 @@ public class PrepConfig implements AbstractData {
       return this;
     }
 
-    public Builder sourceFileExtensions(String x) {
-      mSourceFileExtensions = (x == null) ? "java rs" : x;
-      return this;
-    }
-
     public Builder patternFile(File x) {
       mPatternFile = (x == null) ? Files.DEFAULT : x;
       return this;
@@ -270,7 +252,7 @@ public class PrepConfig implements AbstractData {
     }
 
     public Builder cacheFilename(File x) {
-      mCacheFilename = (x == null) ? _D7 : x;
+      mCacheFilename = (x == null) ? _D6 : x;
       return this;
     }
 
@@ -282,17 +264,16 @@ public class PrepConfig implements AbstractData {
   }
 
   private static final File _D3 = new File(".git");
-  private static final File _D7 = new File(".prep_oper_cache");
+  private static final File _D6 = new File(".prep_oper_cache");
 
   public static final PrepConfig DEFAULT_INSTANCE = new PrepConfig();
 
   private PrepConfig() {
     mDir = Files.DEFAULT;
     mProjectFile = _D3;
-    mSourceFileExtensions = "java rs";
     mPatternFile = Files.DEFAULT;
     mCacheDir = Files.DEFAULT;
-    mCacheFilename = _D7;
+    mCacheFilename = _D6;
     mCachePathExpr = "";
   }
 

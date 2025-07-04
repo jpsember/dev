@@ -5,12 +5,17 @@ class {
 
     File project_file = ".git";
 
-    // Space delimited list of source file extensions to examine
+    // Pattern file.
     //
-    string source_file_extensions = "java rs";
-
-    // If not empty, where to look for patterns.
-    // Otherwise, uses defaults.
+    // # comments
+    //
+    // >java       (extension)
+    // pattern
+    // pattern
+    //
+    // >rs
+    // pattern
+    // pattern
     //
     File pattern_file;
 

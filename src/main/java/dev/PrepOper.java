@@ -12,6 +12,8 @@ import js.parsing.RegExp;
 
 import java.io.File;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.regex.Pattern;
 
 public class PrepOper extends AppOper {
@@ -32,10 +34,11 @@ public class PrepOper extends AppOper {
   @Override
   protected void longHelp(BasePrinter b) {
     var hf = new HelpFormatter();
-    hf.addItem(" ...nothing yet...", "xxx");
+    hf.addItem(" save | restore", "Operation (save: prepare for commit; restore: restore afterward)");
+    hf.addItem("[ pattern_file <hhhhhhh> ]", "file describing deletion patterns");
     b.pr(hf);
     b.br();
-    b.pr("...nothing yet...");
+    b.pr("Prepares source files for commit by deleting particular content");
   }
 
   @Override
@@ -131,11 +134,62 @@ public class PrepOper extends AppOper {
     return mCacheDir;
   }
 
+  private Map<String, List<Pattern>> getPatternBank() {
+    if (mPatternBank == null) {
+
+      mPatternBank = hashMap();
+
+      String text;
+      var patFile = config().patternFile();
+      if (Files.nonEmpty(patFile)) {
+        Files.assertExists(patFile, "pattern_file");
+        text = Files.readString(patFile);
+      } else
+        text = Files.readString(this.getClass(), "prep_default.txt");
+
+      var extension = "";
+      List<Pattern> patList = null;
+      for (var x : split(text, '\n')) {
+        x = x.trim();
+        if (x.startsWith("#")) continue;
+        if (x.isEmpty()) continue;
+
+        var extensionPrefix = ">>>";
+        if (x.startsWith(extensionPrefix)) {
+          extension = chompPrefix(x, extensionPrefix);
+          checkArgument(extension.matches("[a-zA-Z]+"), "illegal extension:", extension);
+          patList = mPatternBank.get(extension);
+          if (patList == null) {
+            patList = arrayList();
+            mPatternBank.put(extension, patList);
+          }
+        }
+        checkState(patList != null, "no extension defined; use >xxx");
+
+        // If the pattern ends with '(;', replace this suffix with
+        // something that accepts any amount of text following ( that does NOT include
+        // a semicolon, followed by a semicolon.
+        var y = chomp(x, "(;");
+        if (y != x)
+          x = y + "\\x28[^;]*;";
+        patList.add(RegExp.pattern(x));
+      }
+    }
+    return mPatternBank;
+  }
+
+  private Map<String, List<Pattern>> mPatternBank;
+
   /**
    * Construct a DirWalk for a directory.  It will walk through all supported source file types
    */
   private DirWalk getWalker(File dir) {
-    return new DirWalk(dir).withExtensions(split(config().sourceFileExtensions(), ' '));
+    return new DirWalk(dir);
+  }
+
+  private List<Pattern> patternsForFile(File f) {
+    var ext = Files.getExtension(f);
+    return getPatternBank().get(ext);
   }
 
   private void doSave() {
@@ -144,7 +198,8 @@ public class PrepOper extends AppOper {
     var w = getWalker(projectDir());
 
     for (var sourceFile : w.files()) {
-
+      var patterns = patternsForFile(sourceFile);
+      if (patterns == null) continue;
       log("file:", w.rel(sourceFile));
       var currText = Files.readString(sourceFile);
       applyFilter(currText);
