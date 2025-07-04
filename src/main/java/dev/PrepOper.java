@@ -135,38 +135,75 @@ public class PrepOper extends AppOper {
     return mCacheDir;
   }
 
-  private Map<String, List<Pattern>> getPatternBank() {
+  private Map<String, List<PatternRecord>> getPatternBank() {
     if (mPatternBank == null) {
 
       mPatternBank = hashMap();
 
       String text;
       var patFile = config().patternFile();
+      if (Files.empty(patFile)) {
+        var c = new File(".prep_patterns.txt");
+        if (c.exists()) patFile = c;
+      }
+      if (Files.empty(patFile)) {
+        var c = new File(Files.homeDirectory(), ".prep_patterns.txt");
+        if (c.exists())
+          patFile = c;
+      }
+
       if (Files.nonEmpty(patFile)) {
         Files.assertExists(patFile, "pattern_file");
         text = Files.readString(patFile);
       } else
         text = Files.readString(this.getClass(), "prep_default.txt");
 
-      var extension = "";
-      List<Pattern> patList = null;
+      Set<String> activeExtensions = hashSet();
+
       for (var x : split(text, '\n')) {
         x = x.trim();
         if (x.startsWith("#")) continue;
         if (x.isEmpty()) continue;
 
+        log(VERT_SP, "parsing pattern line:", INDENT, x);
+
         var extensionPrefix = ">>>";
         if (x.startsWith(extensionPrefix)) {
-          extension = chompPrefix(x, extensionPrefix);
-          checkArgument(extension.matches("[a-zA-Z]+"), "illegal extension:", extension);
-          patList = mPatternBank.get(extension);
-          if (patList == null) {
-            patList = arrayList();
-            mPatternBank.put(extension, patList);
+          activeExtensions.clear();
+          x = chompPrefix(x, extensionPrefix);
+
+
+          var extList = split(x, ',');
+          for (var ext : extList) {
+            checkArgument(ext.matches("[a-zA-Z]+"), "illegal extension:", ext);
+            activeExtensions.add(ext);
+            var patList = mPatternBank.get(ext);
+            if (patList == null) {
+              patList = arrayList();
+              mPatternBank.put(ext, patList);
+            }
           }
           continue;
         }
-        checkState(patList != null, "no extension defined; use >xxx");
+        checkState(!activeExtensions.isEmpty(), "no active extensions");
+
+
+        var activeOmit = false;
+
+        if (x.startsWith("{")) {
+          var i = 1 + x.indexOf('}');
+          checkArgument(i > 0, "expected '}'", x);
+          var pref = x.substring(1, i - 1);
+          x = x.substring(i);
+          switch (pref) {
+            case "omit":
+              activeOmit = true;
+              break;
+            default:
+              throw badArg("unrecognized command:", x);
+          }
+        }
+
 
         // If the pattern ends with '(;', replace this suffix with
         // something that accepts any amount of text following ( that does NOT include
@@ -174,13 +211,25 @@ public class PrepOper extends AppOper {
         var y = chomp(x, "(;");
         if (y != x)
           x = y + "\\x28[^;]*;";
-        patList.add(RegExp.pattern(x));
+
+        for (var ext : activeExtensions) {
+          var patList = mPatternBank.get(ext);
+          var rec = new PatternRecord();
+          rec.pattern = RegExp.pattern(x);
+          rec.omitFlag = activeOmit;
+          patList.add(rec);
+        }
       }
     }
     return mPatternBank;
   }
 
-  private Map<String, List<Pattern>> mPatternBank;
+  private static class PatternRecord {
+    boolean omitFlag;
+    Pattern pattern;
+  }
+
+  private Map<String, List<PatternRecord>> mPatternBank;
 
   /**
    * Construct a DirWalk for a directory.  It will walk through all supported source file types
@@ -189,7 +238,7 @@ public class PrepOper extends AppOper {
     return new DirWalk(dir);
   }
 
-  private List<Pattern> patternsForFile(File f) {
+  private List<PatternRecord> patternsForFile(File f) {
     var ext = Files.getExtension(f);
     return getPatternBank().get(ext);
   }
@@ -206,7 +255,7 @@ public class PrepOper extends AppOper {
       var currText = Files.readString(sourceFile);
       applyFilter(currText, patterns);
 
-      if (mDeleteFileFlag || mMatchesWithinFile != 0) {
+      if (mOmitFileFlag || mMatchesWithinFile != 0) {
         modifiedFilesWithinProject++;
         var rel = w.rel(sourceFile);
         var dest = new File(getSaveDir(), rel.toString());
@@ -215,7 +264,7 @@ public class PrepOper extends AppOper {
         files().mkdirs(Files.parent(dest));
         files().copyFile(sourceFile, dest);
 
-        if (mDeleteFileFlag) {
+        if (mOmitFileFlag) {
           log("...filtering entire file:", rel);
           files().deleteFile(sourceFile);
         } else {
@@ -302,24 +351,22 @@ public class PrepOper extends AppOper {
 
   private static final char ERASE_CHAR = 0x7f;
 
-  private void applyFilter(String currText, List<Pattern> patterns) {
+  private void applyFilter(String currText, List<PatternRecord> patterns) {
 
     mNewText = new StringBuilder(currText);
 
     mMatchesWithinFile = 0;
-    mDeleteFileFlag = false;
+    mOmitFileFlag = false;
 
     // Apply each of the patterns
     var patIndex = INIT_INDEX;
     for (var p : patterns) {
       patIndex++;
-      var m = p.matcher(currText);
+      var m = p.pattern.matcher(currText);
       while (m.find()) {
 
-        // The first pattern is special: if a match is found, the entire file is deleted.
-        //
-        if (patIndex == 0) {
-          mDeleteFileFlag = true;
+        if (p.omitFlag) {
+          mOmitFileFlag = true;
           return;
         }
 
@@ -390,7 +437,7 @@ public class PrepOper extends AppOper {
   private File mCacheDir;
   private Boolean mSaving;
 
-  private boolean mDeleteFileFlag;
+  private boolean mOmitFileFlag;
   private int mMatchesWithinFile;
   private StringBuilder mNewText;
 
