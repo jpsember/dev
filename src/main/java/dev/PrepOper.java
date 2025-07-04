@@ -205,7 +205,8 @@ public class PrepOper extends AppOper {
           // Write new filtered form
           var filteredContent = newText.toString();
           log("...writing filtered version of:", rel, INDENT, filteredContent);
-          files().writeString(sourceFile, filteredContent);
+          if (!alert("NOT writing!"))
+            files().writeString(sourceFile, filteredContent);
         }
       }
     }

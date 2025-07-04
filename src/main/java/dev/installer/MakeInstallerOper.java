@@ -328,8 +328,8 @@ public class MakeInstallerOper extends AppOper {
   }
 
   private void performDevMode() {
-    pr(DASHES);
-    pr("Examining -debug- keys:", DASHES);
+               
+                                          
     JSMap m = map();
     for (FileEntry ent : mFileEntries.values()) {
       m.put(ent.key(), ent);
@@ -338,7 +338,7 @@ public class MakeInstallerOper extends AppOper {
       FileEntry ent = mFileEntries.get(key);
       if (ent == null)
         continue;
-      pr(ent);
+              
     }
     File targ = new File("_SKIP_FileEntries.json");
     files().writePretty(targ, m);
@@ -347,7 +347,7 @@ public class MakeInstallerOper extends AppOper {
     JSMap checksumMap = JSMap.fromFileIfExists(checksumFile);
     int prevChecksum = checksumMap.opt("", 0);
     if (prevChecksum != checksum) {
-      pr("**** Checksum has changed to:", checksum);
+                                                    
       if (prevChecksum == 0) {
         checksumMap.put("", checksum);
         files().writePretty(checksumFile, checksumMap);
