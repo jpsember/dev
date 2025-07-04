@@ -5,7 +5,7 @@
 
 # Omit entire file
 #
-//!!FILTER!!
+\/\/!!FILTER!!
 
 #  pr("hello",(1+3));
 #
@@ -17,7 +17,7 @@ pr\([^;]*;
 # Omit entire file
 #
 
-//!!FILTER!!
+\/\/!!FILTER!!
 #  pr("hello",(1+3));
 #
 pr\([^;]*;

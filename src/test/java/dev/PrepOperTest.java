@@ -47,6 +47,15 @@ public class PrepOperTest extends DevTestBase {
     // ----------------------------------------------------------------------------------------------
     prepareApp();
     perform("save");
+
+    var f1 =
+        generatedFile("source/a.java");
+    var f2 =
+        generatedFile("source/d.java");
+
+    checkState(f1.exists());
+    checkState(!f2.exists());
+
     prepareApp();
     perform("restore");
     // ----------------------------------------------------------------------------------------------

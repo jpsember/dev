@@ -163,6 +163,7 @@ public class PrepOper extends AppOper {
             patList = arrayList();
             mPatternBank.put(extension, patList);
           }
+          continue;
         }
         checkState(patList != null, "no extension defined; use >xxx");
 
@@ -202,9 +203,10 @@ public class PrepOper extends AppOper {
       if (patterns == null) continue;
       log("file:", w.rel(sourceFile));
       var currText = Files.readString(sourceFile);
-      applyFilter(currText);
+      applyFilter(currText, patterns);
 
-      if (mMatchesWithinFile != 0) {
+
+      if (mDeleteFileFlag || mMatchesWithinFile != 0) {
         modifiedFilesWithinProject++;
         var rel = w.rel(sourceFile);
         var dest = new File(getSaveDir(), rel.toString());
@@ -297,40 +299,10 @@ public class PrepOper extends AppOper {
 
   private File mRestoreDir;
 
-  private List<Pattern> patterns() {
-    if (mPatterns == null) {
-      List<Pattern> p = arrayList();
-      String text;
-
-      var patFile = config().patternFile();
-      if (Files.nonEmpty(patFile)) {
-        Files.assertExists(patFile, "pattern_file");
-        text = Files.readString(patFile);
-      } else
-        text = Files.readString(this.getClass(), "prep_default.txt");
-
-      for (var x : split(text, '\n')) {
-        x = x.trim();
-        if (x.startsWith("#")) continue;
-        if (x.isEmpty()) continue;
-
-        // If the pattern ends with '(;', replace this suffix with
-        // something that accepts any amount of text following ( that does NOT include
-        // a semicolon, followed by a semicolon.
-        var y = chomp(x, "(;");
-        if (y != x)
-          x = y + "\\x28[^;]*;";
-        p.add(RegExp.pattern(x));
-      }
-      mPatterns = p;
-    }
-    return mPatterns;
-  }
-
 
   private static final char ERASE_CHAR = 0x7f;
 
-  private void applyFilter(String currText) {
+  private void applyFilter(String currText, List<Pattern> patterns) {
 
     mNewText = new StringBuilder(currText);
 
@@ -339,10 +311,18 @@ public class PrepOper extends AppOper {
 
     // Apply each of the patterns
     var patIndex = INIT_INDEX;
-    for (var p : patterns()) {
+    for (var p : patterns) {
       patIndex++;
       var m = p.matcher(currText);
       while (m.find()) {
+
+        // The first pattern is special: if a match is found, the entire file is deleted.
+        //
+        if (patIndex == 0) {
+          mDeleteFileFlag = true;
+          return;
+        }
+
         // Make sure the text is either at the start of a line, or
         // is preceded by some whitespace.
         var start = m.start();
@@ -361,12 +341,6 @@ public class PrepOper extends AppOper {
 
         mMatchesWithinFile++;
 
-        // The first pattern is special: if a match is found, the entire file is deleted.
-        //
-        if (patIndex == 0) {
-          mDeleteFileFlag = true;
-          return;
-        }
       }
     }
 
@@ -383,8 +357,6 @@ public class PrepOper extends AppOper {
 
     var lineContainedChars = false;
     int bufferedSpaceCount = 0;
-//~[
-//~]
     int i = 0;
     while (i < s.length()) {
       var c = s.charAt(i++);
@@ -410,7 +382,6 @@ public class PrepOper extends AppOper {
     mNewText.append(out);
   }
 
-  private List<Pattern> mPatterns;
   private PrepConfig mConfig;
   private File mProjectDir;
   private File mCacheDir;
