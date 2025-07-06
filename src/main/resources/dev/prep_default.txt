@@ -1,9 +1,5 @@
 >>>gitignore,sh,java,rs
 
-# Omit entire file
-#
-{omit}!!FILTER!!
-
 
 >>>java
 
