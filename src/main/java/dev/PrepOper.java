@@ -2,6 +2,7 @@ package dev;
 
 import static js.base.Tools.*;
 
+import dev.gen.AppInfo;
 import dev.gen.PrepConfig;
 import js.app.AppOper;
 import js.app.HelpFormatter;
@@ -12,12 +13,12 @@ import js.file.Files;
 import js.parsing.RegExp;
 
 import java.io.File;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.regex.Pattern;
 
 public class PrepOper extends AppOper {
+
+  private static final String FILTER_FILENAME = ".filter";
 
   private static final int MAX_BACKUP_SETS = 5;
   private static final boolean SINGLE_SET = false && alert("SINGLE_SET in effect");
@@ -58,18 +59,15 @@ public class PrepOper extends AppOper {
   @Override
   public void perform() {
     files().withDryRun(dryRun());
-    //alertVerbose();
     log("Project directory:", projectDir());
     log("Cache directory:", cacheDir());
     log("Saving:", saving(), "Restoring:", restoring());
-
     if (saving()) {
       doSave();
     } else {
       doRestore();
     }
   }
-
 
   private boolean saving() {
     if (mSaving == null) {
@@ -137,128 +135,37 @@ public class PrepOper extends AppOper {
   }
 
 
-//  private Map<String, List<PatternRecord>> getPatternBank() {
-//    if (mPatternBank == null) {
-//
-//      mPatternBank = hashMap();
-//
-//      String text;
-//      var patFile = config().patternFile();
-//
-//      if (!config().skipPatternSearch()) {
-//        if (Files.empty(patFile)) {
-//          var c = new File(".prep_patterns.txt");
-//          if (c.exists()) patFile = c;
-//        }
-//        if (Files.empty(patFile)) {
-//          var c = new File(Files.homeDirectory(), ".prep_patterns.txt");
-//          if (c.exists())
-//            patFile = c;
-//        }
-//      }
-//
-//      if (Files.nonEmpty(patFile)) {
-//        Files.assertExists(patFile, "pattern_file");
-//        text = Files.readString(patFile);
-//      } else
-//        text = Files.readString(this.getClass(), "prep_default.txt");
-//
-//      Set<String> activeExtensions = hashSet();
-//
-//      for (var x : parseLinesFromTextFile(text)) {
-//
-//        log(VERT_SP, "parsing pattern line:", INDENT, x);
-//
-//        var extensionPrefix = ">>>";
-//        if (x.startsWith(extensionPrefix)) {
-//          activeExtensions.clear();
-//          x = chompPrefix(x, extensionPrefix);
-//
-//
-//          var extList = split(x, ',');
-//          for (var ext : extList) {
-//            checkArgument(ext.matches("[a-zA-Z]+"), "illegal extension:", ext);
-//            activeExtensions.add(ext);
-//            var patList = mPatternBank.get(ext);
-//            if (patList == null) {
-//              patList = arrayList();
-//              mPatternBank.put(ext, patList);
-//            }
-//          }
-//          continue;
-//        }
-//        checkState(!activeExtensions.isEmpty(), "no active extensions");
-//
-//
-//        var activeOmit = false;
-//
-//        if (x.startsWith("{")) {
-//          var i = 1 + x.indexOf('}');
-//          checkArgument(i > 0, "expected '}'", x);
-//          var pref = x.substring(1, i - 1);
-//          x = x.substring(i);
-//          switch (pref) {
-//            case "omit":
-//              activeOmit = true;
-//              break;
-//            default:
-//              throw badArg("unrecognized command:", x);
-//          }
-//        }
-//
-//
-//        // If the pattern ends with '(;', replace this suffix with
-//        // something that accepts any amount of text following ( that does NOT include
-//        // a semicolon, followed by a semicolon.
-//        var y = chomp(x, "(;");
-//        if (y != x)
-//          x = y + "\\x28[^;]*;";
-//
-//        for (var ext : activeExtensions) {
-//          var patList = mPatternBank.get(ext);
-//          var rec = new PatternRecord(x, activeOmit);
-//          patList.add(rec);
-//        }
-//      }
-//    }
-//    return mPatternBank;
-//  }
-
   private static class PatternRecord {
-    PatternRecord(String description /*, boolean omitFlag*/) {
-//      this.omitFlag = omitFlag;
+
+    @Override
+    public int hashCode() {
+      return description.hashCode();
+    }
+
+    @Override
+    public boolean equals(Object object) {
+      if (this == object)
+        return true;
+      if (object == null || !(object instanceof AppInfo))
+        return false;
+      PatternRecord other = (PatternRecord) object;
+      return other.description.equals(description);
+    }
+
+    PatternRecord(String description) {
       this.description = description;
       this.pattern = RegExp.pattern(description);
     }
 
-    //    boolean omitFlag;
     Pattern pattern;
     String description;
 
     @Override
     public String toString() {
-      var s = "'" + description + "'";
-//      if (omitFlag)
-//        s += " {omit}";
-      return s;
+      return description;
     }
   }
 
-  private Map<String, List<PatternRecord>> mPatternBank;
-
-  /**
-   * Construct a DirWalk for a directory.  It will walk through all supported source file types
-   */
-  private DirWalk getWalker(File dir) {
-    return new DirWalk(dir);
-  }
-
-//  private List<PatternRecord> patternsForFile(File f) {
-//    var ext = Files.getExtension(f);
-//    return getPatternBank().get(ext);
-//  }
-
-  private static String FILTER_FILENAME = ".filter";
 
   private static class DirStackEntry {
     File directory;
@@ -280,14 +187,15 @@ public class PrepOper extends AppOper {
   }
 
   private FilterState processFilterFile(String content, FilterState currentState) {
+    var newState = currentState.dup();
     for (var line : parseLinesFromTextFile(content)) {
-      todo("do something with filter file line: " + line);
+      newState.addDeleteFile(line);
     }
-    return currentState;
+    return newState;
   }
 
   private void doSave() {
-    int modifiedFilesWithinProject = 0;
+    boolean changesMade = false;
 
     var initialState = prepareState();
 
@@ -295,119 +203,68 @@ public class PrepOper extends AppOper {
     dirStack.add(new DirStackEntry(initialState, projectDir()));
     while (!dirStack.isEmpty()) {
       var entry = pop(dirStack);
+      var state = entry.filterState;
 
       var filterFile = new File(entry.directory, FILTER_FILENAME);
       if (filterFile.exists()) {
         var content = files().readString(filterFile);
-        var newFilterState = processFilterFile(content, entry.filterState);
-        entry = entry.withState(newFilterState);
+        state = processFilterFile(content, state);
+        entry = entry.withState(state);
       }
 
       var w = new DirWalk(entry.directory).withRecurse(false).includeDirectories().omitNames(".DS_Store");
       for (var sourceFileOrDir : w.files()) {
-        var name = Files.basename(sourceFileOrDir);
-        pr("...proc stack, file:", sourceFileOrDir);
-        // Ignore filter filenames
-        if (name.equals(FILTER_FILENAME)) {
-          todo("we actually want to DELETE these files");
+        var name = sourceFileOrDir.getName();
+        if (state.deleteFilenames().contains(name)) {
+          log("...filtering entire file or dir:", name);
+          saveFileOrDir(sourceFileOrDir, w.rel(sourceFileOrDir).toString());
+          if (sourceFileOrDir.isDirectory())
+            files().deleteDirectory(sourceFileOrDir, "generated");
+          else
+            files().deleteFile(sourceFileOrDir);
+          changesMade = true;
           continue;
         }
-
-        todo("handle file: maybe delete, maybe perform substitutions");
 
         if (!sourceFileOrDir.isDirectory()) {
           var sourceFile = sourceFileOrDir;
           var ext = Files.getExtension(sourceFile);
-          var patterns = entry.filterState.patterns().optListForExtension(ext);
+          var patterns = state.patterns().optListForExtension(ext);
           if (!patterns.isEmpty()) {
             log("file:", w.rel(sourceFile));
             var currText = Files.readString(sourceFile);
             applyFilter(currText, patterns);
 
-            if (mOmitFileFlag || mMatchesWithinFile != 0) {
-              modifiedFilesWithinProject++;
+            if (mMatchesWithinFile != 0) {
+              changesMade = true;
               var rel = w.rel(sourceFile);
-              var dest = new File(getSaveDir(), rel.toString());
               log("...match found:", INDENT, rel);
-              log("...saving to:", INDENT, dest);
-              files().mkdirs(Files.parent(dest));
-              files().copyFile(sourceFile, dest);
-
-              if (mOmitFileFlag) {
-                log("...filtering entire file:", rel);
-                files().deleteFile(sourceFile);
-              } else {
-                // Write new filtered form
-                var filteredContent = mNewText.toString();
-                log("...writing filtered version of:", rel, INDENT, filteredContent);
-                files().writeString(sourceFile, filteredContent);
-              }
+              saveFileOrDir(sourceFile, rel.toString());
+              // Write new filtered form
+              var filteredContent = mNewText.toString();
+              log("...writing filtered version of:", rel, INDENT, filteredContent);
+              files().writeString(sourceFile, filteredContent);
             }
-
           }
         } else {
-          //      var patterns = patternsForFile(sourceFile);
-//      if (patterns == null) continue;
-//      log("file:", w.rel(sourceFile));
-//      var currText = Files.readString(sourceFile);
-//      applyFilter(currText, patterns);
-//
-//      if (mOmitFileFlag || mMatchesWithinFile != 0) {
-//        modifiedFilesWithinProject++;
-//        var rel = w.rel(sourceFile);
-//        var dest = new File(getSaveDir(), rel.toString());
-//        log("...match found:", INDENT, rel);
-//        log("...saving to:", INDENT, dest);
-//        files().mkdirs(Files.parent(dest));
-//        files().copyFile(sourceFile, dest);
-//
-//        if (mOmitFileFlag) {
-//          log("...filtering entire file:", rel);
-//          files().deleteFile(sourceFile);
-//        } else {
-//          // Write new filtered form
-//          var filteredContent = mNewText.toString();
-//          log("...writing filtered version of:", rel, INDENT, filteredContent);
-//          files().writeString(sourceFile, filteredContent);
-//        }
-//      }
           push(dirStack, entry.withDirectory(sourceFileOrDir));
         }
       }
     }
 
-//    var w = getWalker(projectDir());
-//
-//    for (var sourceFile : w.files()) {
-//      var patterns = patternsForFile(sourceFile);
-//      if (patterns == null) continue;
-//      log("file:", w.rel(sourceFile));
-//      var currText = Files.readString(sourceFile);
-//      applyFilter(currText, patterns);
-//
-//      if (mOmitFileFlag || mMatchesWithinFile != 0) {
-//        modifiedFilesWithinProject++;
-//        var rel = w.rel(sourceFile);
-//        var dest = new File(getSaveDir(), rel.toString());
-//        log("...match found:", INDENT, rel);
-//        log("...saving to:", INDENT, dest);
-//        files().mkdirs(Files.parent(dest));
-//        files().copyFile(sourceFile, dest);
-//
-//        if (mOmitFileFlag) {
-//          log("...filtering entire file:", rel);
-//          files().deleteFile(sourceFile);
-//        } else {
-//          // Write new filtered form
-//          var filteredContent = mNewText.toString();
-//          log("...writing filtered version of:", rel, INDENT, filteredContent);
-//          files().writeString(sourceFile, filteredContent);
-//        }
-//      }
-//    }
-
-    if (modifiedFilesWithinProject == 0) {
+    if (!changesMade) {
       setError("No filter matches found... did you mean to do a restore instead?");
+    }
+  }
+
+  private void saveFileOrDir(File absSourceFileOrDir, String relativePath) {
+    var dest = new File(getSaveDir(), relativePath);
+    log("...saving:", relativePath);
+    files().mkdirs(Files.parent(dest));
+    if (absSourceFileOrDir.isDirectory()) {
+      files().copyDirectory(absSourceFileOrDir, dest);
+    } else {
+      files().copyFile(absSourceFileOrDir, dest);
     }
   }
 
@@ -418,7 +275,6 @@ public class PrepOper extends AppOper {
         var oldest = found.remove(0);
         files().deleteDirectory(oldest, "prep_oper_cache");
       }
-
       int i = 0;
       if (!found.isEmpty()) {
         i = 1 + Integer.parseInt(last(found).getName());
@@ -436,7 +292,7 @@ public class PrepOper extends AppOper {
     var restDir = getRestoreDir();
     if (Files.empty(restDir))
       throw setError("No cache directories found to restore from");
-    var w = getWalker(restDir);
+    var w = new DirWalk(restDir);
     int restoreCount = 0;
     for (var f : w.filesRelative()) {
       File source = w.abs(f);
@@ -478,28 +334,17 @@ public class PrepOper extends AppOper {
 
   private File mRestoreDir;
 
-
   private static final char ERASE_CHAR = 0x7f;
 
   private void applyFilter(String currText, List<PatternRecord> patterns) {
 
     mNewText = new StringBuilder(currText);
-
     mMatchesWithinFile = 0;
-    mOmitFileFlag = false;
 
     // Apply each of the patterns
-    var patIndex = INIT_INDEX;
     for (var p : patterns) {
-      patIndex++;
       var m = p.pattern.matcher(currText);
       while (m.find()) {
-//
-//        if (p.omitFlag) {
-//          mOmitFileFlag = true;
-//          return;
-//        }
-
         // Make sure the text is either at the start of a line, or
         // is preceded by some whitespace.
         var start = m.start();
@@ -567,7 +412,6 @@ public class PrepOper extends AppOper {
   private File mCacheDir;
   private Boolean mSaving;
 
-  private boolean mOmitFileFlag;
   private int mMatchesWithinFile;
   private StringBuilder mNewText;
 
@@ -626,7 +470,6 @@ public class PrepOper extends AppOper {
       if (x.startsWith("#")) continue;
       if (x.isEmpty()) continue;
 
-      log(VERT_SP, "parsing pattern line:", INDENT, x);
       if (x.startsWith("{omit}")) {
         pr("...found unsupported content:", x);
         continue;
@@ -640,32 +483,9 @@ public class PrepOper extends AppOper {
         for (var ext : extList) {
           checkArgument(ext.matches("[a-zA-Z]+"), "illegal extension:", ext);
           activeExtensions.add(ext);
-//          var patList = mPatternBank.get(ext);
-//          if (patList == null) {
-//            patList = arrayList();
-//            mPatternBank.put(ext, patList);
-//          }
         }
         continue;
       }
-
-
-//      var activeOmit = false;
-//
-//      if (x.startsWith("{")) {
-//        var i = 1 + x.indexOf('}');
-//        checkArgument(i > 0, "expected '}'", x);
-//        var pref = x.substring(1, i - 1);
-//        x = x.substring(i);
-//        switch (pref) {
-//          case "omit":
-//            activeOmit = true;
-//            break;
-//          default:
-//            throw badArg("unrecognized command:", x);
-//        }
-//      }
-
 
       // If the pattern ends with '(;', replace this suffix with
       // something that accepts any amount of text following ( that does NOT include
@@ -674,17 +494,15 @@ public class PrepOper extends AppOper {
       if (y != x)
         x = y + "\\x28[^;]*;";
 
+      var rec = new PatternRecord(x);
       for (var ext : activeExtensions) {
-//        var patList = mPatternBank.get(ext);
-        var rec = new PatternRecord(x);//, activeOmit);
         patterns.add(ext, rec);
-//        patList.add(rec);
       }
-
     }
 
-    var state = new FilterState(patterns);
-    return state;
+    Set<String> deleteFilenames = hashSet();
+    deleteFilenames.add(FILTER_FILENAME);
+    return new FilterState(patterns, deleteFilenames);
   }
 
   private static List<String> parseLinesFromTextFile(String text) {
@@ -702,6 +520,14 @@ public class PrepOper extends AppOper {
   private static class PatternCollection {
     public PatternCollection() {
       mPatternBank = hashMap();
+    }
+
+    public PatternCollection dup() {
+      var x = new PatternCollection();
+      for (var ent : mPatternBank.entrySet()) {
+        x.mPatternBank.put(ent.getKey(), new ArrayList<>(ent.getValue()));
+      }
+      return x;
     }
 
     public void add(String extension, PatternRecord pattern) {
@@ -730,17 +556,38 @@ public class PrepOper extends AppOper {
   }
 
   private static class FilterState {
-    public FilterState(PatternCollection patterns) {
+
+    public FilterState(PatternCollection patterns, Collection<String> deleteFilenames) {
       mPatterns = patterns;
+      mDeleteFilenames = hashSet();
+      mDeleteFilenames.addAll(deleteFilenames);
+    }
+
+    private FilterState() {
     }
 
     public PatternCollection patterns() {
       return mPatterns;
     }
 
+    public Set<String> deleteFilenames() {
+      return mDeleteFilenames;
+    }
+
+    public FilterState dup() {
+      var s = new FilterState();
+      s.mPatterns = mPatterns.dup();
+      s.mDeleteFilenames = new HashSet<String>(mDeleteFilenames);
+      return s;
+    }
+
+    public void addDeleteFile(String filename) {
+      mDeleteFilenames.add(filename);
+    }
+
     // This map should be considered immutable.  If changes are made, construct a new copy
     private PatternCollection mPatterns;
+    private Set<String> mDeleteFilenames;
 
-//    private Map<String, List<PatternRecord>> mPatternBank;
   }
 }

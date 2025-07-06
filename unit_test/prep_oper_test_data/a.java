@@ -6,8 +6,8 @@ echo  pr("..");   this one is not
     foxtrot
 
 here is a multiline bit
-//~[
+// {~
 that gets
 completely removed
-//~]
+    ~}
 ...follows
