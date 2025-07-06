@@ -92,10 +92,6 @@ public class PrepOper extends AppOper {
    */
   private File projectDir() {
     if (mProjectDir == null) {
-      if (Files.nonEmpty(config().testProjectDir())) {
-        mProjectDir = config().testProjectDir();
-        return mProjectDir;
-      }
       var begin = config().dir();
       if (Files.empty(begin)) {
         begin = Files.currentDirectory();
@@ -429,20 +425,14 @@ public class PrepOper extends AppOper {
       // b) an ancestor directory up to and including the project directory
       // c) the home directory
 
-      pr("config:",INDENT,config());
-      pr("patFile:",Files.infoMap(patFile));
-
       if (Files.empty(patFile)) {
         var dir = Files.currentDirectory();
         while (true) {
           var c = new File(dir, ".prep_patterns.txt");
-          pr("c:",Files.infoMap(c));
-
           if (c.exists()) {
             patFile = c;
             break;
           }
-          pr("projectDir:",Files.infoMap(projectDir()));
           if (dir.equals(projectDir()))
             break;
           dir = Files.parent(dir);

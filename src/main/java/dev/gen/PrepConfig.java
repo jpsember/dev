@@ -43,10 +43,6 @@ public class PrepConfig implements AbstractData {
     return mSkipPatternSearch;
   }
 
-  public File testProjectDir() {
-    return mTestProjectDir;
-  }
-
   @Override
   public Builder toBuilder() {
     return new Builder(this);
@@ -61,7 +57,6 @@ public class PrepConfig implements AbstractData {
   protected static final String _6 = "cache_filename";
   protected static final String _7 = "cache_path_expr";
   protected static final String _8 = "skip_pattern_search";
-  protected static final String _9 = "test_project_dir";
 
   @Override
   public String toString() {
@@ -80,7 +75,6 @@ public class PrepConfig implements AbstractData {
     m.putUnsafe(_6, mCacheFilename.toString());
     m.putUnsafe(_7, mCachePathExpr);
     m.putUnsafe(_8, mSkipPatternSearch);
-    m.putUnsafe(_9, mTestProjectDir.toString());
     return m;
   }
 
@@ -134,13 +128,6 @@ public class PrepConfig implements AbstractData {
     }
     mCachePathExpr = m.opt(_7, "");
     mSkipPatternSearch = m.opt(_8, false);
-    {
-      mTestProjectDir = Files.DEFAULT;
-      String x = m.opt(_9, (String) null);
-      if (x != null) {
-        mTestProjectDir = new File(x);
-      }
-    }
   }
 
   public static Builder newBuilder() {
@@ -174,8 +161,6 @@ public class PrepConfig implements AbstractData {
       return false;
     if (!(mSkipPatternSearch == other.mSkipPatternSearch))
       return false;
-    if (!(mTestProjectDir.equals(other.mTestProjectDir)))
-      return false;
     return true;
   }
 
@@ -193,7 +178,6 @@ public class PrepConfig implements AbstractData {
       r = r * 37 + mCacheFilename.hashCode();
       r = r * 37 + mCachePathExpr.hashCode();
       r = r * 37 + (mSkipPatternSearch ? 1 : 0);
-      r = r * 37 + mTestProjectDir.hashCode();
       m__hashcode = r;
     }
     return r;
@@ -208,7 +192,6 @@ public class PrepConfig implements AbstractData {
   protected File mCacheFilename;
   protected String mCachePathExpr;
   protected boolean mSkipPatternSearch;
-  protected File mTestProjectDir;
   protected int m__hashcode;
 
   public static final class Builder extends PrepConfig {
@@ -223,7 +206,6 @@ public class PrepConfig implements AbstractData {
       mCacheFilename = m.mCacheFilename;
       mCachePathExpr = m.mCachePathExpr;
       mSkipPatternSearch = m.mSkipPatternSearch;
-      mTestProjectDir = m.mTestProjectDir;
     }
 
     @Override
@@ -249,7 +231,6 @@ public class PrepConfig implements AbstractData {
       r.mCacheFilename = mCacheFilename;
       r.mCachePathExpr = mCachePathExpr;
       r.mSkipPatternSearch = mSkipPatternSearch;
-      r.mTestProjectDir = mTestProjectDir;
       return r;
     }
 
@@ -298,11 +279,6 @@ public class PrepConfig implements AbstractData {
       return this;
     }
 
-    public Builder testProjectDir(File x) {
-      mTestProjectDir = (x == null) ? Files.DEFAULT : x;
-      return this;
-    }
-
   }
 
   private static final File _D3 = new File(".git");
@@ -317,7 +293,6 @@ public class PrepConfig implements AbstractData {
     mCacheDir = Files.DEFAULT;
     mCacheFilename = _D6;
     mCachePathExpr = "";
-    mTestProjectDir = Files.DEFAULT;
   }
 
 }

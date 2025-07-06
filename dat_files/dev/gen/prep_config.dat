@@ -32,6 +32,4 @@ class {
     string cache_path_expr;
 
     bool skip_pattern_search;
-
-    File test_project_dir;
 }

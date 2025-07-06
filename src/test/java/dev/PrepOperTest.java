@@ -71,7 +71,6 @@ public class PrepOperTest extends DevTestBase {
     addArg("cache_dir", files().mkdirs(cacheDir()));
     addArg("cache_filename", "prep_oper");
     addArg("cache_path_expr", "xxx");
-    addArg("test_project_dir", sourceDir());
     addArg("skip_pattern_search");
   }
 
