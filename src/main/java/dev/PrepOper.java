@@ -196,9 +196,7 @@ public class PrepOper extends AppOper {
 
   private void doSave() {
     boolean changesMade = false;
-
     var initialState = prepareState();
-
     List<DirStackEntry> dirStack = arrayList();
     dirStack.add(new DirStackEntry(initialState, projectDir()));
     while (!dirStack.isEmpty()) {
@@ -229,7 +227,7 @@ public class PrepOper extends AppOper {
         if (!sourceFileOrDir.isDirectory()) {
           var sourceFile = sourceFileOrDir;
           var ext = Files.getExtension(sourceFile);
-          var patterns = state.patterns().optListForExtension(ext);
+          var patterns = state.patterns().optPatternsForExt(ext);
           if (!patterns.isEmpty()) {
             log("file:", w.rel(sourceFile));
             var currText = Files.readString(sourceFile);
@@ -336,7 +334,7 @@ public class PrepOper extends AppOper {
 
   private static final char ERASE_CHAR = 0x7f;
 
-  private void applyFilter(String currText, List<PatternRecord> patterns) {
+  private void applyFilter(String currText, Collection<PatternRecord> patterns) {
 
     mNewText = new StringBuilder(currText);
     mMatchesWithinFile = 0;
@@ -421,13 +419,26 @@ public class PrepOper extends AppOper {
     if (!config().skipPatternSearch()) {
 
       // If the configuration value was missing,
-      // look a) in the current directory,
-      // and  b) in the home directory
+      // look for it in this order:
+      //
+      // a) the current directory
+      // b) an ancestor directory up to and including the project directory
+      // c) the home directory
 
       if (Files.empty(patFile)) {
-        var c = new File(".prep_patterns.txt");
-        if (c.exists()) patFile = c;
+        var dir = Files.currentDirectory();
+        while (true) {
+          var c = new File(dir, ".prep_patterns.txt");
+          if (c.exists()) {
+            patFile = c;
+            break;
+          }
+          if (dir.equals(projectDir()))
+            break;
+          dir = Files.parent(dir);
+        }
       }
+
       if (Files.empty(patFile)) {
         var c = new File(Files.homeDirectory(), ".prep_patterns.txt");
         if (c.exists())
@@ -442,7 +453,6 @@ public class PrepOper extends AppOper {
    */
   private String readPatternFile(File patFile) {
     // If no pattern file was found, use the one stored in the app resources
-
     String text;
     if (Files.nonEmpty(patFile)) {
       Files.assertExists(patFile, "pattern_file");
@@ -525,34 +535,33 @@ public class PrepOper extends AppOper {
     public PatternCollection dup() {
       var x = new PatternCollection();
       for (var ent : mPatternBank.entrySet()) {
-        x.mPatternBank.put(ent.getKey(), new ArrayList<>(ent.getValue()));
+        x.mPatternBank.put(ent.getKey(), new HashSet<>(ent.getValue()));
       }
       return x;
     }
 
     public void add(String extension, PatternRecord pattern) {
-      var x = getListForExtension(extension);
+      var x = getPatternsForExt(extension);
       x.add(pattern);
-      todo("!check for duplicate patterns");
     }
 
-    private List<PatternRecord> getListForExtension(String extension) {
+    private Set<PatternRecord> getPatternsForExt(String extension) {
       var x = mPatternBank.get(extension);
       if (x == null) {
-        x = arrayList();
+        x = hashSet();
         mPatternBank.put(extension, x);
       }
       return x;
     }
 
-    public List<PatternRecord> optListForExtension(String extension) {
+    public Set<PatternRecord> optPatternsForExt(String extension) {
       var x = mPatternBank.get(extension);
       if (x == null)
-        return DataUtil.emptyList();
+        return DataUtil.emptySet();
       return x;
     }
 
-    private Map<String, List<PatternRecord>> mPatternBank;
+    private Map<String, Set<PatternRecord>> mPatternBank;
   }
 
   private static class FilterState {
