@@ -43,7 +43,6 @@ public class PrepOperTest extends DevTestBase {
 
   @Test
   public void saveAndRestore() {
-//    if (alert("this test is unstable; something to do with the cache paths")) return;
     prepareDirectories();
     // ----------------------------------------------------------------------------------------------
     prepareApp();
@@ -73,6 +72,7 @@ public class PrepOperTest extends DevTestBase {
     addArg("cache_filename", "prep_oper");
     addArg("cache_path_expr", "xxx");
     addArg("test_project_dir", sourceDir());
+    addArg("skip_pattern_search");
   }
 
 
