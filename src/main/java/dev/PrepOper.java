@@ -223,11 +223,11 @@ public class PrepOper extends AppOper {
 
             if (mMatchesWithinFile != 0) {
               changesMade = true;
-              log("...match found:", INDENT, rel);
+              //log("...match found:", INDENT, rel);
               saveFileOrDir(sourceFile);
               // Write new filtered form
               var filteredContent = mNewText.toString();
-              log("...writing filtered version of:", rel, INDENT, filteredContent);
+              log("...writing filtered version of:", rel);
               files().writeString(sourceFile, filteredContent);
             }
           }
