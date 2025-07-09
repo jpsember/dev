@@ -86,29 +86,14 @@ public class PrepOper extends AppOper {
   }
 
   /**
-   * Determine the project directory by looking in the config directory
-   * (or the current directory, if none was specified) or one of its parents
-   * for a ".git" subdirectory (or whatever the config.project_file specifies)
+   * Determine the project directory
    */
   private File projectDir() {
     if (mProjectDir == null) {
-      var begin = config().dir();
-      if (Files.empty(begin)) {
-        begin = Files.currentDirectory();
-      }
-      begin = Files.absolute(begin);
-      // Find project root
-      var cursor = begin;
-      while (true) {
-        var projectFile = new File(cursor, config().projectFile().toString());
-        if (projectFile.exists()) {
-          mProjectDir = cursor;
-          break;
-        }
-        cursor = cursor.getParentFile();
-        if (cursor == null)
-          setError("Cannot find .git directory in parents of:", begin);
-      }
+      var c = config().projectRoot();
+      if (Files.empty(c))
+        c = Files.currentDirectory();
+      mProjectDir = Files.assertDirectoryExists(c,"project_root");
     }
     return mProjectDir;
   }

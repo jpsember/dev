@@ -66,8 +66,7 @@ public class PrepOperTest extends DevTestBase {
     loadTools();
     clearArgs();
     setOper("prep");
-    addArg("dir", sourceDir());
-    addArg("project_file", "_proj_file_");
+    addArg("project_root", sourceDir());
     addArg("cache_dir", files().mkdirs(cacheDir()));
     addArg("cache_filename", "prep_oper");
     addArg("cache_path_expr", "xxx");

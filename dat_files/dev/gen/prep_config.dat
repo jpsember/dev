@@ -1,9 +1,11 @@
 class {
-    File dir;
     bool save;
     bool restore;
 
-    File project_file = ".git";
+    // If empty,  uses current directory
+    File project_root;
+
+    //File project_file = ".git";
 
     // Pattern file.
     //

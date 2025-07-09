@@ -7,10 +7,6 @@ import js.json.JSMap;
 
 public class PrepConfig implements AbstractData {
 
-  public File dir() {
-    return mDir;
-  }
-
   public boolean save() {
     return mSave;
   }
@@ -19,8 +15,8 @@ public class PrepConfig implements AbstractData {
     return mRestore;
   }
 
-  public File projectFile() {
-    return mProjectFile;
+  public File projectRoot() {
+    return mProjectRoot;
   }
 
   public File patternFile() {
@@ -48,15 +44,14 @@ public class PrepConfig implements AbstractData {
     return new Builder(this);
   }
 
-  protected static final String _0 = "dir";
-  protected static final String _1 = "save";
-  protected static final String _2 = "restore";
-  protected static final String _3 = "project_file";
-  protected static final String _4 = "pattern_file";
-  protected static final String _5 = "cache_dir";
-  protected static final String _6 = "cache_filename";
-  protected static final String _7 = "cache_path_expr";
-  protected static final String _8 = "skip_pattern_search";
+  protected static final String _0 = "save";
+  protected static final String _1 = "restore";
+  protected static final String _2 = "project_root";
+  protected static final String _3 = "pattern_file";
+  protected static final String _4 = "cache_dir";
+  protected static final String _5 = "cache_filename";
+  protected static final String _6 = "cache_path_expr";
+  protected static final String _7 = "skip_pattern_search";
 
   @Override
   public String toString() {
@@ -66,15 +61,14 @@ public class PrepConfig implements AbstractData {
   @Override
   public JSMap toJson() {
     JSMap m = new JSMap();
-    m.putUnsafe(_0, mDir.toString());
-    m.putUnsafe(_1, mSave);
-    m.putUnsafe(_2, mRestore);
-    m.putUnsafe(_3, mProjectFile.toString());
-    m.putUnsafe(_4, mPatternFile.toString());
-    m.putUnsafe(_5, mCacheDir.toString());
-    m.putUnsafe(_6, mCacheFilename.toString());
-    m.putUnsafe(_7, mCachePathExpr);
-    m.putUnsafe(_8, mSkipPatternSearch);
+    m.putUnsafe(_0, mSave);
+    m.putUnsafe(_1, mRestore);
+    m.putUnsafe(_2, mProjectRoot.toString());
+    m.putUnsafe(_3, mPatternFile.toString());
+    m.putUnsafe(_4, mCacheDir.toString());
+    m.putUnsafe(_5, mCacheFilename.toString());
+    m.putUnsafe(_6, mCachePathExpr);
+    m.putUnsafe(_7, mSkipPatternSearch);
     return m;
   }
 
@@ -89,45 +83,38 @@ public class PrepConfig implements AbstractData {
   }
 
   private PrepConfig(JSMap m) {
+    mSave = m.opt(_0, false);
+    mRestore = m.opt(_1, false);
     {
-      mDir = Files.DEFAULT;
-      String x = m.opt(_0, (String) null);
+      mProjectRoot = Files.DEFAULT;
+      String x = m.opt(_2, (String) null);
       if (x != null) {
-        mDir = new File(x);
-      }
-    }
-    mSave = m.opt(_1, false);
-    mRestore = m.opt(_2, false);
-    {
-      mProjectFile = _D3;
-      String x = m.opt(_3, (String) null);
-      if (x != null) {
-        mProjectFile = new File(x);
+        mProjectRoot = new File(x);
       }
     }
     {
       mPatternFile = Files.DEFAULT;
-      String x = m.opt(_4, (String) null);
+      String x = m.opt(_3, (String) null);
       if (x != null) {
         mPatternFile = new File(x);
       }
     }
     {
       mCacheDir = Files.DEFAULT;
-      String x = m.opt(_5, (String) null);
+      String x = m.opt(_4, (String) null);
       if (x != null) {
         mCacheDir = new File(x);
       }
     }
     {
-      mCacheFilename = _D6;
-      String x = m.opt(_6, (String) null);
+      mCacheFilename = _D5;
+      String x = m.opt(_5, (String) null);
       if (x != null) {
         mCacheFilename = new File(x);
       }
     }
-    mCachePathExpr = m.opt(_7, "");
-    mSkipPatternSearch = m.opt(_8, false);
+    mCachePathExpr = m.opt(_6, "");
+    mSkipPatternSearch = m.opt(_7, false);
   }
 
   public static Builder newBuilder() {
@@ -143,13 +130,11 @@ public class PrepConfig implements AbstractData {
     PrepConfig other = (PrepConfig) object;
     if (other.hashCode() != hashCode())
       return false;
-    if (!(mDir.equals(other.mDir)))
-      return false;
     if (!(mSave == other.mSave))
       return false;
     if (!(mRestore == other.mRestore))
       return false;
-    if (!(mProjectFile.equals(other.mProjectFile)))
+    if (!(mProjectRoot.equals(other.mProjectRoot)))
       return false;
     if (!(mPatternFile.equals(other.mPatternFile)))
       return false;
@@ -169,10 +154,9 @@ public class PrepConfig implements AbstractData {
     int r = m__hashcode;
     if (r == 0) {
       r = 1;
-      r = r * 37 + mDir.hashCode();
       r = r * 37 + (mSave ? 1 : 0);
       r = r * 37 + (mRestore ? 1 : 0);
-      r = r * 37 + mProjectFile.hashCode();
+      r = r * 37 + mProjectRoot.hashCode();
       r = r * 37 + mPatternFile.hashCode();
       r = r * 37 + mCacheDir.hashCode();
       r = r * 37 + mCacheFilename.hashCode();
@@ -183,10 +167,9 @@ public class PrepConfig implements AbstractData {
     return r;
   }
 
-  protected File mDir;
   protected boolean mSave;
   protected boolean mRestore;
-  protected File mProjectFile;
+  protected File mProjectRoot;
   protected File mPatternFile;
   protected File mCacheDir;
   protected File mCacheFilename;
@@ -197,10 +180,9 @@ public class PrepConfig implements AbstractData {
   public static final class Builder extends PrepConfig {
 
     private Builder(PrepConfig m) {
-      mDir = m.mDir;
       mSave = m.mSave;
       mRestore = m.mRestore;
-      mProjectFile = m.mProjectFile;
+      mProjectRoot = m.mProjectRoot;
       mPatternFile = m.mPatternFile;
       mCacheDir = m.mCacheDir;
       mCacheFilename = m.mCacheFilename;
@@ -222,21 +204,15 @@ public class PrepConfig implements AbstractData {
     @Override
     public PrepConfig build() {
       PrepConfig r = new PrepConfig();
-      r.mDir = mDir;
       r.mSave = mSave;
       r.mRestore = mRestore;
-      r.mProjectFile = mProjectFile;
+      r.mProjectRoot = mProjectRoot;
       r.mPatternFile = mPatternFile;
       r.mCacheDir = mCacheDir;
       r.mCacheFilename = mCacheFilename;
       r.mCachePathExpr = mCachePathExpr;
       r.mSkipPatternSearch = mSkipPatternSearch;
       return r;
-    }
-
-    public Builder dir(File x) {
-      mDir = (x == null) ? Files.DEFAULT : x;
-      return this;
     }
 
     public Builder save(boolean x) {
@@ -249,8 +225,8 @@ public class PrepConfig implements AbstractData {
       return this;
     }
 
-    public Builder projectFile(File x) {
-      mProjectFile = (x == null) ? _D3 : x;
+    public Builder projectRoot(File x) {
+      mProjectRoot = (x == null) ? Files.DEFAULT : x;
       return this;
     }
 
@@ -265,7 +241,7 @@ public class PrepConfig implements AbstractData {
     }
 
     public Builder cacheFilename(File x) {
-      mCacheFilename = (x == null) ? _D6 : x;
+      mCacheFilename = (x == null) ? _D5 : x;
       return this;
     }
 
@@ -281,17 +257,15 @@ public class PrepConfig implements AbstractData {
 
   }
 
-  private static final File _D3 = new File(".git");
-  private static final File _D6 = new File(".prep_oper_cache");
+  private static final File _D5 = new File(".prep_oper_cache");
 
   public static final PrepConfig DEFAULT_INSTANCE = new PrepConfig();
 
   private PrepConfig() {
-    mDir = Files.DEFAULT;
-    mProjectFile = _D3;
+    mProjectRoot = Files.DEFAULT;
     mPatternFile = Files.DEFAULT;
     mCacheDir = Files.DEFAULT;
-    mCacheFilename = _D6;
+    mCacheFilename = _D5;
     mCachePathExpr = "";
   }
 
