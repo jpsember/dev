@@ -195,12 +195,14 @@ public class PrepOper extends AppOper {
         entry = entry.withState(state);
       }
 
-      var w = new DirWalk(entry.directory).withRecurse(false).includeDirectories().omitNames(".DS_Store");
-      for (var sourceFileOrDir : w.files()) {
+      // Examine the files (or subdirectories) within this directory (without recursing)
+
+      var walk = new DirWalk(entry.directory).withRecurse(false).includeDirectories().omitNames(".DS_Store");
+      for (var sourceFileOrDir : walk.files()) {
         var name = sourceFileOrDir.getName();
         if (state.deleteFilenames().contains(name)) {
           log("...filtering entire file or dir:", name);
-          saveFileOrDir(sourceFileOrDir, w.rel(sourceFileOrDir).toString());
+          saveFileOrDir(sourceFileOrDir);
           if (sourceFileOrDir.isDirectory())
             files().deleteDirectory(sourceFileOrDir, "generated");
           else
@@ -214,15 +216,15 @@ public class PrepOper extends AppOper {
           var ext = Files.getExtension(sourceFile);
           var patterns = state.patterns().optPatternsForExt(ext);
           if (!patterns.isEmpty()) {
-            log("file:", w.rel(sourceFile));
+            var rel = Files.relativeToContainingDirectory(sourceFile, projectDir());
+            log("file:", rel);
             var currText = Files.readString(sourceFile);
             applyFilter(currText, patterns);
 
             if (mMatchesWithinFile != 0) {
               changesMade = true;
-              var rel = w.rel(sourceFile);
               log("...match found:", INDENT, rel);
-              saveFileOrDir(sourceFile, rel.toString());
+              saveFileOrDir(sourceFile);
               // Write new filtered form
               var filteredContent = mNewText.toString();
               log("...writing filtered version of:", rel, INDENT, filteredContent);
@@ -240,7 +242,10 @@ public class PrepOper extends AppOper {
     }
   }
 
-  private void saveFileOrDir(File absSourceFileOrDir, String relativePath) {
+  private void saveFileOrDir(File absSourceFileOrDir) {
+    // determine relative path from project directory
+    var relativePath = Files.relativeToContainingDirectory(absSourceFileOrDir, projectDir()).toString();
+
     var dest = new File(getSaveDir(), relativePath);
     log("...saving:", relativePath);
     files().mkdirs(Files.parent(dest));
@@ -278,8 +283,13 @@ public class PrepOper extends AppOper {
     var w = new DirWalk(restDir);
     int restoreCount = 0;
     for (var f : w.filesRelative()) {
+
       File source = w.abs(f);
       File dest = new File(projectDir(), f.getPath());
+      if (false) {
+        pr("...wanted to restore rel file:",f,CR,"source:",source,CR,"dest:",dest);
+        continue;
+      }
       log("restoring:", INDENT, source, CR, dest);
       files().mkdirs(Files.parent(dest));
       files().copyFile(source, dest, true);
@@ -332,14 +342,12 @@ public class PrepOper extends AppOper {
         // is preceded by some whitespace.
         var start = m.start();
         var end = m.end();
+        if (!(start == 0 || currText.charAt(start - 1) <= ' ')) {
+          continue;
+        }
 
         if (verbose())
           log("...found match for pattern:", p, "at start:", start, "to:", end, "text:", currText.substring(start, end));
-
-        if (!(start == 0 || currText.charAt(start - 1) <= ' ')) {
-          log("...pattern does NOT occur at start of line, ignoring");
-          continue;
-        }
 
         for (int i = start; i < end; i++)
           mNewText.setCharAt(i, ERASE_CHAR);
