@@ -95,9 +95,13 @@ public class PrepOper extends AppOper {
       if (Files.empty(c))
         c = Files.currentDirectory();
       Files.assertDirectoryExists(c, "project_root");
+
+      // Make sure project info file exists
       var inf = Files.join(c, PROJECT_INFO_FILE);
       Files.assertExists(inf, "PROJECT_INFO_FILE");
       mProjectInfoFileContent = Files.readString(inf);
+
+      mProjectDir = c;
     }
     return mProjectDir;
   }
@@ -213,6 +217,9 @@ public class PrepOper extends AppOper {
       var walk = new DirWalk(entry.directory).withRecurse(false).includeDirectories().omitNames(".DS_Store");
       for (var sourceFileOrDir : walk.files()) {
         var name = sourceFileOrDir.getName();
+        if (alert("omitting big.rs") && name.equals("big.rs")) {
+          continue;
+        }
         if (state.deleteFilenames().contains(name)) {
           log("...filtering entire file or dir:", name);
           saveFileOrDir(sourceFileOrDir);
