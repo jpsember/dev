@@ -33,7 +33,6 @@ public class PrepOperTest extends DevTestBase {
 
   @Test
   public void save() {
-    rv();
     prepareDirectories();
     // ----------------------------------------------------------------------------------------------
     prepareApp();
@@ -44,7 +43,6 @@ public class PrepOperTest extends DevTestBase {
 
   @Test
   public void saveAndRestore() {
-//rv();
     prepareDirectories();
     // ----------------------------------------------------------------------------------------------
     prepareApp();

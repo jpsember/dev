@@ -2,22 +2,18 @@ package dev;
 
 import static js.base.Tools.*;
 
-import dev.gen.AppInfo;
 import dev.gen.PrepConfig;
 import js.app.AppOper;
 import js.app.HelpFormatter;
 import js.base.BasePrinter;
 import js.base.SystemCall;
-import js.data.DataUtil;
 import js.file.DirWalk;
 import js.file.Files;
 import js.parsing.DFA;
-import js.parsing.RegExp;
 import js.parsing.Scanner;
 
 import java.io.File;
 import java.util.*;
-import java.util.regex.Pattern;
 
 public class PrepOper extends AppOper {
 
@@ -103,11 +99,11 @@ public class PrepOper extends AppOper {
       var inf = Files.join(c, PROJECT_INFO_FILE);
       Files.assertExists(inf, "PROJECT_INFO_FILE");
       mProjectInfoFileContent = Files.readString(inf);
-    if (mProjectInfoFileContent.trim().isEmpty()) {
-      alert("project file is empty, using default");
-      mProjectInfoFileContent =
-      Files.readString(this.getClass(), "prep_default.txt");
-    }
+      if (mProjectInfoFileContent.trim().isEmpty()) {
+        log("project file is empty, using default");
+        mProjectInfoFileContent =
+            Files.readString(this.getClass(), "prep_default.txt");
+      }
       mProjectDir = c;
     }
     return mProjectDir;
@@ -141,38 +137,6 @@ public class PrepOper extends AppOper {
       files().mkdirs(mCacheDir);
     }
     return mCacheDir;
-  }
-
-
-  private static class PatternRecord {
-
-    @Override
-    public int hashCode() {
-      return description.hashCode();
-    }
-
-    @Override
-    public boolean equals(Object object) {
-      if (this == object)
-        return true;
-      if (object == null || !(object instanceof AppInfo))
-        return false;
-      PatternRecord other = (PatternRecord) object;
-      return other.description.equals(description);
-    }
-
-    PatternRecord(String description) {
-      this.description = description;
-      this.pattern = RegExp.pattern(description);
-    }
-
-    Pattern pattern;
-    String description;
-
-    @Override
-    public String toString() {
-      return description;
-    }
   }
 
 
@@ -224,7 +188,7 @@ public class PrepOper extends AppOper {
       var walk = new DirWalk(entry.directory).withRecurse(false).includeDirectories().omitNames(".DS_Store");
       for (var sourceFileOrDir : walk.files()) {
         var name = sourceFileOrDir.getName();
-        if (alert("omitting big.rs") && name.equals("big.rs")) {
+        if (false && alert("omitting big.rs") && name.equals("big.rs")) {
           continue;
         }
         if (state.deleteFilenames().contains(name)) {
@@ -241,12 +205,12 @@ public class PrepOper extends AppOper {
         if (!sourceFileOrDir.isDirectory()) {
           var sourceFile = sourceFileOrDir;
           var ext = Files.getExtension(sourceFile);
-
+          if (false && alert("skipping all but a.java") && !sourceFile.getName().equals("a.java")) {
+            continue;
+          }
 
           var dfa = dfaForExtension(ext);
           if (dfa != null) {
-//          var patterns = state.patterns().optPatternsForExt(ext);
-//          if (!patterns.isEmpty()) {
             var rel = Files.relativeToContainingDirectory(sourceFile, projectDir());
             log("file:", rel);
             var currText = Files.readString(sourceFile);
@@ -368,42 +332,22 @@ public class PrepOper extends AppOper {
     var s = new Scanner(dfa, currText, -1);
     s.setAcceptUnknownTokens();
 
-    var sb = new StringBuilder();
+    if (false && alert("setting verbosity"))
+      s.setVerbose();
+
     int cursor = 0;
     while (s.hasNext()) {
       var tk = s.read();
       var len = tk.text().length();
       if (!tk.isUnknown()) {
         if (verbose())
-          log("...found matching token:",INDENT,tk);
+          log("...found matching token:", INDENT, tk);
         mMatchesWithinFile++;
-        for (int i = 0; i<len; i++)
-          mNewText.setCharAt(i+cursor, ERASE_CHAR);
+        for (int i = 0; i < len; i++)
+          mNewText.setCharAt(i + cursor, ERASE_CHAR);
       }
       cursor += len;
     }
-
-//    // Apply each of the patterns
-//    for (var p : patterns) {
-//      var m = p.pattern.matcher(currText);
-//      while (m.find()) {
-//        // Make sure the text is either at the start of a line, or
-//        // is preceded by some whitespace.
-//        var start = m.start();
-//        var end = m.end();
-//        if (!(start == 0 || currText.charAt(start - 1) <= ' ')) {
-//          continue;
-//        }
-//
-//        if (verbose())
-//          log("...found match for pattern:", p, "at start:", start, "to:", end, "text:", currText.substring(start, end));
-//
-//        for (int i = start; i < end; i++)
-//          mNewText.setCharAt(i, ERASE_CHAR);
-
-
-//      }
-
     if (mMatchesWithinFile != 0)
       pass2();
   }
@@ -454,42 +398,6 @@ public class PrepOper extends AppOper {
   private int mMatchesWithinFile;
   private StringBuilder mNewText;
 
-//  private File findPatternFile() {
-////    var patFile = new File(projectInfoFileContent())
-////    var patFile = config().patternFile();
-//
-//    if (!config().skipPatternSearch()) {
-//
-//      // If the configuration value was missing,
-//      // look for it in this order:
-//      //
-//      // a) the current directory
-//      // b) an ancestor directory up to and including the project directory
-//      // c) the home directory
-//
-//      if (Files.empty(patFile)) {
-//        var dir = Files.currentDirectory();
-//        while (true) {
-//          var c = new File(dir, ".prep_patterns.txt");
-//          if (c.exists()) {
-//            patFile = c;
-//            break;
-//          }
-//          if (dir.equals(projectDir()))
-//            break;
-//          dir = Files.parent(dir);
-//        }
-//      }
-//
-//      if (Files.empty(patFile)) {
-//        var c = new File(Files.homeDirectory(), ".prep_patterns.txt");
-//        if (c.exists())
-//          patFile = c;
-//      }
-//    }
-//    return patFile;
-//  }
-
   /**
    * Read pattern file contents, if it exists; otherwise, read the contents of the one in the app resources
    */
@@ -504,39 +412,23 @@ public class PrepOper extends AppOper {
     return text;
   }
 
-
-  private StringBuilder mSourceBuilder;
   private Set<String> mActiveExtensions;
 
   /**
-   * Set up the initial filter state
+   * Set up the initial filter state.
+   *
+   * We also parse the project info file, constructing the .rxp files for each supported file extension.
+   * Then we regenerate the .dfa files from those .rxp files (if they aren't cached already)
    */
   private FilterState prepareState() {
     var text = projectInfoFileContent();
-//
-//    var patFile = findPatternFile();
-//    var text = readPatternFile(patFile);
 
-//    var patterns = new PatternCollection();
-
-    // Parse the pattern file text
-
-
-    mSourceBuilder = new StringBuilder();
     mActiveExtensions = hashSet();
 
     for (var x : split(text, '\n')) {
-      //x = x.trim();
-//      if (x.startsWith("#")) continue;
-//      if (x.isEmpty()) continue;
 
-//      if (x.startsWith("{omit}")) {
-//        pr("...found unsupported content:", x);
-//        continue;
-//      }
       var extensionPrefix = ">>>";
       if (x.startsWith(extensionPrefix)) {
-//        flushSourceBuilder( );
 
         mActiveExtensions.clear();
         x = chompPrefix(x, extensionPrefix);
@@ -555,22 +447,13 @@ public class PrepOper extends AppOper {
         buffer.append('\n');
       }
 
-//      // If the pattern ends with '(;', replace this suffix with
-//      // something that accepts any amount of text following ( that does NOT include
-//      // a semicolon, followed by a semicolon.
-//      var y = chomp(x, "(;");
-//      if (y != x)
-//        x = y + "\\x28[^;]*;";
-
-//      var rec = new PatternRecord(x);
-//      for (var ext : activeExtensions) {
-//        patterns.add(ext, rec);
-//      }
     }
 
     // Construct DFAs from each extension
     {
-      for (var ent : extBuffers.entrySet()) {
+      for (var ent : mRXPContentForFileExtensionMap.entrySet()) {
+        todo("Have a utility method in the js.parsing to regenerate .dfa files from strings if necessary");
+
         String ext = ent.getKey();
         String rxp = ent.getValue().toString();
 
@@ -578,45 +461,37 @@ public class PrepOper extends AppOper {
         String randomHash = UUID.nameUUIDFromBytes(rxp.getBytes()).toString();
         var dfaFile = new File(cacheDir(), randomHash + ".dfa");
 
-        //DFA dfa = null;
         if (!dfaFile.exists()) {
-
-
-          pr(VERT_SP,"Generating dfa from:",INDENT,rxp);
+          log("Generating dfa from:", INDENT, rxp);
 
           // Call the dfa program to compile regexps to a dfa
           var tmpDir = files().createTempDir("PrepOper_build_dfa");
-          pr("tempDir:",Files.infoMap(tmpDir));
           var inputFile = new File(tmpDir, "x.rxp");
-          pr("inputFile:",Files.infoMap(inputFile));
           files().writeString(inputFile, rxp);
-          var sc = new SystemCall().withVerbose(verbose() || alert("always verbose"));
+          var sc = new SystemCall().withVerbose(verbose());
           sc.arg("dfa", "input", inputFile, "output", dfaFile);
           sc.assertSuccess();
         }
         var dfa = DFA.parse(Files.readString(dfaFile));
-//      } else {
-        dfaMap.put(ext, dfa);
+        mDFAForFileExtensionMap.put(ext, dfa);
       }
     }
 
     Set<String> deleteFilenames = hashSet();
     deleteFilenames.add(FILTER_FILENAME);
-    return new FilterState(  deleteFilenames);
+    return new FilterState(deleteFilenames);
   }
 
-  private Map<String, DFA> dfaMap = hashMap();
-
   private StringBuilder extensionBuffer(String ext) {
-    var result = extBuffers.get(ext);
+    var result = mRXPContentForFileExtensionMap.get(ext);
     if (result == null) {
       result = new StringBuilder();
-      extBuffers.put(ext, result);
+      mRXPContentForFileExtensionMap.put(ext, result);
     }
     return result;
   }
 
-  private Map<String, StringBuilder> extBuffers = hashMap();
+  private Map<String, StringBuilder> mRXPContentForFileExtensionMap = hashMap();
 
   private static List<String> parseLinesFromTextFile(String text) {
 
@@ -631,50 +506,15 @@ public class PrepOper extends AppOper {
   }
 
   private DFA dfaForExtension(String ext) {
-    return dfaMap.get(ext);
+    return mDFAForFileExtensionMap.get(ext);
   }
 
-//  private static class PatternCollection {
-//    public PatternCollection() {
-//      mPatternBank = hashMap();
-//    }
-//
-//    public PatternCollection dup() {
-//      var x = new PatternCollection();
-//      for (var ent : mPatternBank.entrySet()) {
-//        x.mPatternBank.put(ent.getKey(), new HashSet<>(ent.getValue()));
-//      }
-//      return x;
-//    }
-//
-//    public void add(String extension, PatternRecord pattern) {
-//      var x = getPatternsForExt(extension);
-//      x.add(pattern);
-//    }
-//
-//    private Set<PatternRecord> getPatternsForExt(String extension) {
-//      var x = mPatternBank.get(extension);
-//      if (x == null) {
-//        x = hashSet();
-//        mPatternBank.put(extension, x);
-//      }
-//      return x;
-//    }
-//
-//    public Set<PatternRecord> optPatternsForExt(String extension) {
-//      var x = mPatternBank.get(extension);
-//      if (x == null)
-//        return DataUtil.emptySet();
-//      return x;
-//    }
-//
-//    private Map<String, Set<PatternRecord>> mPatternBank;
-//  }
+  private Map<String, DFA> mDFAForFileExtensionMap = hashMap();
+
 
   private static class FilterState {
 
-    public FilterState(/*PatternCollection patterns, */Collection<String> deleteFilenames) {
-//      mPatterns = patterns;
+    public FilterState(Collection<String> deleteFilenames) {
       mDeleteFilenames = hashSet();
       mDeleteFilenames.addAll(deleteFilenames);
     }
@@ -682,17 +522,12 @@ public class PrepOper extends AppOper {
     private FilterState() {
     }
 
-//    public PatternCollection patterns() {
-//      return mPatterns;
-//    }
-
     public Set<String> deleteFilenames() {
       return mDeleteFilenames;
     }
 
     public FilterState dup() {
       var s = new FilterState();
-//      s.mPatterns = mPatterns.dup();
       s.mDeleteFilenames = new HashSet<String>(mDeleteFilenames);
       return s;
     }
@@ -702,8 +537,6 @@ public class PrepOper extends AppOper {
     }
 
     // This map should be considered immutable.  If changes are made, construct a new copy
-//    private PatternCollection mPatterns;
     private Set<String> mDeleteFilenames;
-
   }
 }

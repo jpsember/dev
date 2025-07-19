@@ -12,11 +12,10 @@ NONSENSE: numquameiusmoditemporaincidunt
 #    ....
 # .......    ~}
 
-SKIP_SECTION: \/\/ \s+ { $_TILDE
+SKIP_SECTION: \/\/ \s* { $_TILDE
   # Anything but ~}
-  ( .*  -- ( .* $_TILDE }  .* ) )
-  $_TILDE }
-
+  .* # ( .*  -- ( .* ( $_TILDE } ) .* ) )
+  ( $_TILDE } )
 
 >>>java
 
@@ -32,7 +31,7 @@ PR: $_LEFTSPACE  pr \( $_TOSEMI
 #
 # (Note the escaped *)
 #
-use \ws crate\:\:jefftools\:\:\*;
+USE_JEFFTOOLS: use \ws crate\:\:jefftools\:\:\*;
 
 
 # Methods within jefftools.rs
