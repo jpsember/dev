@@ -1,6 +1,6 @@
 >>>gitignore,sh,java,rs
 
-_LEFTSPACE: [\s\t]*
+_LEFTSPACE: [\s\t]+
 _NONSEMI: [^;]+
 _TOSEMI: $_NONSEMI ;
 NONSENSE: numquameiusmoditemporaincidunt
@@ -14,7 +14,7 @@ NONSENSE: numquameiusmoditemporaincidunt
 
 SKIP_SECTION: \/\/ \s* { $_TILDE
   # Anything but ~}
-  .* # ( .*  -- ( .* ( $_TILDE } ) .* ) )
+  ( .*  -- ( .* ( $_TILDE } ) .* ) )
   ( $_TILDE } )
 
 >>>java
@@ -36,5 +36,5 @@ USE_JEFFTOOLS: use \ws crate\:\:jefftools\:\:\*;
 
 # Methods within jefftools.rs
 #
-DB_METHODS: $_LEFTSPACE  ( pr! | prif! | pr_to! | o! | load_tools | warning | fail | halt ) $_TOSEMI
+DB_METHODS: $_LEFTSPACE  ( pr! | prif! | pr_to! | o! | load_tools | warning | fail | halt ) \( $_TOSEMI
 
