@@ -70,14 +70,7 @@ public class PrepOper extends AppOper {
   }
 
   private boolean saving() {
-    if (mSaving == null) {
-      if (config().save())
-        mSaving = true;
-      else if (config().restore())
-        mSaving = false;
-      else
-        throw setError("Specify save or restore operation");
-    }
+    projectDir();
     return mSaving;
   }
 
@@ -90,20 +83,29 @@ public class PrepOper extends AppOper {
    */
   private File projectDir() {
     if (mProjectDir == null) {
-      var c = config().projectRoot();
+      checkState(mSaving == null);
+      var c = config().projectRootForTesting();
       if (Files.empty(c))
         c = Files.currentDirectory();
-      Files.assertDirectoryExists(c, "project_root");
-
-      // Make sure project info file exists
-      var inf = Files.join(c, PROJECT_INFO_FILE);
-      Files.assertExists(inf, "PROJECT_INFO_FILE");
-      mProjectInfoFileContent = Files.readString(inf);
-      if (mProjectInfoFileContent.trim().isEmpty()) {
-        log("project file is empty, using default");
-        mProjectInfoFileContent =
-            Files.readString(this.getClass(), "prep_default.txt");
+      else {
+        Files.assertDirectoryExists(c, "project_root_for_testing");
       }
+
+      // Look for the project info file.
+      // If it doesn't exist, we are doing a restore operation
+      var infoFile = Files.join(c, PROJECT_INFO_FILE);
+      if (!infoFile.exists()) {
+        mSaving = false;
+      } else {
+        mSaving = true;
+        mProjectInfoFileContent = Files.readString(infoFile);
+        if (mProjectInfoFileContent.trim().isEmpty()) {
+          log("project file is empty, using default");
+          mProjectInfoFileContent =
+              Files.readString(this.getClass(), "prep_default.txt");
+        }
+      }
+
       mProjectDir = c;
     }
     return mProjectDir;
@@ -540,3 +542,4 @@ public class PrepOper extends AppOper {
     private Set<String> mDeleteFilenames;
   }
 }
+

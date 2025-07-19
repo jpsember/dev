@@ -1,10 +1,5 @@
 class {
-    bool save;
-    bool restore;
-
-    // If empty,  uses current directory
-    File project_root;
-
+    bool init;   // Initialize a new project
 
     // ---- These are exposed only for unit tests
 
@@ -19,6 +14,10 @@ class {
     string cache_path_expr;
 
     bool skip_pattern_search;
+
+    // If empty, uses current directory
+    File project_root_for_testing;
+
 }
 
 
