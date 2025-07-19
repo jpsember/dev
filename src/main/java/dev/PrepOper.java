@@ -87,15 +87,13 @@ public class PrepOper extends AppOper {
       var c = config().projectRootForTesting();
       if (Files.empty(c)) {
         c = Files.currentDirectory();
-        pr("curr dir:",c.toString());
+        pr("curr dir:", c.toString());
         if (c.toString().endsWith("/Users/jeff/github_projects/dev"))
           die("WTF, shouldn't be operating on our own source directory");
-        problem = true;
-//        halt("wtf, don't use current directory!");
-      }
-      else {
+      } else {
         Files.assertDirectoryExists(c, "project_root_for_testing");
       }
+      mProjectDir = c;
 
       // Look for the project info file.
       // If it doesn't exist, we are doing a restore operation
@@ -112,12 +110,11 @@ public class PrepOper extends AppOper {
         }
       }
 
-      mProjectDir = c;
+
     }
     return mProjectDir;
   }
 
-  private boolean problem = true;
   private String mProjectInfoFileContent;
 
   private String projectInfoFileContent() {
@@ -283,10 +280,6 @@ public class PrepOper extends AppOper {
   private void doRestore() {
     var restDir = getRestoreDir();
 
-
-    checkState(!problem,"wtf, problem");
-    halt();
-
     if (Files.empty(restDir))
       throw setError("No cache directories found to restore from");
     var w = new DirWalk(restDir);
@@ -327,12 +320,10 @@ public class PrepOper extends AppOper {
 
   private File getRestoreDir() {
     if (mRestoreDir == null) {
-      pr("getRestoreDir");
       var found = auxGetCacheDirs();
-      pr("...found:",found);
       mRestoreDir = Files.DEFAULT;
-      if (!found.isEmpty()) mRestoreDir = last(found);
-      pr("restoreDir is:",Files.infoMap(mRestoreDir));
+      if (!found.isEmpty())
+        mRestoreDir = last(found);
     }
     return mRestoreDir;
   }
@@ -496,6 +487,7 @@ public class PrepOper extends AppOper {
 
     Set<String> deleteFilenames = hashSet();
     deleteFilenames.add(FILTER_FILENAME);
+    deleteFilenames.add(PROJECT_INFO_FILE);
     return new FilterState(deleteFilenames);
   }
 

@@ -36,7 +36,7 @@ public class PrepOperTest extends DevTestBase {
     prepareDirectories();
     // ----------------------------------------------------------------------------------------------
     prepareApp();
-    perform("save");
+    runApp();
     // ----------------------------------------------------------------------------------------------
     assertGenerated();
   }
@@ -46,7 +46,7 @@ public class PrepOperTest extends DevTestBase {
     prepareDirectories();
     // ----------------------------------------------------------------------------------------------
     prepareApp();
-    perform("save");
+    runApp();
 
     var f1 =
         generatedFile("source/a.java");
@@ -57,7 +57,7 @@ public class PrepOperTest extends DevTestBase {
     checkState(!f2.exists());
 
     prepareApp();
-    perform("restore");
+    runApp();
     // ----------------------------------------------------------------------------------------------
     assertGenerated();
   }
@@ -66,7 +66,7 @@ public class PrepOperTest extends DevTestBase {
     loadTools();
     clearArgs();
     setOper("prep");
-    addArg("project_root", sourceDir());
+    addArg("project_root_for_testing", sourceDir());
     addArg("cache_dir", files().mkdirs(cacheDir()));
     addArg("cache_filename", "prep_oper");
     addArg("cache_path_expr", "xxx");
@@ -79,11 +79,6 @@ public class PrepOperTest extends DevTestBase {
     var target = sourceDir();
     files().mkdirs(target);
     files().copyDirectory(src, target);
-  }
-
-  private void perform(String action) {
-    addArg(action);
-    runApp();
   }
 
   private File sourceDir() {
