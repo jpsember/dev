@@ -7,9 +7,11 @@ import dev.gen.PrepConfig;
 import js.app.AppOper;
 import js.app.HelpFormatter;
 import js.base.BasePrinter;
+import js.base.SystemCall;
 import js.data.DataUtil;
 import js.file.DirWalk;
 import js.file.Files;
+import js.parsing.DFA;
 import js.parsing.RegExp;
 
 import java.io.File;
@@ -100,7 +102,11 @@ public class PrepOper extends AppOper {
       var inf = Files.join(c, PROJECT_INFO_FILE);
       Files.assertExists(inf, "PROJECT_INFO_FILE");
       mProjectInfoFileContent = Files.readString(inf);
-
+    if (mProjectInfoFileContent.trim().isEmpty()) {
+      alert("project file is empty, using default");
+      mProjectInfoFileContent =
+      Files.readString(this.getClass(), "prep_default.txt");
+    }
       mProjectDir = c;
     }
     return mProjectDir;
@@ -426,40 +432,41 @@ public class PrepOper extends AppOper {
   private int mMatchesWithinFile;
   private StringBuilder mNewText;
 
-  private File findPatternFile() {
-    var patFile = config().patternFile();
-
-    if (!config().skipPatternSearch()) {
-
-      // If the configuration value was missing,
-      // look for it in this order:
-      //
-      // a) the current directory
-      // b) an ancestor directory up to and including the project directory
-      // c) the home directory
-
-      if (Files.empty(patFile)) {
-        var dir = Files.currentDirectory();
-        while (true) {
-          var c = new File(dir, ".prep_patterns.txt");
-          if (c.exists()) {
-            patFile = c;
-            break;
-          }
-          if (dir.equals(projectDir()))
-            break;
-          dir = Files.parent(dir);
-        }
-      }
-
-      if (Files.empty(patFile)) {
-        var c = new File(Files.homeDirectory(), ".prep_patterns.txt");
-        if (c.exists())
-          patFile = c;
-      }
-    }
-    return patFile;
-  }
+//  private File findPatternFile() {
+////    var patFile = new File(projectInfoFileContent())
+////    var patFile = config().patternFile();
+//
+//    if (!config().skipPatternSearch()) {
+//
+//      // If the configuration value was missing,
+//      // look for it in this order:
+//      //
+//      // a) the current directory
+//      // b) an ancestor directory up to and including the project directory
+//      // c) the home directory
+//
+//      if (Files.empty(patFile)) {
+//        var dir = Files.currentDirectory();
+//        while (true) {
+//          var c = new File(dir, ".prep_patterns.txt");
+//          if (c.exists()) {
+//            patFile = c;
+//            break;
+//          }
+//          if (dir.equals(projectDir()))
+//            break;
+//          dir = Files.parent(dir);
+//        }
+//      }
+//
+//      if (Files.empty(patFile)) {
+//        var c = new File(Files.homeDirectory(), ".prep_patterns.txt");
+//        if (c.exists())
+//          patFile = c;
+//      }
+//    }
+//    return patFile;
+//  }
 
   /**
    * Read pattern file contents, if it exists; otherwise, read the contents of the one in the app resources
@@ -475,51 +482,99 @@ public class PrepOper extends AppOper {
     return text;
   }
 
+
+  private StringBuilder mSourceBuilder;
+  private Set<String> mActiveExtensions;
+
   /**
    * Set up the initial filter state
    */
   private FilterState prepareState() {
-    var patFile = findPatternFile();
-    var text = readPatternFile(patFile);
+    var text = projectInfoFileContent();
+//
+//    var patFile = findPatternFile();
+//    var text = readPatternFile(patFile);
 
     var patterns = new PatternCollection();
 
     // Parse the pattern file text
 
-    Set<String> activeExtensions = hashSet();
+
+    mSourceBuilder = new StringBuilder();
+    mActiveExtensions = hashSet();
 
     for (var x : split(text, '\n')) {
-      x = x.trim();
-      if (x.startsWith("#")) continue;
-      if (x.isEmpty()) continue;
+      //x = x.trim();
+//      if (x.startsWith("#")) continue;
+//      if (x.isEmpty()) continue;
 
-      if (x.startsWith("{omit}")) {
-        pr("...found unsupported content:", x);
-        continue;
-      }
+//      if (x.startsWith("{omit}")) {
+//        pr("...found unsupported content:", x);
+//        continue;
+//      }
       var extensionPrefix = ">>>";
       if (x.startsWith(extensionPrefix)) {
-        activeExtensions.clear();
+//        flushSourceBuilder( );
+
+        mActiveExtensions.clear();
         x = chompPrefix(x, extensionPrefix);
 
         var extList = split(x, ',');
         for (var ext : extList) {
           checkArgument(ext.matches("[a-zA-Z]+"), "illegal extension:", ext);
-          activeExtensions.add(ext);
+          mActiveExtensions.add(ext);
         }
         continue;
       }
 
-      // If the pattern ends with '(;', replace this suffix with
-      // something that accepts any amount of text following ( that does NOT include
-      // a semicolon, followed by a semicolon.
-      var y = chomp(x, "(;");
-      if (y != x)
-        x = y + "\\x28[^;]*;";
+      for (var ext : mActiveExtensions) {
+        var buffer = extensionBuffer(ext);
+        buffer.append(x);
+        buffer.append('\n');
+      }
 
-      var rec = new PatternRecord(x);
-      for (var ext : activeExtensions) {
-        patterns.add(ext, rec);
+//      // If the pattern ends with '(;', replace this suffix with
+//      // something that accepts any amount of text following ( that does NOT include
+//      // a semicolon, followed by a semicolon.
+//      var y = chomp(x, "(;");
+//      if (y != x)
+//        x = y + "\\x28[^;]*;";
+
+//      var rec = new PatternRecord(x);
+//      for (var ext : activeExtensions) {
+//        patterns.add(ext, rec);
+//      }
+    }
+
+    // Construct DFAs from each extension
+    {
+      for (var ent : extBuffers.entrySet()) {
+        String ext = ent.getKey();
+        String rxp = ent.getValue().toString();
+
+        // Get DFA for this regexp
+        String randomHash = UUID.nameUUIDFromBytes(rxp.getBytes()).toString();
+        var dfaFile = new File(cacheDir(), randomHash + ".dfa");
+
+        //DFA dfa = null;
+        if (!dfaFile.exists()) {
+
+
+          pr(VERT_SP,"Generating dfa from:",INDENT,rxp);
+
+          // Call the dfa program to compile regexps to a dfa
+          var tmpDir = files().createTempDir("PrepOper_build_dfa");
+          pr("tempDir:",Files.infoMap(tmpDir));
+          var inputFile = new File(tmpDir, "x.rxp");
+          pr("inputFile:",Files.infoMap(inputFile));
+          files().writeString(inputFile, rxp);
+          var sc = new SystemCall().withVerbose(verbose() || alert("always verbose"));
+          sc.arg("dfa", "input", inputFile, "output", dfaFile);
+          sc.assertSuccess();
+        }
+        var dfa = DFA.parse(Files.readString(dfaFile));
+//      } else {
+        dfaMap.put(ext, dfa);
       }
     }
 
@@ -527,6 +582,19 @@ public class PrepOper extends AppOper {
     deleteFilenames.add(FILTER_FILENAME);
     return new FilterState(patterns, deleteFilenames);
   }
+
+  private Map<String, DFA> dfaMap = hashMap();
+
+  private StringBuilder extensionBuffer(String ext) {
+    var result = extBuffers.get(ext);
+    if (result == null) {
+      result = new StringBuilder();
+      extBuffers.put(ext, result);
+    }
+    return result;
+  }
+
+  private Map<String, StringBuilder> extBuffers = hashMap();
 
   private static List<String> parseLinesFromTextFile(String text) {
 
@@ -538,6 +606,10 @@ public class PrepOper extends AppOper {
       out.add(x);
     }
     return out;
+  }
+
+  private DFA dfaForExtension(String ext) {
+    return dfaMap.get(ext);
   }
 
   private static class PatternCollection {

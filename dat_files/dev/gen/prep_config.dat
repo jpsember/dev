@@ -5,19 +5,6 @@ class {
     // If empty,  uses current directory
     File project_root;
 
-    // Pattern file.
-    //
-    // # comments
-    //
-    // >java       (extension)
-    // pattern
-    // pattern
-    //
-    // >rs
-    // pattern
-    // pattern
-    //
-    File pattern_file;
 
     // ---- These are exposed only for unit tests
 
@@ -33,3 +20,21 @@ class {
 
     bool skip_pattern_search;
 }
+
+
+
+// The patterns are now found in the .prep_project file
+
+    // Pattern file.
+    //
+    // # comments
+    //
+    // >java       (extension)
+    // pattern
+    // pattern
+    //
+    // >rs
+    // pattern
+    // pattern
+    //
+    //     File pattern_file;

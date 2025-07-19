@@ -19,10 +19,6 @@ public class PrepConfig implements AbstractData {
     return mProjectRoot;
   }
 
-  public File patternFile() {
-    return mPatternFile;
-  }
-
   public File cacheDir() {
     return mCacheDir;
   }
@@ -47,11 +43,10 @@ public class PrepConfig implements AbstractData {
   protected static final String _0 = "save";
   protected static final String _1 = "restore";
   protected static final String _2 = "project_root";
-  protected static final String _3 = "pattern_file";
-  protected static final String _4 = "cache_dir";
-  protected static final String _5 = "cache_filename";
-  protected static final String _6 = "cache_path_expr";
-  protected static final String _7 = "skip_pattern_search";
+  protected static final String _3 = "cache_dir";
+  protected static final String _4 = "cache_filename";
+  protected static final String _5 = "cache_path_expr";
+  protected static final String _6 = "skip_pattern_search";
 
   @Override
   public String toString() {
@@ -64,11 +59,10 @@ public class PrepConfig implements AbstractData {
     m.putUnsafe(_0, mSave);
     m.putUnsafe(_1, mRestore);
     m.putUnsafe(_2, mProjectRoot.toString());
-    m.putUnsafe(_3, mPatternFile.toString());
-    m.putUnsafe(_4, mCacheDir.toString());
-    m.putUnsafe(_5, mCacheFilename.toString());
-    m.putUnsafe(_6, mCachePathExpr);
-    m.putUnsafe(_7, mSkipPatternSearch);
+    m.putUnsafe(_3, mCacheDir.toString());
+    m.putUnsafe(_4, mCacheFilename.toString());
+    m.putUnsafe(_5, mCachePathExpr);
+    m.putUnsafe(_6, mSkipPatternSearch);
     return m;
   }
 
@@ -93,28 +87,21 @@ public class PrepConfig implements AbstractData {
       }
     }
     {
-      mPatternFile = Files.DEFAULT;
-      String x = m.opt(_3, (String) null);
-      if (x != null) {
-        mPatternFile = new File(x);
-      }
-    }
-    {
       mCacheDir = Files.DEFAULT;
-      String x = m.opt(_4, (String) null);
+      String x = m.opt(_3, (String) null);
       if (x != null) {
         mCacheDir = new File(x);
       }
     }
     {
-      mCacheFilename = _D5;
-      String x = m.opt(_5, (String) null);
+      mCacheFilename = _D4;
+      String x = m.opt(_4, (String) null);
       if (x != null) {
         mCacheFilename = new File(x);
       }
     }
-    mCachePathExpr = m.opt(_6, "");
-    mSkipPatternSearch = m.opt(_7, false);
+    mCachePathExpr = m.opt(_5, "");
+    mSkipPatternSearch = m.opt(_6, false);
   }
 
   public static Builder newBuilder() {
@@ -136,8 +123,6 @@ public class PrepConfig implements AbstractData {
       return false;
     if (!(mProjectRoot.equals(other.mProjectRoot)))
       return false;
-    if (!(mPatternFile.equals(other.mPatternFile)))
-      return false;
     if (!(mCacheDir.equals(other.mCacheDir)))
       return false;
     if (!(mCacheFilename.equals(other.mCacheFilename)))
@@ -157,7 +142,6 @@ public class PrepConfig implements AbstractData {
       r = r * 37 + (mSave ? 1 : 0);
       r = r * 37 + (mRestore ? 1 : 0);
       r = r * 37 + mProjectRoot.hashCode();
-      r = r * 37 + mPatternFile.hashCode();
       r = r * 37 + mCacheDir.hashCode();
       r = r * 37 + mCacheFilename.hashCode();
       r = r * 37 + mCachePathExpr.hashCode();
@@ -170,7 +154,6 @@ public class PrepConfig implements AbstractData {
   protected boolean mSave;
   protected boolean mRestore;
   protected File mProjectRoot;
-  protected File mPatternFile;
   protected File mCacheDir;
   protected File mCacheFilename;
   protected String mCachePathExpr;
@@ -183,7 +166,6 @@ public class PrepConfig implements AbstractData {
       mSave = m.mSave;
       mRestore = m.mRestore;
       mProjectRoot = m.mProjectRoot;
-      mPatternFile = m.mPatternFile;
       mCacheDir = m.mCacheDir;
       mCacheFilename = m.mCacheFilename;
       mCachePathExpr = m.mCachePathExpr;
@@ -207,7 +189,6 @@ public class PrepConfig implements AbstractData {
       r.mSave = mSave;
       r.mRestore = mRestore;
       r.mProjectRoot = mProjectRoot;
-      r.mPatternFile = mPatternFile;
       r.mCacheDir = mCacheDir;
       r.mCacheFilename = mCacheFilename;
       r.mCachePathExpr = mCachePathExpr;
@@ -230,18 +211,13 @@ public class PrepConfig implements AbstractData {
       return this;
     }
 
-    public Builder patternFile(File x) {
-      mPatternFile = (x == null) ? Files.DEFAULT : x;
-      return this;
-    }
-
     public Builder cacheDir(File x) {
       mCacheDir = (x == null) ? Files.DEFAULT : x;
       return this;
     }
 
     public Builder cacheFilename(File x) {
-      mCacheFilename = (x == null) ? _D5 : x;
+      mCacheFilename = (x == null) ? _D4 : x;
       return this;
     }
 
@@ -257,15 +233,14 @@ public class PrepConfig implements AbstractData {
 
   }
 
-  private static final File _D5 = new File(".prep_oper_cache");
+  private static final File _D4 = new File(".prep_oper_cache");
 
   public static final PrepConfig DEFAULT_INSTANCE = new PrepConfig();
 
   private PrepConfig() {
     mProjectRoot = Files.DEFAULT;
-    mPatternFile = Files.DEFAULT;
     mCacheDir = Files.DEFAULT;
-    mCacheFilename = _D5;
+    mCacheFilename = _D4;
     mCachePathExpr = "";
   }
 

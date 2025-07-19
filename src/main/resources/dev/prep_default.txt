@@ -1,41 +1,41 @@
 >>>gitignore,sh,java,rs
 
+_LEFTSPACE: $_WHITESPACE
+_NONSEMI: [^;]+
+_TOSEMI: $_NONSEMI ;
+NONSENSE: numquameiusmoditemporaincidunt
+
 >>>java,rs
 
 # // {~ ....
 #    ....
 #    ....
 # .......    ~}
-\/\/ \{~(?:[^~]|~+[^\x7d])*~\}
+
+SKIP_SECTION: \/\/ \s+ { $_TILDE
+  # Anything but ~}
+  ( .*  -- ( .* $_TILDE }  .* ) )
+  $_TILDE }
+
 
 >>>java
 
 #  pr("hello",(1+3));
 #
-pr\([^;]*;
+PR: $_LEFTSPACE  pr \( $_TOSEMI
+
 
 
 >>>rs
-
-#  pr("hello",(1+3));
-#
-pr\([^;]*;
-
 
 # Importing my tools
 #
 # (Note the escaped *)
 #
-use crate::jefftools::\*;
+use \ws crate\:\:jefftools\:\:\*;
 
 
 # Methods within jefftools.rs
 #
-pr!(;
-prif!(;
-pr_to!(;
-o!(;
-load_tools(;
-warning(;
-fail(;
-halt(;
+DB_METHODS: $_LEFTSPACE  ( pr! | prif! | pr_to! | o! | load_tools | warning | fail | halt ) $_TOSEMI
+
