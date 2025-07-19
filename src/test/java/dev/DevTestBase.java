@@ -22,8 +22,11 @@ public class DevTestBase extends MyTestCase {
   public final void runApp() {
     if (verbose())
       addArg("--verbose");
-    new Main().startApplication(DataUtil.toStringArray(args()));
+    var app = new Main();
+    app.startApplication(DataUtil.toStringArray(args()));
     clearArgs();
+    var ex = app.getError();
+    if (ex != null) throw ex;
   }
 
   public final void clearArgs() {

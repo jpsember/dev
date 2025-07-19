@@ -23,6 +23,8 @@
  **/
 package dev;
 
+import js.app.App;
+import js.file.Files;
 import org.junit.Test;
 
 import java.io.File;
@@ -61,6 +63,23 @@ public class PrepOperTest extends DevTestBase {
     // ----------------------------------------------------------------------------------------------
     assertGenerated();
   }
+
+  @Test
+  public void restoreWithoutSave() {
+    prepareDirectories();
+    // ----------------------------------------------------------------------------------------------
+    prepareApp();
+    // Delete the project info file within the start directory, so it doesn't assume it's doing a save
+    var existingFilter = new File(sourceDir(), PrepOper.PROJECT_INFO_FILE);
+    Files.assertExists(existingFilter, "existing project info file for restoreWithoutSave");
+    files().deleteFile(existingFilter);
+    try {
+      runApp();
+    } catch (App.AppErrorException e) {
+      checkArgument(e.toString().contains("is there a .prep_project file"));
+    }
+  }
+
 
   private void prepareApp() {
     loadTools();

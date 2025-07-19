@@ -17,8 +17,8 @@ import java.util.*;
 
 public class PrepOper extends AppOper {
 
-  private static final String FILTER_FILENAME = ".filter";
-  private static final String PROJECT_INFO_FILE = ".prep_project";
+  public static final String FILTER_FILENAME = ".filter";
+  public static final String PROJECT_INFO_FILE = ".prep_project";
 
   private static final int MAX_BACKUP_SETS = 5;
   private static final boolean SINGLE_SET = false && alert("SINGLE_SET in effect");
@@ -87,7 +87,6 @@ public class PrepOper extends AppOper {
       var c = config().projectRootForTesting();
       if (Files.empty(c)) {
         c = Files.currentDirectory();
-        pr("curr dir:", c.toString());
         if (c.toString().endsWith("/Users/jeff/github_projects/dev"))
           die("WTF, shouldn't be operating on our own source directory");
       } else {
@@ -281,7 +280,7 @@ public class PrepOper extends AppOper {
     var restDir = getRestoreDir();
 
     if (Files.empty(restDir))
-      throw setError("No cache directories found to restore from");
+      throw setError("No previously saved versions to restore; is there a .prep_project file in the current directory?");
     var w = new DirWalk(restDir);
     int restoreCount = 0;
     for (var f : w.filesRelative()) {
