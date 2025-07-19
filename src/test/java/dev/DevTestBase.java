@@ -7,7 +7,7 @@ import java.util.List;
 
 import static js.base.Tools.*;
 
-public class DevTestBase extends MyTestCase {
+public abstract class DevTestBase extends MyTestCase {
 
   public final void setOper(String operName) {
     mOperName = operName;

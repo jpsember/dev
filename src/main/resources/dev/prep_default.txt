@@ -1,6 +1,7 @@
 >>>gitignore,sh,java,rs
 
 _LEFTSPACE: [\s\t]+
+
 _NONSEMI: [^;]+
 _TOSEMI: $_NONSEMI ;
 NONSENSE: numquameiusmoditemporaincidunt

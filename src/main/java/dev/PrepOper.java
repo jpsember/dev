@@ -61,7 +61,7 @@ public class PrepOper extends AppOper {
     files().withDryRun(dryRun());
     log("Project directory:", projectDir());
     log("Cache directory:", cacheDir());
-    log("Saving:", saving(), "Restoring:", restoring());
+    log("Operation:",saving() ? "SAVE" : "RESTORE");
     if (saving()) {
       doSave();
     } else {
