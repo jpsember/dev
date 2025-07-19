@@ -5,8 +5,6 @@ class {
     // If empty,  uses current directory
     File project_root;
 
-    //File project_file = ".git";
-
     // Pattern file.
     //
     // # comments

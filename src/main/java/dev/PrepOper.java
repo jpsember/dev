@@ -19,6 +19,7 @@ import java.util.regex.Pattern;
 public class PrepOper extends AppOper {
 
   private static final String FILTER_FILENAME = ".filter";
+  private static final String PROJECT_INFO_FILE = ".prep_project";
 
   private static final int MAX_BACKUP_SETS = 5;
   private static final boolean SINGLE_SET = false && alert("SINGLE_SET in effect");
@@ -93,9 +94,21 @@ public class PrepOper extends AppOper {
       var c = config().projectRoot();
       if (Files.empty(c))
         c = Files.currentDirectory();
-      mProjectDir = Files.assertDirectoryExists(c,"project_root");
+      Files.assertDirectoryExists(c, "project_root");
+      var inf = Files.join(c, PROJECT_INFO_FILE);
+      Files.assertExists(inf, "PROJECT_INFO_FILE");
+      mProjectInfoFileContent = Files.readString(inf);
     }
     return mProjectDir;
+  }
+
+  private String mProjectInfoFileContent;
+
+  private String projectInfoFileContent() {
+    if (mProjectInfoFileContent == null) {
+      projectDir();
+    }
+    return mProjectInfoFileContent;
   }
 
   /**
@@ -287,7 +300,7 @@ public class PrepOper extends AppOper {
       File source = w.abs(f);
       File dest = new File(projectDir(), f.getPath());
       if (false) {
-        pr("...wanted to restore rel file:",f,CR,"source:",source,CR,"dest:",dest);
+        pr("...wanted to restore rel file:", f, CR, "source:", source, CR, "dest:", dest);
         continue;
       }
       log("restoring:", INDENT, source, CR, dest);
