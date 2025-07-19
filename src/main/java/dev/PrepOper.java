@@ -13,6 +13,7 @@ import js.file.DirWalk;
 import js.file.Files;
 import js.parsing.DFA;
 import js.parsing.RegExp;
+import js.parsing.Scanner;
 
 import java.io.File;
 import java.util.*;
@@ -240,12 +241,16 @@ public class PrepOper extends AppOper {
         if (!sourceFileOrDir.isDirectory()) {
           var sourceFile = sourceFileOrDir;
           var ext = Files.getExtension(sourceFile);
-          var patterns = state.patterns().optPatternsForExt(ext);
-          if (!patterns.isEmpty()) {
+
+
+          var dfa = dfaForExtension(ext);
+          if (dfa != null) {
+//          var patterns = state.patterns().optPatternsForExt(ext);
+//          if (!patterns.isEmpty()) {
             var rel = Files.relativeToContainingDirectory(sourceFile, projectDir());
             log("file:", rel);
             var currText = Files.readString(sourceFile);
-            applyFilter(currText, patterns);
+            applyFilter(currText, dfa);
 
             if (mMatchesWithinFile != 0) {
               changesMade = true;
@@ -355,32 +360,49 @@ public class PrepOper extends AppOper {
 
   private static final char ERASE_CHAR = 0x7f;
 
-  private void applyFilter(String currText, Collection<PatternRecord> patterns) {
+  private void applyFilter(String currText, DFA dfa) {
 
     mNewText = new StringBuilder(currText);
     mMatchesWithinFile = 0;
 
-    // Apply each of the patterns
-    for (var p : patterns) {
-      var m = p.pattern.matcher(currText);
-      while (m.find()) {
-        // Make sure the text is either at the start of a line, or
-        // is preceded by some whitespace.
-        var start = m.start();
-        var end = m.end();
-        if (!(start == 0 || currText.charAt(start - 1) <= ' ')) {
-          continue;
-        }
+    var s = new Scanner(dfa, currText, -1);
+    s.setAcceptUnknownTokens();
 
+    var sb = new StringBuilder();
+    int cursor = 0;
+    while (s.hasNext()) {
+      var tk = s.read();
+      var len = tk.text().length();
+      if (!tk.isUnknown()) {
         if (verbose())
-          log("...found match for pattern:", p, "at start:", start, "to:", end, "text:", currText.substring(start, end));
-
-        for (int i = start; i < end; i++)
-          mNewText.setCharAt(i, ERASE_CHAR);
-
+          log("...found matching token:",INDENT,tk);
         mMatchesWithinFile++;
+        for (int i = 0; i<len; i++)
+          mNewText.setCharAt(i+cursor, ERASE_CHAR);
       }
+      cursor += len;
     }
+
+//    // Apply each of the patterns
+//    for (var p : patterns) {
+//      var m = p.pattern.matcher(currText);
+//      while (m.find()) {
+//        // Make sure the text is either at the start of a line, or
+//        // is preceded by some whitespace.
+//        var start = m.start();
+//        var end = m.end();
+//        if (!(start == 0 || currText.charAt(start - 1) <= ' ')) {
+//          continue;
+//        }
+//
+//        if (verbose())
+//          log("...found match for pattern:", p, "at start:", start, "to:", end, "text:", currText.substring(start, end));
+//
+//        for (int i = start; i < end; i++)
+//          mNewText.setCharAt(i, ERASE_CHAR);
+
+
+//      }
 
     if (mMatchesWithinFile != 0)
       pass2();
@@ -495,7 +517,7 @@ public class PrepOper extends AppOper {
 //    var patFile = findPatternFile();
 //    var text = readPatternFile(patFile);
 
-    var patterns = new PatternCollection();
+//    var patterns = new PatternCollection();
 
     // Parse the pattern file text
 
@@ -580,7 +602,7 @@ public class PrepOper extends AppOper {
 
     Set<String> deleteFilenames = hashSet();
     deleteFilenames.add(FILTER_FILENAME);
-    return new FilterState(patterns, deleteFilenames);
+    return new FilterState(  deleteFilenames);
   }
 
   private Map<String, DFA> dfaMap = hashMap();
@@ -612,47 +634,47 @@ public class PrepOper extends AppOper {
     return dfaMap.get(ext);
   }
 
-  private static class PatternCollection {
-    public PatternCollection() {
-      mPatternBank = hashMap();
-    }
-
-    public PatternCollection dup() {
-      var x = new PatternCollection();
-      for (var ent : mPatternBank.entrySet()) {
-        x.mPatternBank.put(ent.getKey(), new HashSet<>(ent.getValue()));
-      }
-      return x;
-    }
-
-    public void add(String extension, PatternRecord pattern) {
-      var x = getPatternsForExt(extension);
-      x.add(pattern);
-    }
-
-    private Set<PatternRecord> getPatternsForExt(String extension) {
-      var x = mPatternBank.get(extension);
-      if (x == null) {
-        x = hashSet();
-        mPatternBank.put(extension, x);
-      }
-      return x;
-    }
-
-    public Set<PatternRecord> optPatternsForExt(String extension) {
-      var x = mPatternBank.get(extension);
-      if (x == null)
-        return DataUtil.emptySet();
-      return x;
-    }
-
-    private Map<String, Set<PatternRecord>> mPatternBank;
-  }
+//  private static class PatternCollection {
+//    public PatternCollection() {
+//      mPatternBank = hashMap();
+//    }
+//
+//    public PatternCollection dup() {
+//      var x = new PatternCollection();
+//      for (var ent : mPatternBank.entrySet()) {
+//        x.mPatternBank.put(ent.getKey(), new HashSet<>(ent.getValue()));
+//      }
+//      return x;
+//    }
+//
+//    public void add(String extension, PatternRecord pattern) {
+//      var x = getPatternsForExt(extension);
+//      x.add(pattern);
+//    }
+//
+//    private Set<PatternRecord> getPatternsForExt(String extension) {
+//      var x = mPatternBank.get(extension);
+//      if (x == null) {
+//        x = hashSet();
+//        mPatternBank.put(extension, x);
+//      }
+//      return x;
+//    }
+//
+//    public Set<PatternRecord> optPatternsForExt(String extension) {
+//      var x = mPatternBank.get(extension);
+//      if (x == null)
+//        return DataUtil.emptySet();
+//      return x;
+//    }
+//
+//    private Map<String, Set<PatternRecord>> mPatternBank;
+//  }
 
   private static class FilterState {
 
-    public FilterState(PatternCollection patterns, Collection<String> deleteFilenames) {
-      mPatterns = patterns;
+    public FilterState(/*PatternCollection patterns, */Collection<String> deleteFilenames) {
+//      mPatterns = patterns;
       mDeleteFilenames = hashSet();
       mDeleteFilenames.addAll(deleteFilenames);
     }
@@ -660,9 +682,9 @@ public class PrepOper extends AppOper {
     private FilterState() {
     }
 
-    public PatternCollection patterns() {
-      return mPatterns;
-    }
+//    public PatternCollection patterns() {
+//      return mPatterns;
+//    }
 
     public Set<String> deleteFilenames() {
       return mDeleteFilenames;
@@ -670,7 +692,7 @@ public class PrepOper extends AppOper {
 
     public FilterState dup() {
       var s = new FilterState();
-      s.mPatterns = mPatterns.dup();
+//      s.mPatterns = mPatterns.dup();
       s.mDeleteFilenames = new HashSet<String>(mDeleteFilenames);
       return s;
     }
@@ -680,7 +702,7 @@ public class PrepOper extends AppOper {
     }
 
     // This map should be considered immutable.  If changes are made, construct a new copy
-    private PatternCollection mPatterns;
+//    private PatternCollection mPatterns;
     private Set<String> mDeleteFilenames;
 
   }
