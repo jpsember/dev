@@ -6,7 +6,6 @@ import dev.gen.PrepConfig;
 import js.app.AppOper;
 import js.app.HelpFormatter;
 import js.base.BasePrinter;
-import js.base.SystemCall;
 import js.file.DirWalk;
 import js.file.Files;
 import js.parsing.DFA;
@@ -61,7 +60,7 @@ public class PrepOper extends AppOper {
     files().withDryRun(dryRun());
     log("Project directory:", projectDir());
     log("Cache directory:", cacheDir());
-    log("Operation:",saving() ? "SAVE" : "RESTORE");
+    log("Operation:", saving() ? "SAVE" : "RESTORE");
     if (saving()) {
       doSave();
     } else {
@@ -405,20 +404,6 @@ public class PrepOper extends AppOper {
   private int mMatchesWithinFile;
   private StringBuilder mNewText;
 
-  /**
-   * Read pattern file contents, if it exists; otherwise, read the contents of the one in the app resources
-   */
-  private String readPatternFile(File patFile) {
-    // If no pattern file was found, use the one stored in the app resources
-    String text;
-    if (Files.nonEmpty(patFile)) {
-      Files.assertExists(patFile, "pattern_file");
-      text = Files.readString(patFile);
-    } else
-      text = Files.readString(this.getClass(), "prep_default.txt");
-    return text;
-  }
-
   private Set<String> mActiveExtensions;
 
   /**
@@ -458,28 +443,14 @@ public class PrepOper extends AppOper {
 
     // Construct DFAs from each extension
     {
-      for (var ent : mRXPContentForFileExtensionMap.entrySet()) {
-        todo("Have a utility method in the js.parsing to regenerate .dfa files from strings if necessary");
+      var dfaCache = DfaCache.SHARED_INSTANCE;
+      if (verbose())
+        dfaCache.setVerbose();
 
+      for (var ent : mRXPContentForFileExtensionMap.entrySet()) {
         String ext = ent.getKey();
         String rxp = ent.getValue().toString();
-
-        // Get DFA for this regexp
-        String randomHash = UUID.nameUUIDFromBytes(rxp.getBytes()).toString();
-        var dfaFile = new File(cacheDir(), randomHash + ".dfa");
-
-        if (!dfaFile.exists()) {
-          log("Generating dfa from:", INDENT, rxp);
-
-          // Call the dfa program to compile regexps to a dfa
-          var tmpDir = files().createTempDir("PrepOper_build_dfa");
-          var inputFile = new File(tmpDir, "x.rxp");
-          files().writeString(inputFile, rxp);
-          var sc = new SystemCall().withVerbose(verbose());
-          sc.arg("dfa", "input", inputFile, "output", dfaFile);
-          sc.assertSuccess();
-        }
-        var dfa = DFA.parse(Files.readString(dfaFile));
+        var dfa = dfaCache.forTokenDefinitions(rxp);
         mDFAForFileExtensionMap.put(ext, dfa);
       }
     }
@@ -536,7 +507,7 @@ public class PrepOper extends AppOper {
 
     public FilterState dup() {
       var s = new FilterState();
-      s.mDeleteFilenames = new HashSet<String>(mDeleteFilenames);
+      s.mDeleteFilenames = new HashSet<>(mDeleteFilenames);
       return s;
     }
 
