@@ -101,7 +101,6 @@ public class PrepOper extends AppOper {
       var infoFile = Files.join(c, PROJECT_INFO_FILE);
 
       if (config().init()) {
-        pr("info file:",infoFile,Files.infoMap(infoFile));
         checkState(!infoFile.exists(), "did not expect there to already be a project info file:", INDENT, Files.infoMap(infoFile));
         var content =
             Files.readString(this.getClass(), "prep_default.txt");
