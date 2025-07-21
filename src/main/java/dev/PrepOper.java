@@ -58,6 +58,11 @@ public class PrepOper extends AppOper {
   @Override
   public void perform() {
     files().withDryRun(dryRun());
+
+    if (config().init()) {
+      doInit();
+      return;
+    }
     log("Project directory:", projectDir());
     log("Cache directory:", cacheDir());
     log("Operation:", saving() ? "SAVE" : "RESTORE");
@@ -68,13 +73,13 @@ public class PrepOper extends AppOper {
     }
   }
 
+  private void doInit() {
+    projectDir();
+  }
+
   private boolean saving() {
     projectDir();
     return mSaving;
-  }
-
-  private boolean restoring() {
-    return !saving();
   }
 
   /**
@@ -93,22 +98,29 @@ public class PrepOper extends AppOper {
       }
       mProjectDir = c;
 
-      // Look for the project info file.
-      // If it doesn't exist, we are doing a restore operation
       var infoFile = Files.join(c, PROJECT_INFO_FILE);
-      if (!infoFile.exists()) {
-        mSaving = false;
+
+      if (config().init()) {
+        pr("info file:",infoFile,Files.infoMap(infoFile));
+        checkState(!infoFile.exists(), "did not expect there to already be a project info file:", INDENT, Files.infoMap(infoFile));
+        var content =
+            Files.readString(this.getClass(), "prep_default.txt");
+        files().writeString(infoFile, content);
       } else {
-        mSaving = true;
-        mProjectInfoFileContent = Files.readString(infoFile);
-        if (mProjectInfoFileContent.trim().isEmpty()) {
-          log("project file is empty, using default");
-          mProjectInfoFileContent =
-              Files.readString(this.getClass(), "prep_default.txt");
+        // Look for the project info file.
+        // If it doesn't exist, we are doing a restore operation
+        if (!infoFile.exists()) {
+          mSaving = false;
+        } else {
+          mSaving = true;
+          mProjectInfoFileContent = Files.readString(infoFile);
+          if (mProjectInfoFileContent.trim().isEmpty()) {
+            log("project file is empty, using default");
+            mProjectInfoFileContent =
+                Files.readString(this.getClass(), "prep_default.txt");
+          }
         }
       }
-
-
     }
     return mProjectDir;
   }

@@ -80,6 +80,38 @@ public class PrepOperTest extends DevTestBase {
     }
   }
 
+  @Test
+  public void performInit() {
+    prepareDirectories();
+    // ----------------------------------------------------------------------------------------------
+    prepareApp();
+    prepareInit();
+    runApp();
+
+    assertGenerated();
+  }
+
+  private void prepareInit() {
+    // Delete some things that wouldn't be there if an init is being performed
+
+    var existingFilter = new File(sourceDir(), PrepOper.PROJECT_INFO_FILE);
+    files().deleteFile(existingFilter);
+
+    addArg("init");
+
+  }
+
+  @Test
+  public void performInitThenSave() {
+    prepareDirectories();
+    prepareApp();
+    prepareInit();
+    runApp();
+
+    prepareApp();
+    runApp();
+    assertGenerated();
+  }
 
   private void prepareApp() {
     loadTools();

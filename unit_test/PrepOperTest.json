@@ -1,3 +1,5 @@
-{           "save" : 3117,
-  "saveAndRestore" : 6462
+{         "performInit" : 5853,
+  "performInitThenSave" : 3108,
+                 "save" : 3117,
+       "saveAndRestore" : 6462
 }
