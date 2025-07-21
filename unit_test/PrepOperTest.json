@@ -1,5 +1,8 @@
-{         "performInit" : 5853,
-  "performInitThenSave" : 3108,
-                 "save" : 3117,
-       "saveAndRestore" : 6462
+{ "filterFileAndSubdir" : 8483,
+          "filterPaths" : 8483,
+        "pathValidator" : 6693,
+          "performInit" : 9772,
+  "performInitThenSave" : 8481,
+                 "save" : 5744,
+       "saveAndRestore" : 3698
 }

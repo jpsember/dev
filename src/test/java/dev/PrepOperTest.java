@@ -23,6 +23,7 @@
  **/
 package dev;
 
+import dev.prep.FilterState;
 import js.app.App;
 import js.file.Files;
 import org.junit.Test;
@@ -111,6 +112,47 @@ public class PrepOperTest extends DevTestBase {
     prepareApp();
     runApp();
     assertGenerated();
+  }
+
+
+  @Test
+  public void filterPaths() {
+    auxFilt("", "d.java", "subdir/j2");
+  }
+
+
+  @Test
+  public void filterFileAndSubdir() {
+    auxFilt("", "d.java", "subdir/j2");
+  }
+
+  @Test
+  public void pathValidator() {
+    var m = map();
+    String[] exp = {"d.java", "a/b/c.txt", "a/b/.c/.d", "ab..cd", "./abc/def", ".abc/.def", "abc def/alpha", "al\\b/e", "abc/", "/def", "abc//def"};
+    for (var s : exp) {
+      var result = FilterState.isValidFilename(s);
+      m.putNumbered(s, result ? "ok" : "*** PROBLEM");
+    }
+    assertMessage(m);
+  }
+
+  private void auxFilt(String relPath, String... concatExprs) {
+    prepareDirectories();
+    repFilter(relPath, concatExprs);
+    prepareApp();
+    runApp();
+    assertGenerated();
+  }
+
+  private void repFilter(String relPath, String... concatExprs) {
+    var path = sourceDir();
+    if (!relPath.isEmpty()) {
+      path = new File(path, relPath);
+    }
+    path = new File(path, ".filter");
+    var newContent = String.join("\n", concatExprs);
+    files().writeString(path, newContent);
   }
 
   private void prepareApp() {

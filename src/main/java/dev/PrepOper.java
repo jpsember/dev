@@ -3,6 +3,8 @@ package dev;
 import static js.base.Tools.*;
 
 import dev.gen.PrepConfig;
+import dev.prep.DirStackEntry;
+import dev.prep.FilterState;
 import js.app.AppOper;
 import js.app.HelpFormatter;
 import js.base.BasePrinter;
@@ -154,26 +156,6 @@ public class PrepOper extends AppOper {
     return mCacheDir;
   }
 
-
-  private static class DirStackEntry {
-    File directory;
-    FilterState filterState;
-
-    public DirStackEntry(FilterState state, File directory) {
-      this.directory = directory;
-      this.filterState = state;
-    }
-
-    public DirStackEntry withState(FilterState newFilterState) {
-      return new DirStackEntry(newFilterState, directory);
-    }
-
-    public DirStackEntry withDirectory(File dir) {
-      Files.assertDirectoryExists(dir, "withDirectory");
-      return new DirStackEntry(filterState, dir);
-    }
-  }
-
   private FilterState processFilterFile(String content, FilterState currentState) {
     var newState = currentState.dup();
     for (var line : parseLinesFromTextFile(content)) {
@@ -186,12 +168,12 @@ public class PrepOper extends AppOper {
     boolean changesMade = false;
     var initialState = prepareState();
     List<DirStackEntry> dirStack = arrayList();
-    dirStack.add(new DirStackEntry(initialState, projectDir()));
+    dirStack.add(DirStackEntry.start(initialState, projectDir()));
     while (!dirStack.isEmpty()) {
       var entry = pop(dirStack);
-      var state = entry.filterState;
+      var state = entry.filterState();
 
-      var filterFile = new File(entry.directory, FILTER_FILENAME);
+      var filterFile = new File(entry.directory(), FILTER_FILENAME);
       if (filterFile.exists()) {
         var content = files().readString(filterFile);
         state = processFilterFile(content, state);
@@ -200,12 +182,13 @@ public class PrepOper extends AppOper {
 
       // Examine the files (or subdirectories) within this directory (without recursing)
 
-      var walk = new DirWalk(entry.directory).withRecurse(false).includeDirectories().omitNames(".DS_Store");
+      var walk = new DirWalk(entry.directory()).withRecurse(false).includeDirectories().omitNames(".DS_Store");
       for (var sourceFileOrDir : walk.files()) {
         var name = sourceFileOrDir.getName();
         if (false && alert("omitting big.rs") && name.equals("big.rs")) {
           continue;
         }
+
         if (state.deleteFilenames().contains(name)) {
           log("...filtering entire file or dir:", name);
           saveFileOrDir(sourceFileOrDir);
@@ -242,7 +225,7 @@ public class PrepOper extends AppOper {
             }
           }
         } else {
-          push(dirStack, entry.withDirectory(sourceFileOrDir));
+          push(dirStack, entry.withDirectory(name));
         }
       }
     }
@@ -455,7 +438,7 @@ public class PrepOper extends AppOper {
     // Construct DFAs from each extension
     {
       var dfaCache = DfaCache.SHARED_INSTANCE;
-      if (verbose())
+      if (false && verbose())
         dfaCache.setVerbose();
 
       for (var ent : mRXPContentForFileExtensionMap.entrySet()) {
@@ -502,32 +485,5 @@ public class PrepOper extends AppOper {
   private Map<String, DFA> mDFAForFileExtensionMap = hashMap();
 
 
-  private static class FilterState {
-
-    public FilterState(Collection<String> deleteFilenames) {
-      mDeleteFilenames = hashSet();
-      mDeleteFilenames.addAll(deleteFilenames);
-    }
-
-    private FilterState() {
-    }
-
-    public Set<String> deleteFilenames() {
-      return mDeleteFilenames;
-    }
-
-    public FilterState dup() {
-      var s = new FilterState();
-      s.mDeleteFilenames = new HashSet<>(mDeleteFilenames);
-      return s;
-    }
-
-    public void addDeleteFile(String filename) {
-      mDeleteFilenames.add(filename);
-    }
-
-    // This map should be considered immutable.  If changes are made, construct a new copy
-    private Set<String> mDeleteFilenames;
-  }
 }
 

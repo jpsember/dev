@@ -1,10 +1,16 @@
->>>gitignore,sh,java,rs
+>>>gitignore,sh,java,rs,toml
 
 _LEFTSPACE: [\s\t]+
-
 _NONSEMI: [^;]+
 _TOSEMI: $_NONSEMI ;
-NONSENSE: numquameiusmoditemporaincidunt
+_SKIP_SECTION:  \s* { $_TILDE
+  # Anything but ~}
+  ( .*  -- ( .* ( $_TILDE } ) .* ) )
+  ( $_TILDE } )
+
+>>>toml,sh,gitignore
+
+SKIP_SECTION: \# $_SKIP_SECTION
 
 >>>java,rs
 
@@ -13,17 +19,13 @@ NONSENSE: numquameiusmoditemporaincidunt
 #    ....
 # .......    ~}
 
-SKIP_SECTION: \/\/ \s* { $_TILDE
-  # Anything but ~}
-  ( .*  -- ( .* ( $_TILDE } ) .* ) )
-  ( $_TILDE } )
+SKIP_SECTION: \/\/ $_SKIP_SECTION
 
 >>>java
 
 #  pr("hello",(1+3));
 #
 PR: $_LEFTSPACE  pr \( $_TOSEMI
-
 
 
 >>>rs
@@ -38,4 +40,3 @@ USE_JEFFTOOLS: use \ws crate\:\:jefftools\:\:\*;
 # Methods within jefftools.rs
 #
 DB_METHODS: $_LEFTSPACE  ( pr! | prif! | pr_to! | o! | load_tools | warning | fail | halt ) \( $_TOSEMI
-
