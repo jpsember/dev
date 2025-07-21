@@ -164,6 +164,9 @@ public class PrepOper extends AppOper {
     return newState;
   }
 
+
+  private static final List<String> ALWAYS_DELETE_THESE_FILES = arrayList(FILTER_FILENAME, PROJECT_INFO_FILE);
+
   private void doSave() {
     boolean changesMade = false;
     var initialState = prepareState();
@@ -189,7 +192,7 @@ public class PrepOper extends AppOper {
           continue;
         }
 
-        if (state.deleteFilenames().contains(name)) {
+        if (ALWAYS_DELETE_THESE_FILES.contains(name) || state.deleteFilenames().contains(name)) {
           log("...filtering entire file or dir:", name);
           saveFileOrDir(sourceFileOrDir);
           if (sourceFileOrDir.isDirectory())
@@ -450,8 +453,6 @@ public class PrepOper extends AppOper {
     }
 
     Set<String> deleteFilenames = hashSet();
-    deleteFilenames.add(FILTER_FILENAME);
-    deleteFilenames.add(PROJECT_INFO_FILE);
     return new FilterState(deleteFilenames);
   }
 
