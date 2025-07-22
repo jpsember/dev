@@ -46,7 +46,7 @@ public class PrepOperTest extends DevTestBase {
 
 
   @Test
-  public void saveWithFileList() {
+  public void saveWithFileList() { 
     prepareDirectories();
 
     files().writeString(new File(sourceDir(),PrepOper.FILE_LIST_FILENAME),"subdir");
