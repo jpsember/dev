@@ -18,7 +18,7 @@ import java.util.*;
 
 public class PrepOper extends AppOper {
 
-  public static final boolean QUICK_TEST = true && alert("quick test is in effect");
+  public static final boolean QUICK_TEST = false && alert("quick test is in effect");
 
   public static final String FILTER_FILENAME = ".filter";
   public static final String FILE_LIST_FILENAME = ".files";
@@ -200,12 +200,12 @@ public class PrepOper extends AppOper {
           for (var line : parseLinesFromTextFile(Files.readString(explicitFileList))) {
             var candidateFile = new File(entry.directory(), line);
             if (candidateFile.exists())
-            setOfFiles.add(candidateFile);
+              setOfFiles.add(candidateFile);
           }
           listOfFiles = arrayList();
           for (var x : setOfFiles) {
             if (QUICK_TEST) {
-              pr("...explicit file candidate:",INDENT,Files.infoMap(x));
+              pr("...explicit file candidate:", INDENT, Files.infoMap(x));
             }
             if (x.exists()) {
               listOfFiles.add(x);
@@ -223,7 +223,7 @@ public class PrepOper extends AppOper {
         if (ALWAYS_DELETE_THESE_FILES.contains(justTheName) || state.deleteFilenames().contains(justTheName)) {
           log("...filtering entire file or dir:", justTheName);
           if (QUICK_TEST) {
-            pr("!!! NOT deleting:",INDENT,Files.infoMap(sourceFileOrDir));
+            pr("!!! NOT deleting:", INDENT, Files.infoMap(sourceFileOrDir));
             continue;
           }
           saveFileOrDir(sourceFileOrDir);
@@ -263,14 +263,14 @@ public class PrepOper extends AppOper {
         } else {
           // We need to descend to the directory, which might be more than one level deep
 
-          var relPath = Files.relativeToContainingDirectory(sourceFileOrDir, entry.directory() );
+          var relPath = Files.relativeToContainingDirectory(sourceFileOrDir, entry.directory());
           if (QUICK_TEST)
-            pr("relPath:",relPath);
+            pr("relPath:", relPath);
           var newEnt = entry;
-          for (var subdirName : split(relPath.toString(),'/')) {
+          for (var subdirName : split(relPath.toString(), '/')) {
             newEnt = newEnt.withDirectory(subdirName);
-            if(QUICK_TEST)
-              pr("subdirName:",subdirName,"newEnt:",newEnt);
+            if (QUICK_TEST)
+              pr("subdirName:", subdirName);
           }
           push(dirStack, newEnt);
         }
