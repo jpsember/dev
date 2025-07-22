@@ -44,6 +44,21 @@ public class PrepOperTest extends DevTestBase {
     assertGenerated();
   }
 
+
+  @Test
+  public void saveWithFileList() {
+    prepareDirectories();
+
+    files().writeString(new File(sourceDir(),PrepOper.FILE_LIST_FILENAME),"subdir");
+    files().writeString(new File(sourceDir(),"subdir/"+PrepOper.FILE_LIST_FILENAME),"c.java\nh2");
+
+    // ----------------------------------------------------------------------------------------------
+    prepareApp();
+    runApp();
+    // ----------------------------------------------------------------------------------------------
+    assertGenerated();
+  }
+
   @Test
   public void saveAndRestore() {
     prepareDirectories();

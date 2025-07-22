@@ -19,6 +19,7 @@ import java.util.*;
 public class PrepOper extends AppOper {
 
   public static final String FILTER_FILENAME = ".filter";
+  public static final String FILE_LIST_FILENAME = ".files";
   public static final String PROJECT_INFO_FILE = ".prep_project";
 
   private static final int MAX_BACKUP_SETS = 5;
@@ -165,7 +166,7 @@ public class PrepOper extends AppOper {
   }
 
 
-  private static final List<String> ALWAYS_DELETE_THESE_FILES = arrayList(FILTER_FILENAME, PROJECT_INFO_FILE);
+  private static final List<String> ALWAYS_DELETE_THESE_FILES = arrayList(FILTER_FILENAME, PROJECT_INFO_FILE, FILE_LIST_FILENAME);
 
   private void doSave() {
     boolean changesMade = false;
@@ -183,14 +184,27 @@ public class PrepOper extends AppOper {
         entry = entry.withState(state);
       }
 
-      // Examine the files (or subdirectories) within this directory (without recursing)
+      // Examine the files (or subdirectories) within this directory (without recursing).
+      // If an explict file list exists, parse that for the list of files instead.
 
-      var walk = new DirWalk(entry.directory()).withRecurse(false).includeDirectories().omitNames(".DS_Store");
-      for (var sourceFileOrDir : walk.files()) {
-        var name = sourceFileOrDir.getName();
-        if (false && alert("omitting big.rs") && name.equals("big.rs")) {
-          continue;
+      List<File> listOfFiles = null;
+      {
+        var explicitFileList = new File(entry.directory(), FILE_LIST_FILENAME);
+        if (explicitFileList.exists()) {
+          listOfFiles = arrayList();
+          for (var line : parseLinesFromTextFile(Files.readString(explicitFileList))) {
+            var candidateFile = new File(entry.directory(), line);
+            if (candidateFile.exists())
+              listOfFiles.add(candidateFile);
+          }
+        } else {
+          var walk = new DirWalk(entry.directory()).withRecurse(false).includeDirectories().omitNames(".DS_Store");
+          listOfFiles = walk.files();
         }
+      }
+
+      for (var sourceFileOrDir : listOfFiles) {
+        var name = sourceFileOrDir.getName();
 
         if (ALWAYS_DELETE_THESE_FILES.contains(name) || state.deleteFilenames().contains(name)) {
           log("...filtering entire file or dir:", name);
@@ -206,9 +220,6 @@ public class PrepOper extends AppOper {
         if (!sourceFileOrDir.isDirectory()) {
           var sourceFile = sourceFileOrDir;
           var ext = Files.getExtension(sourceFile);
-          if (false && alert("skipping all but a.java") && !sourceFile.getName().equals("a.java")) {
-            continue;
-          }
 
           var dfa = dfaForExtension(ext);
           if (dfa != null) {
@@ -219,7 +230,6 @@ public class PrepOper extends AppOper {
 
             if (mMatchesWithinFile != 0) {
               changesMade = true;
-              //log("...match found:", INDENT, rel);
               saveFileOrDir(sourceFile);
               // Write new filtered form
               var filteredContent = mNewText.toString();
