@@ -18,7 +18,7 @@ import java.util.*;
 
 public class PrepOper extends AppOper {
 
-  public static final boolean QUICK_TEST = true && alert("quick test is in effect");
+  public static final boolean QUICK_TEST = false && alert("quick test is in effect");
 
   public static final String FILTER_FILENAME = ".filter";
   public static final String FILE_LIST_FILENAME = ".files";
