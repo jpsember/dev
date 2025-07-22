@@ -202,6 +202,7 @@ public class PrepOper extends AppOper {
             if (candidateFile.exists())
             setOfFiles.add(candidateFile);
           }
+          listOfFiles = arrayList();
           for (var x : setOfFiles) {
             if (QUICK_TEST) {
               pr("...explicit file candidate:",INDENT,Files.infoMap(x));
