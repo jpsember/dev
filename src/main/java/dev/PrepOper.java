@@ -210,10 +210,10 @@ public class PrepOper extends AppOper {
       }
 
       for (var sourceFileOrDir : listOfFiles) {
-        var name = sourceFileOrDir.getName();
+        var justTheName = sourceFileOrDir.getName();
 
-        if (ALWAYS_DELETE_THESE_FILES.contains(name) || state.deleteFilenames().contains(name)) {
-          log("...filtering entire file or dir:", name);
+        if (ALWAYS_DELETE_THESE_FILES.contains(justTheName) || state.deleteFilenames().contains(justTheName)) {
+          log("...filtering entire file or dir:", justTheName);
           if (QUICK_TEST) {
             pr("!!! NOT deleting:",INDENT,Files.infoMap(sourceFileOrDir));
             continue;
@@ -253,7 +253,18 @@ public class PrepOper extends AppOper {
             }
           }
         } else {
-          push(dirStack, entry.withDirectory(name));
+          // We need to descend to the directory, which might be more than one level deep
+
+          var relPath = Files.relativeToContainingDirectory(sourceFileOrDir, entry.directory() );
+          if (QUICK_TEST)
+            pr("relPath:",relPath);
+          var newEnt = entry;
+          for (var subdirName : split(relPath.toString(),'/')) {
+            newEnt = newEnt.withDirectory(subdirName);
+            if(QUICK_TEST)
+              pr("subdirName:",subdirName,"newEnt:",newEnt);
+          }
+          push(dirStack, newEnt);
         }
       }
     }
