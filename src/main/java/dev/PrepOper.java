@@ -18,7 +18,7 @@ import java.util.*;
 
 public class PrepOper extends AppOper {
 
-  public static final boolean QUICK_TEST = false && alert("quick test is in effect");
+  public static final boolean QUICK_TEST = true && alert("quick test is in effect");
 
   public static final String FILTER_FILENAME = ".filter";
   public static final String FILE_LIST_FILENAME = ".files";
@@ -194,14 +194,21 @@ public class PrepOper extends AppOper {
       {
         var explicitFileList = new File(entry.directory(), FILE_LIST_FILENAME);
         if (explicitFileList.exists()) {
-          listOfFiles = arrayList();
+          Set<File> setOfFiles = hashSet();
+          for (var x : ALWAYS_DELETE_THESE_FILES)
+            setOfFiles.add(new File(entry.directory(), x));
           for (var line : parseLinesFromTextFile(Files.readString(explicitFileList))) {
             var candidateFile = new File(entry.directory(), line);
-            if (QUICK_TEST) {
-              pr("...explicit file:",INDENT,Files.infoMap(candidateFile));
-            }
             if (candidateFile.exists())
-              listOfFiles.add(candidateFile);
+            setOfFiles.add(candidateFile);
+          }
+          for (var x : setOfFiles) {
+            if (QUICK_TEST) {
+              pr("...explicit file candidate:",INDENT,Files.infoMap(x));
+            }
+            if (x.exists()) {
+              listOfFiles.add(x);
+            }
           }
         } else {
           var walk = new DirWalk(entry.directory()).withRecurse(false).includeDirectories().omitNames(".DS_Store");
