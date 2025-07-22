@@ -18,6 +18,8 @@ import java.util.*;
 
 public class PrepOper extends AppOper {
 
+  public static final boolean QUICK_TEST = true && alert("quick test is in effect");
+
   public static final String FILTER_FILENAME = ".filter";
   public static final String FILE_LIST_FILENAME = ".files";
   public static final String PROJECT_INFO_FILE = ".prep_project";
@@ -72,6 +74,7 @@ public class PrepOper extends AppOper {
     if (saving()) {
       doSave();
     } else {
+      checkState(!QUICK_TEST);
       doRestore();
     }
   }
@@ -194,6 +197,9 @@ public class PrepOper extends AppOper {
           listOfFiles = arrayList();
           for (var line : parseLinesFromTextFile(Files.readString(explicitFileList))) {
             var candidateFile = new File(entry.directory(), line);
+            if (QUICK_TEST) {
+              pr("...explicit file:",INDENT,Files.infoMap(candidateFile));
+            }
             if (candidateFile.exists())
               listOfFiles.add(candidateFile);
           }
@@ -208,6 +214,10 @@ public class PrepOper extends AppOper {
 
         if (ALWAYS_DELETE_THESE_FILES.contains(name) || state.deleteFilenames().contains(name)) {
           log("...filtering entire file or dir:", name);
+          if (QUICK_TEST) {
+            pr("!!! NOT deleting:",INDENT,Files.infoMap(sourceFileOrDir));
+            continue;
+          }
           saveFileOrDir(sourceFileOrDir);
           if (sourceFileOrDir.isDirectory())
             files().deleteDirectory(sourceFileOrDir, "generated");
@@ -230,11 +240,16 @@ public class PrepOper extends AppOper {
 
             if (mMatchesWithinFile != 0) {
               changesMade = true;
-              saveFileOrDir(sourceFile);
-              // Write new filtered form
-              var filteredContent = mNewText.toString();
-              log("...writing filtered version of:", rel);
-              files().writeString(sourceFile, filteredContent);
+
+              if (QUICK_TEST) {
+                pr("!!! NOT saving modified version of:", sourceFile);
+              } else {
+                saveFileOrDir(sourceFile);
+                // Write new filtered form
+                var filteredContent = mNewText.toString();
+                log("...writing filtered version of:", rel);
+                files().writeString(sourceFile, filteredContent);
+              }
             }
           }
         } else {
@@ -249,6 +264,7 @@ public class PrepOper extends AppOper {
   }
 
   private void saveFileOrDir(File absSourceFileOrDir) {
+    checkState(!QUICK_TEST);
     // determine relative path from project directory
     var relativePath = Files.relativeToContainingDirectory(absSourceFileOrDir, projectDir()).toString();
 
