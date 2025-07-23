@@ -227,8 +227,11 @@ public class PrepOper extends AppOper {
             continue;
           }
           saveFileOrDir(sourceFileOrDir);
-          if (sourceFileOrDir.isDirectory())
-            files().deleteDirectory(sourceFileOrDir, "generated");
+          if (sourceFileOrDir.isDirectory()) {
+            var expr = sourceFileOrDir.toString();
+            checkArgument(expr.length() >= 25);
+            files().deleteDirectory(sourceFileOrDir, expr.substring(18));
+          }
           else
             files().deleteFile(sourceFileOrDir);
           changesMade = true;
