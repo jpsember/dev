@@ -11,7 +11,7 @@ import js.base.BasePrinter;
 import js.file.DirWalk;
 import js.file.Files;
 import js.parsing.DFA;
-import js.parsing.Scanner;
+import js.parsing.Lexer;
 
 import java.io.File;
 import java.util.*;
@@ -380,8 +380,7 @@ public class PrepOper extends AppOper {
     mNewText = new StringBuilder(currText);
     mMatchesWithinFile = 0;
 
-    var s = new Scanner(dfa, currText, -1);
-    s.setAcceptUnknownTokens();
+    var s = new Lexer(dfa).withText(currText).withNoSkip().withAcceptUnknownTokens();
 
     if (false && alert("setting verbosity"))
       s.setVerbose();
