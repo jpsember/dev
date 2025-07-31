@@ -11,6 +11,7 @@ import js.base.BasePrinter;
 import js.file.DirWalk;
 import js.file.Files;
 import js.parsing.DFA;
+import js.parsing.DFACache;
 import js.parsing.Lexer;
 
 import java.io.File;
@@ -487,7 +488,7 @@ public class PrepOper extends AppOper {
 
     // Construct DFAs from each extension
     {
-      var dfaCache = DfaCache.SHARED_INSTANCE;
+      var dfaCache = DFACache.SHARED_INSTANCE;
       if (false && verbose())
         dfaCache.setVerbose();
 
