@@ -55,39 +55,6 @@ public class CmitOper extends AppOper {
   }
 
 
-//
-//
-//  package js.cmit;
-//
-//import static js.base.Tools.*;
-//
-//import java.io.File;
-//import java.io.OutputStream;
-//import java.io.PrintWriter;
-//import java.util.List;
-//
-//import gitutil.gen.FileEntry;
-//import js.app.AppOper;
-//import js.app.CmdLineArgs;
-//import js.base.BasePrinter;
-//import js.base.SystemCall;
-//import js.file.Files;
-//import js.gitutil.GitRepo;
-//import js.parsing.RegExp;
-//import js.system.SystemUtil;
-//
-//  public class Oper extends AppOper {
-//
-//    @Override
-//    protected String shortHelp() {
-//      return "records a commit message and makes a git commit";
-//    }
-//
-//    @Override
-//    public String userCommand() {
-//      return "cmit";
-//    }
-
   @Override
   public void perform() {
     var cf = config();

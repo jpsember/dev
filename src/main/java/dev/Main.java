@@ -72,6 +72,7 @@ public class Main extends App {
     registerOper(new GetRepoOper());
     registerOper(new PrepOper());
     registerOper(new CmitOper());
+    registerOper(new NotebookOper());
     // --- insertion point for new operations (used by NewOperOper)
   }
 

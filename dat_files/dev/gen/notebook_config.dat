@@ -1,0 +1,4 @@
+class {
+    File input;
+    File output;
+}
