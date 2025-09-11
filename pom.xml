@@ -72,6 +72,12 @@
       <version>1000</version>
     </dependency>
 
+    <dependency>
+      <groupId>com.jsbase</groupId>
+      <artifactId>gitutil</artifactId>
+      <version>1000</version>
+    </dependency>
+
   </dependencies>
 
 </project>

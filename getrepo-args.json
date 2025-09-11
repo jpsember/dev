@@ -13,6 +13,10 @@
     {
       "repo_name":"jpsember/java-webtools",
     },
+    {
+      "repo_name": "jpsember/gitutil",
+    },
+
   ]
 
 }

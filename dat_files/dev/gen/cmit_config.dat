@@ -1,0 +1,13 @@
+class {
+    // If true, edits the message only, without doing a commit
+    bool message_only;
+
+    // If true, allows untracked files
+    bool untracked;
+
+    // If true, don't require issue numbers
+    bool issue_numbers;
+
+    // If true, ignore any merge conflicts that are found
+    bool ignore_conflict;
+}
