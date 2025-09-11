@@ -10,4 +10,11 @@ class {
 
     // If true, ignore any merge conflicts that are found
     bool ignore_conflict;
+
+    // If true, adds '--no_verify' to command
+    bool no_verify;
+
+    // If nonempty, appends these space-delimited arguments to 'git commit' command
+    string additional_git_commit_args;
+
 }

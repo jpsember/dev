@@ -21,6 +21,14 @@ public class CmitConfig implements AbstractData {
     return mIgnoreConflict;
   }
 
+  public boolean noVerify() {
+    return mNoVerify;
+  }
+
+  public String additionalGitCommitArgs() {
+    return mAdditionalGitCommitArgs;
+  }
+
   @Override
   public Builder toBuilder() {
     return new Builder(this);
@@ -30,6 +38,8 @@ public class CmitConfig implements AbstractData {
   protected static final String _1 = "untracked";
   protected static final String _2 = "issue_numbers";
   protected static final String _3 = "ignore_conflict";
+  protected static final String _4 = "no_verify";
+  protected static final String _5 = "additional_git_commit_args";
 
   @Override
   public String toString() {
@@ -43,6 +53,8 @@ public class CmitConfig implements AbstractData {
     m.putUnsafe(_1, mUntracked);
     m.putUnsafe(_2, mIssueNumbers);
     m.putUnsafe(_3, mIgnoreConflict);
+    m.putUnsafe(_4, mNoVerify);
+    m.putUnsafe(_5, mAdditionalGitCommitArgs);
     return m;
   }
 
@@ -61,6 +73,8 @@ public class CmitConfig implements AbstractData {
     mUntracked = m.opt(_1, false);
     mIssueNumbers = m.opt(_2, false);
     mIgnoreConflict = m.opt(_3, false);
+    mNoVerify = m.opt(_4, false);
+    mAdditionalGitCommitArgs = m.opt(_5, "");
   }
 
   public static Builder newBuilder() {
@@ -84,6 +98,10 @@ public class CmitConfig implements AbstractData {
       return false;
     if (!(mIgnoreConflict == other.mIgnoreConflict))
       return false;
+    if (!(mNoVerify == other.mNoVerify))
+      return false;
+    if (!(mAdditionalGitCommitArgs.equals(other.mAdditionalGitCommitArgs)))
+      return false;
     return true;
   }
 
@@ -96,6 +114,8 @@ public class CmitConfig implements AbstractData {
       r = r * 37 + (mUntracked ? 1 : 0);
       r = r * 37 + (mIssueNumbers ? 1 : 0);
       r = r * 37 + (mIgnoreConflict ? 1 : 0);
+      r = r * 37 + (mNoVerify ? 1 : 0);
+      r = r * 37 + mAdditionalGitCommitArgs.hashCode();
       m__hashcode = r;
     }
     return r;
@@ -105,6 +125,8 @@ public class CmitConfig implements AbstractData {
   protected boolean mUntracked;
   protected boolean mIssueNumbers;
   protected boolean mIgnoreConflict;
+  protected boolean mNoVerify;
+  protected String mAdditionalGitCommitArgs;
   protected int m__hashcode;
 
   public static final class Builder extends CmitConfig {
@@ -114,6 +136,8 @@ public class CmitConfig implements AbstractData {
       mUntracked = m.mUntracked;
       mIssueNumbers = m.mIssueNumbers;
       mIgnoreConflict = m.mIgnoreConflict;
+      mNoVerify = m.mNoVerify;
+      mAdditionalGitCommitArgs = m.mAdditionalGitCommitArgs;
     }
 
     @Override
@@ -134,6 +158,8 @@ public class CmitConfig implements AbstractData {
       r.mUntracked = mUntracked;
       r.mIssueNumbers = mIssueNumbers;
       r.mIgnoreConflict = mIgnoreConflict;
+      r.mNoVerify = mNoVerify;
+      r.mAdditionalGitCommitArgs = mAdditionalGitCommitArgs;
       return r;
     }
 
@@ -157,11 +183,22 @@ public class CmitConfig implements AbstractData {
       return this;
     }
 
+    public Builder noVerify(boolean x) {
+      mNoVerify = x;
+      return this;
+    }
+
+    public Builder additionalGitCommitArgs(String x) {
+      mAdditionalGitCommitArgs = (x == null) ? "" : x;
+      return this;
+    }
+
   }
 
   public static final CmitConfig DEFAULT_INSTANCE = new CmitConfig();
 
   private CmitConfig() {
+    mAdditionalGitCommitArgs = "";
   }
 
 }

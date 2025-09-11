@@ -276,9 +276,19 @@ public class CmitOper extends AppOper {
     if (stripped.length() > 3000)
       setError("The commit message is too long!");
 
-    new SystemCall()//
-        .arg("git", "commit", "-a", "--file=" + cacheFile(COMMIT_MESSAGE_STRIPPED_FILENAME))//
-        .assertSuccess();
+    var s = new SystemCall();
+    s.arg("git", "commit", "-a", "--file=" + cacheFile(COMMIT_MESSAGE_STRIPPED_FILENAME));
+    if (config().noVerify())
+      s.arg("--no-verify");
+    {
+      var a = config().additionalGitCommitArgs();
+      for (var x : split(a,' ')) {
+        if (!x.isEmpty()) {
+          s.arg(x);
+        }
+      }
+    }
+    s.assertSuccess();
     files().deleteFile(cacheFile(COMMIT_MESSAGE_FILENAME));
     files().deleteFile(cacheFile(COMMIT_MESSAGE_STRIPPED_FILENAME));
     files().writeString(cacheFile(PREVIOUS_COMMIT_MESSAGE_FILENAME), stripped);
