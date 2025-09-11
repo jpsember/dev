@@ -26,6 +26,7 @@ package dev;
 
 import static js.base.Tools.*;
 
+import dev.cmit.CmitOper;
 import dev.installer.MakeInstallerOper;
 import js.app.App;
 

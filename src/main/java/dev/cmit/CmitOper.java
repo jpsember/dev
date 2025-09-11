@@ -1,4 +1,4 @@
-package dev;
+package dev.cmit;
 
 import static js.base.Tools.*;
 
