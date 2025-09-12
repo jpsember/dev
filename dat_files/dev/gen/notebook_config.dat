@@ -1,4 +1,7 @@
 class {
     File input;
     File output;
+
+    // Pretty print the .ipynb contents
+    bool pretty_print;
 }

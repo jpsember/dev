@@ -15,6 +15,10 @@ public class NotebookConfig implements AbstractData {
     return mOutput;
   }
 
+  public boolean prettyPrint() {
+    return mPrettyPrint;
+  }
+
   @Override
   public Builder toBuilder() {
     return new Builder(this);
@@ -22,6 +26,7 @@ public class NotebookConfig implements AbstractData {
 
   protected static final String _0 = "input";
   protected static final String _1 = "output";
+  protected static final String _2 = "pretty_print";
 
   @Override
   public String toString() {
@@ -33,6 +38,7 @@ public class NotebookConfig implements AbstractData {
     JSMap m = new JSMap();
     m.putUnsafe(_0, mInput.toString());
     m.putUnsafe(_1, mOutput.toString());
+    m.putUnsafe(_2, mPrettyPrint);
     return m;
   }
 
@@ -61,6 +67,7 @@ public class NotebookConfig implements AbstractData {
         mOutput = new File(x);
       }
     }
+    mPrettyPrint = m.opt(_2, false);
   }
 
   public static Builder newBuilder() {
@@ -80,6 +87,8 @@ public class NotebookConfig implements AbstractData {
       return false;
     if (!(mOutput.equals(other.mOutput)))
       return false;
+    if (!(mPrettyPrint == other.mPrettyPrint))
+      return false;
     return true;
   }
 
@@ -90,6 +99,7 @@ public class NotebookConfig implements AbstractData {
       r = 1;
       r = r * 37 + mInput.hashCode();
       r = r * 37 + mOutput.hashCode();
+      r = r * 37 + (mPrettyPrint ? 1 : 0);
       m__hashcode = r;
     }
     return r;
@@ -97,6 +107,7 @@ public class NotebookConfig implements AbstractData {
 
   protected File mInput;
   protected File mOutput;
+  protected boolean mPrettyPrint;
   protected int m__hashcode;
 
   public static final class Builder extends NotebookConfig {
@@ -104,6 +115,7 @@ public class NotebookConfig implements AbstractData {
     private Builder(NotebookConfig m) {
       mInput = m.mInput;
       mOutput = m.mOutput;
+      mPrettyPrint = m.mPrettyPrint;
     }
 
     @Override
@@ -122,6 +134,7 @@ public class NotebookConfig implements AbstractData {
       NotebookConfig r = new NotebookConfig();
       r.mInput = mInput;
       r.mOutput = mOutput;
+      r.mPrettyPrint = mPrettyPrint;
       return r;
     }
 
@@ -132,6 +145,11 @@ public class NotebookConfig implements AbstractData {
 
     public Builder output(File x) {
       mOutput = (x == null) ? Files.DEFAULT : x;
+      return this;
+    }
+
+    public Builder prettyPrint(boolean x) {
+      mPrettyPrint = x;
       return this;
     }
 

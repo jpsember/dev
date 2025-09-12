@@ -10,6 +10,7 @@ import js.base.BasePrinter;
 import js.file.Files;
 import js.json.JSList;
 import js.json.JSMap;
+import js.parsing.RegExp;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -99,13 +100,16 @@ public class NotebookOper extends AppOper {
     var cells = m.getList("cells");
 
     var sb = new StringBuilder();
-    sb.append("#!/usr/bin/env python\n");
-    sb.append("# coding: utf-8");
+
+    if (false) {
+      sb.append("#!/usr/bin/env python\n");
+      sb.append("# coding: utf-8");
+    }
 
     for (int i = 0; i < cells.size(); i++) {
       JSMap c = cells.getMap(i);
 
-      log("Cell:", INDENT, c);
+      //log("Cell:", INDENT, c);
       switch (c.get("cell_type")) {
         case "code": {
           sb.append("\n\n# In[ ]:\n\n\n");
@@ -124,47 +128,48 @@ public class NotebookOper extends AppOper {
 
   private void doToNotebook(File inp, File out) {
 
-    var template = Files.readString(this.getClass(), "notebook_template.json");
-    JSMap nbjson = new JSMap(template);
+    var notebookTemplate = Files.readString(this.getClass(), "notebook_template.json");
+    JSMap outputJson = new JSMap(notebookTemplate);
+    var cells = list();
+    outputJson.put("cells", cells);
 
     var cellTemplate = new JSMap(Files.readString(getClass(), "cell_template.json"));
 
-    var cells = list();
-    nbjson.put("cells", cells);
 
-    var src = Files.readString(inp);
+    var pythonSource = Files.readString(inp);
+    var pythonSourceLines = pythonSource.lines().toArray(String[]::new);
 
-    var arr = src.lines().toArray(String[]::new);
 
+    // #   In[  42 ]:
+    var chunkMarkerPat = RegExp.pattern("^#\\s*In\\[\\s*\\d*\\s*\\]:\\s*$");
 
     var chunkStart = 0;
 
     int i = INIT_INDEX;
-    for (var s : arr) {
+    for (var s : pythonSourceLines) {
       i++;
 
-      if (s.equals("# In[ ]:")) {
-
-        // todo("omit the first chunk if it is just a couple of comments? Probably not required");
+      if (RegExp.patternMatchesString(chunkMarkerPat, s)) {
 
         // Eliminate blank lines bordering this chunk
         var x0 = chunkStart;
         var x1 = i;
-        while (x0 < x1 && arr[x0].isEmpty())
+        while (x0 < x1 && pythonSourceLines[x0].isEmpty())
           x0++;
-        while (x1 - 1 > x0 && arr[x1 - 1].isEmpty())
+        while (x1 - 1 > x0 && pythonSourceLines[x1 - 1].isEmpty())
           x1--;
 
         var cell = cellTemplate.deepCopy();
         var srcLines = list();
         cell.put("source", srcLines);
         for (var j = x0; j < x1; j++)
-          srcLines.add(arr[j] + "\n");
+          srcLines.add(pythonSourceLines[j] + "\n");
         cells.add(cell);
+
         chunkStart = i + 1;
       }
     }
-    var content = nbjson.prettyPrint();
+    var content = config().prettyPrint() ? outputJson.prettyPrint() : outputJson.toString();
     files().writeString(out, content);
   }
 
