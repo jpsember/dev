@@ -155,7 +155,7 @@ public class NotebookOper extends AppOper {
     flushChunk(chunkStart, mPythonSourceLines.length);
 
     // I'm having some errors if I don't pretty print the results
-    var content = (config().prettyPrint() || true) ? outputJson.prettyPrint() : outputJson.toString();
+    var content =  config().prettyPrint() ? outputJson.prettyPrint() : outputJson.toString();
     files().writeString(out, content);
   }
 
