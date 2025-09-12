@@ -2,7 +2,6 @@ package dev;
 
 import static js.base.Tools.*;
 
-import dev.gen.CmitConfig;
 import dev.gen.NotebookConfig;
 import js.app.AppOper;
 import js.app.HelpFormatter;
@@ -13,8 +12,6 @@ import js.json.JSMap;
 import js.parsing.RegExp;
 
 import java.io.File;
-import java.util.ArrayList;
-import java.util.List;
 
 public class NotebookOper extends AppOper {
 
@@ -130,14 +127,14 @@ public class NotebookOper extends AppOper {
 
     var notebookTemplate = Files.readString(this.getClass(), "notebook_template.json");
     JSMap outputJson = new JSMap(notebookTemplate);
-    var cells = list();
-    outputJson.put("cells", cells);
+    mCells = list();
+    outputJson.put("cells", mCells);
 
-    var cellTemplate = new JSMap(Files.readString(getClass(), "cell_template.json"));
+    mCellTemplate = new JSMap(Files.readString(getClass(), "cell_template.json"));
 
 
     var pythonSource = Files.readString(inp);
-    var pythonSourceLines = pythonSource.lines().toArray(String[]::new);
+    mPythonSourceLines = pythonSource.lines().toArray(String[]::new);
 
 
     // #   In[  42 ]:
@@ -146,34 +143,41 @@ public class NotebookOper extends AppOper {
     var chunkStart = 0;
 
     int i = INIT_INDEX;
-    for (var s : pythonSourceLines) {
+    for (var s : mPythonSourceLines) {
       i++;
 
       if (RegExp.patternMatchesString(chunkMarkerPat, s)) {
-
-        // Eliminate blank lines bordering this chunk
-        var x0 = chunkStart;
-        var x1 = i;
-        while (x0 < x1 && pythonSourceLines[x0].isEmpty())
-          x0++;
-        while (x1 - 1 > x0 && pythonSourceLines[x1 - 1].isEmpty())
-          x1--;
-
-        var cell = cellTemplate.deepCopy();
-        var srcLines = list();
-        cell.put("source", srcLines);
-        for (var j = x0; j < x1; j++)
-          srcLines.add(pythonSourceLines[j] + "\n");
-        cells.add(cell);
-
+        flushChunk(chunkStart, i);
         chunkStart = i + 1;
       }
     }
+
+    flushChunk(chunkStart, mPythonSourceLines.length);
+
     var content = config().prettyPrint() ? outputJson.prettyPrint() : outputJson.toString();
     files().writeString(out, content);
   }
 
+  private void flushChunk(int x0, int x1) {
+    if (x0 == x1) return;
+
+    // Eliminate blank lines bordering this chunk
+    while (x0 < x1 && mPythonSourceLines[x0].isEmpty())
+      x0++;
+    while (x1 - 1 > x0 && mPythonSourceLines[x1 - 1].isEmpty())
+      x1--;
+
+    var cell = mCellTemplate.deepCopy();
+    var srcLines = list();
+    cell.put("source", srcLines);
+    for (var j = x0; j < x1; j++)
+      srcLines.add(mPythonSourceLines[j] + "\n");
+    mCells.add(cell);
+
+  }
 
   private NotebookConfig mConfig;
-
+  private String[] mPythonSourceLines;
+  private JSMap mCellTemplate;
+  private JSList mCells;
 }
