@@ -41,8 +41,8 @@ public class PrepOper extends AppOper {
   @Override
   protected void longHelp(BasePrinter b) {
     var hf = new HelpFormatter();
-    hf.addItem(" save | restore", "Operation (save: prepare for commit; restore: restore afterward)");
-    hf.addItem("[ pattern_file <hhhhhhh> ]", "file describing deletion patterns");
+    hf.addItem(" oper (init | filter | restore | auto)", "Operation");
+    hf.addItem("** this help is out of date**[ pattern_file <hhhhhhh> ]", "file describing deletion patterns");
     b.pr(hf);
     b.br();
     b.pr("Prepares source files for commit by deleting particular content");
@@ -61,13 +61,15 @@ public class PrepOper extends AppOper {
     return mConfig;
   }
 
+  /**
+   * Determine the operation, if we haven't yet done so
+   */
   private PrepOperType currOper() {
     if (mOperType == null) {
       var op = config().oper();
       var d = getCandidateProjectDir();
       var infoFile = Files.join(d, PROJECT_INFO_FILE);
 
-      pr("currOper, op:",op,"infoFile:",INDENT,Files.infoMap(infoFile));
       switch (op) {
         case NONE:
           setError("No prep_oper_type specified");
@@ -95,6 +97,9 @@ public class PrepOper extends AppOper {
     return mOperType;
   }
 
+  /**
+   * Return true if operation matches a value
+   */
   private boolean oper(PrepOperType val) {
     return val == currOper();
   }
@@ -107,24 +112,33 @@ public class PrepOper extends AppOper {
       doInit();
       return;
     }
-    log("arguments:",INDENT,config());
+
+    log("arguments:", INDENT, config());
     log("Project directory:", projectDir());
     log("Cache directory:", cacheDir());
     log("Operation:", currOper());
+
     switch (currOper()) {
       case FILTER:
-        doSaveAndPrepare();
+        doFilter();
         break;
       case RESTORE:
         doRestore();
         break;
+      default:
+        throw badState("unsupported operation:", currOper());
     }
   }
 
   private void doInit() {
-    projectDir();
+    var projectDir = getCandidateProjectDir();
+    var infoFile = Files.join(projectDir, PROJECT_INFO_FILE);
+    checkState(!infoFile.exists(), "did not expect there to already be a project info file:", INDENT, Files.infoMap(infoFile));
+    var content =
+        Files.readString(this.getClass(), "prep_default.txt");
+    if (!dryRun())
+      files().writeString(infoFile, content);
   }
-
 
   private File getCandidateProjectDir() {
     var c = config().projectRootForTesting();
@@ -142,66 +156,31 @@ public class PrepOper extends AppOper {
    * Determine the project directory
    */
   private File projectDir() {
-    if (mProjectDir == null) {
-       mProjectDir = getCandidateProjectDir();
-
-      var infoFile = Files.join(mProjectDir, PROJECT_INFO_FILE);
-
-      switch (currOper()) {
-        case INIT: {
-          checkState(!infoFile.exists(), "did not expect there to already be a project info file:", INDENT, Files.infoMap(infoFile));
-          var content =
-              Files.readString(this.getClass(), "prep_default.txt");
-          files().writeString(infoFile, content);
-        }
-        break;
-        case FILTER:
-        {
-          mProjectInfoFileContent = Files.readString(infoFile);
-          if (mProjectInfoFileContent.trim().isEmpty()) {
-            log("project file is empty, using default");
-            mProjectInfoFileContent =
-                Files.readString(this.getClass(), "prep_default.txt");
-          }
-          pr("project info file:", INDENT, mProjectInfoFileContent);
-        }
-          break;
-        case RESTORE:
-          break;
-      }
-//      if (oper(PrepOperType.INIT)) {
-//        checkState(!infoFile.exists(), "did not expect there to already be a project info file:", INDENT, Files.infoMap(infoFile));
-//        var content =
-//            Files.readString(this.getClass(), "prep_default.txt");
-//        files().writeString(infoFile, content);
-//      } else {
-//        // Look for the project info file.
-//        // If it doesn't exist, we are doing a restore operation
-//        if (!infoFile.exists()) {
-//          mSaving = false;
-//        } else {
-//          mSaving = true;
-//          mProjectInfoFileContent = Files.readString(infoFile);
-//          if (mProjectInfoFileContent.trim().isEmpty()) {
-//            log("project file is empty, using default");
-//            mProjectInfoFileContent =
-//                Files.readString(this.getClass(), "prep_default.txt");
-//          }
-//          pr("project info file:", INDENT, mProjectInfoFileContent);
-//        }
-//      }
+    if (mCachedProjectDir == null) {
+      mCachedProjectDir = getCandidateProjectDir();
     }
-    return mProjectDir;
+    return mCachedProjectDir;
   }
 
-  private String mProjectInfoFileContent;
+  private File mCachedProjectDir;
+
 
   private String projectInfoFileContent() {
-    if (mProjectInfoFileContent == null) {
-      projectDir();
+    var content = mCachedProjectInfoFileContent;
+    if (content == null) {
+      var infoFile = Files.join(projectDir(), PROJECT_INFO_FILE);
+      content = Files.readString(infoFile);
+      if (content.trim().isEmpty()) {
+        log("project file is empty, using default");
+        content =
+            Files.readString(this.getClass(), "prep_default.txt");
+      }
+      mCachedProjectInfoFileContent = content;
     }
-    return mProjectInfoFileContent;
+    return content;
   }
+
+  private String mCachedProjectInfoFileContent;
 
   /**
    * Determine the project cache directory.  This is where it will store
@@ -235,7 +214,7 @@ public class PrepOper extends AppOper {
 
   private static final List<String> ALWAYS_DELETE_THESE_FILES = arrayList(FILTER_FILENAME, PROJECT_INFO_FILE, FILE_LIST_FILENAME);
 
-  private void doSaveAndPrepare() {
+  private void doFilter() {
     boolean changesMade = false;
     var initialState = prepareState();
     List<DirStackEntry> dirStack = arrayList();
@@ -505,7 +484,6 @@ public class PrepOper extends AppOper {
   }
 
   private PrepConfig mConfig;
-  private File mProjectDir;
   private File mCacheDir;
 
   private int mMatchesWithinFile;

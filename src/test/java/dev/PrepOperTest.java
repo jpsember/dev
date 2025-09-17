@@ -39,36 +39,34 @@ public class PrepOperTest extends DevTestBase {
     prepareDirectories();
     // ----------------------------------------------------------------------------------------------
     prepareApp();
-   addArg("oper","filter");
+    addArg("oper", "filter");
     runApp();
     // ----------------------------------------------------------------------------------------------
     assertGenerated();
   }
-
 
   @Test
   public void filterDryRun() {
     prepareDirectories();
     // ----------------------------------------------------------------------------------------------
     prepareApp();
-    addArg("oper","filter");
+    addArg("oper", "filter");
     addArg("--dryrun");
     runApp();
     // ----------------------------------------------------------------------------------------------
     assertGenerated();
   }
 
-
   @Test
   public void saveWithFileList() {
     prepareDirectories();
 
-    files().writeString(new File(sourceDir(),PrepOper.FILE_LIST_FILENAME),"subdir");
-    files().writeString(new File(sourceDir(),"subdir/"+PrepOper.FILE_LIST_FILENAME),"c.java\nh2");
+    files().writeString(new File(sourceDir(), PrepOper.FILE_LIST_FILENAME), "subdir");
+    files().writeString(new File(sourceDir(), "subdir/" + PrepOper.FILE_LIST_FILENAME), "c.java\nh2");
 
     // ----------------------------------------------------------------------------------------------
     prepareApp();
-    addArg("oper","filter");
+    addArg("oper", "filter");
     runApp();
     // ----------------------------------------------------------------------------------------------
     assertGenerated();
@@ -79,7 +77,7 @@ public class PrepOperTest extends DevTestBase {
     prepareDirectories();
     // ----------------------------------------------------------------------------------------------
     prepareApp();
-    addArg("oper","filter");
+    addArg("oper", "filter");
     runApp();
 
     var f1 =
@@ -91,7 +89,7 @@ public class PrepOperTest extends DevTestBase {
     checkState(!f2.exists());
 
     prepareApp();
-    addArg("oper","restore");
+    addArg("oper", "restore");
     runApp();
     // ----------------------------------------------------------------------------------------------
     assertGenerated();
@@ -107,7 +105,7 @@ public class PrepOperTest extends DevTestBase {
     Files.assertExists(existingFilter, "existing project info file for restoreWithoutSave");
     files().deleteFile(existingFilter);
     try {
-      addArg("oper","restore");
+      addArg("oper", "restore");
       runApp();
     } catch (App.AppErrorException e) {
       checkArgument(e.toString().contains("is there a .prep_project file"));
@@ -119,7 +117,7 @@ public class PrepOperTest extends DevTestBase {
     prepareDirectories();
     // ----------------------------------------------------------------------------------------------
     prepareApp();
-     prepareInit();
+    prepareInit();
     runApp();
 
     assertGenerated();
@@ -127,7 +125,7 @@ public class PrepOperTest extends DevTestBase {
 
   private void prepareInit() {
     // Delete some things that wouldn't be there if an init is being performed
-    addArg("oper","init");
+    addArg("oper", "init");
 
     var existingFilter = new File(sourceDir(), PrepOper.PROJECT_INFO_FILE);
     files().deleteFile(existingFilter);
@@ -144,7 +142,7 @@ public class PrepOperTest extends DevTestBase {
     runApp();
 
     prepareApp();
-    addArg("oper","filter");
+    addArg("oper", "filter");
     runApp();
     assertGenerated();
   }
@@ -176,7 +174,7 @@ public class PrepOperTest extends DevTestBase {
     prepareDirectories();
     repFilter(relPath, concatExprs);
     prepareApp();
-    addArg("oper","filter");
+    addArg("oper", "filter");
     runApp();
     assertGenerated();
   }
