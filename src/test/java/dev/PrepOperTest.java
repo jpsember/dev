@@ -50,6 +50,7 @@ public class PrepOperTest extends DevTestBase {
     prepareDirectories();
     // ----------------------------------------------------------------------------------------------
     prepareApp();
+    addArg("--verbose");
     addArg("oper", "filter");
     addArg("--dryrun");
     runApp();

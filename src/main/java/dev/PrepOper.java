@@ -11,6 +11,7 @@ import js.app.HelpFormatter;
 import js.base.BasePrinter;
 import js.file.DirWalk;
 import js.file.Files;
+import js.json.JSUtils;
 import js.parsing.DFA;
 import js.parsing.DFACache;
 import js.parsing.Lexer;
@@ -276,13 +277,9 @@ public class PrepOper extends AppOper {
         }
 
         // If the file (or dir) is a symlink, don't process it
-        try {
-          if (!sourceFileOrDir.getAbsolutePath().equals(sourceFileOrDir.getCanonicalPath())) {
-            continue;
-          }
-        } catch (IOException e) {
-          throw new RuntimeException(e);
-        }
+        if (isSymLink(sourceFileOrDir))
+          continue;
+
         if (!sourceFileOrDir.isDirectory()) {
           var sourceFile = sourceFileOrDir;
           var ext = Files.getExtension(sourceFile);
@@ -292,9 +289,7 @@ public class PrepOper extends AppOper {
             var rel = Files.relativeToContainingDirectory(sourceFile, projectDir());
             log("file:", rel);
             var currText = Files.readString(sourceFile);
-            pr("applying filter to:", sourceFile);
-            var verbose = sourceFile.getName().equals("program.rs");
-            applyFilter(currText, dfa, verbose);
+            applyFilter(currText, dfa, verbose());
 
             if (mMatchesWithinFile != 0) {
               changesMade = true;
@@ -324,6 +319,10 @@ public class PrepOper extends AppOper {
     if (!changesMade) {
       setError("No filter matches found... did you mean to do a restore instead?");
     }
+  }
+
+  private static boolean isSymLink(File f) {
+    return !f.getAbsoluteFile().equals(Files.getCanonicalFile(f));
   }
 
   private void saveFileOrDir(File absSourceFileOrDir) {
@@ -423,19 +422,15 @@ public class PrepOper extends AppOper {
 
     var s = new Lexer(dfa).withText(currText).withNoSkip().withAcceptUnknownTokens();
 
-    if (verbose)
-      s.setVerbose();
-
     int cursor = 0;
     while (s.hasNext()) {
       var tk = s.read();
       if (verbose) {
-        pr("===token:", dfa.tokenName(tk.id()), "text:", tk.text());
+        log("=== token:", dfa.tokenName(tk.id()), JSUtils.valueToString(tk.text()));
       }
       var len = tk.text().length();
       if (!tk.isUnknown()) {
-        if (verbose())
-          log("...found matching token:", INDENT, tk);
+        log("...found matching token");
         mMatchesWithinFile++;
         for (int i = 0; i < len; i++)
           mNewText.setCharAt(i + cursor, ERASE_CHAR);
@@ -480,7 +475,6 @@ public class PrepOper extends AppOper {
     }
     mNewText.setLength(0);
     mNewText.append(out);
-    pr("!!! new text:", INDENT, mNewText);
   }
 
   private PrepConfig mConfig;
@@ -530,11 +524,16 @@ public class PrepOper extends AppOper {
       if (false && verbose())
         dfaCache.setVerbose();
 
+      log("Constructing dfas from rxp",CR,DASHES);
       for (var ent : mRXPContentForFileExtensionMap.entrySet()) {
         String ext = ent.getKey();
         String rxp = ent.getValue().toString();
-        pr("constructing dfa for ext:", ext, "rxp:", INDENT, rxp);
+        log("Constructing DFA for extension:", ext);
+        log("rxp file:", INDENT, rxp);
         var dfa = dfaCache.forTokenDefinitions(rxp);
+        if (verbose())
+          log("dfa file:", INDENT, dfa.toJson().remove("graph"));
+        log(DASHES);
         mDFAForFileExtensionMap.put(ext, dfa);
       }
     }
