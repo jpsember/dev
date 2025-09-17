@@ -7,8 +7,8 @@ import js.json.JSMap;
 
 public class PrepConfig implements AbstractData {
 
-  public boolean init() {
-    return mInit;
+  public PrepOperType oper() {
+    return mOper;
   }
 
   public File cacheDir() {
@@ -36,7 +36,7 @@ public class PrepConfig implements AbstractData {
     return new Builder(this);
   }
 
-  protected static final String _0 = "init";
+  protected static final String _0 = "oper";
   protected static final String _1 = "cache_dir";
   protected static final String _2 = "cache_filename";
   protected static final String _3 = "cache_path_expr";
@@ -51,7 +51,7 @@ public class PrepConfig implements AbstractData {
   @Override
   public JSMap toJson() {
     JSMap m = new JSMap();
-    m.putUnsafe(_0, mInit);
+    m.putUnsafe(_0, mOper.toString().toLowerCase());
     m.putUnsafe(_1, mCacheDir.toString());
     m.putUnsafe(_2, mCacheFilename.toString());
     m.putUnsafe(_3, mCachePathExpr);
@@ -71,7 +71,10 @@ public class PrepConfig implements AbstractData {
   }
 
   private PrepConfig(JSMap m) {
-    mInit = m.opt(_0, false);
+    {
+      String x = m.opt(_0, "");
+      mOper = x.isEmpty() ? PrepOperType.DEFAULT_INSTANCE : PrepOperType.valueOf(x.toUpperCase());
+    }
     {
       mCacheDir = Files.DEFAULT;
       String x = m.opt(_1, (String) null);
@@ -110,7 +113,7 @@ public class PrepConfig implements AbstractData {
     PrepConfig other = (PrepConfig) object;
     if (other.hashCode() != hashCode())
       return false;
-    if (!(mInit == other.mInit))
+    if (!(mOper.equals(other.mOper)))
       return false;
     if (!(mCacheDir.equals(other.mCacheDir)))
       return false;
@@ -130,7 +133,7 @@ public class PrepConfig implements AbstractData {
     int r = m__hashcode;
     if (r == 0) {
       r = 1;
-      r = r * 37 + (mInit ? 1 : 0);
+      r = r * 37 + mOper.ordinal();
       r = r * 37 + mCacheDir.hashCode();
       r = r * 37 + mCacheFilename.hashCode();
       r = r * 37 + mCachePathExpr.hashCode();
@@ -141,7 +144,7 @@ public class PrepConfig implements AbstractData {
     return r;
   }
 
-  protected boolean mInit;
+  protected PrepOperType mOper;
   protected File mCacheDir;
   protected File mCacheFilename;
   protected String mCachePathExpr;
@@ -152,7 +155,7 @@ public class PrepConfig implements AbstractData {
   public static final class Builder extends PrepConfig {
 
     private Builder(PrepConfig m) {
-      mInit = m.mInit;
+      mOper = m.mOper;
       mCacheDir = m.mCacheDir;
       mCacheFilename = m.mCacheFilename;
       mCachePathExpr = m.mCachePathExpr;
@@ -174,7 +177,7 @@ public class PrepConfig implements AbstractData {
     @Override
     public PrepConfig build() {
       PrepConfig r = new PrepConfig();
-      r.mInit = mInit;
+      r.mOper = mOper;
       r.mCacheDir = mCacheDir;
       r.mCacheFilename = mCacheFilename;
       r.mCachePathExpr = mCachePathExpr;
@@ -183,8 +186,8 @@ public class PrepConfig implements AbstractData {
       return r;
     }
 
-    public Builder init(boolean x) {
-      mInit = x;
+    public Builder oper(PrepOperType x) {
+      mOper = (x == null) ? PrepOperType.DEFAULT_INSTANCE : x;
       return this;
     }
 
@@ -220,6 +223,7 @@ public class PrepConfig implements AbstractData {
   public static final PrepConfig DEFAULT_INSTANCE = new PrepConfig();
 
   private PrepConfig() {
+    mOper = PrepOperType.DEFAULT_INSTANCE;
     mCacheDir = Files.DEFAULT;
     mCacheFilename = _D2;
     mCachePathExpr = "";

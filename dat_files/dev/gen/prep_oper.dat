@@ -1,5 +1,10 @@
-class {
-    bool init;   // Initialize a new project
+enum PrepOperType {
+    none, init, filter, restore, auto,
+}
+
+class prep_config {
+    enum PrepOperType oper;
+    // bool init;   // Initialize a new project
 
     // ---- These are exposed only for unit tests
 

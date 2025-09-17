@@ -3,6 +3,7 @@ package dev;
 import static js.base.Tools.*;
 
 import dev.gen.PrepConfig;
+import dev.gen.PrepOperType;
 import dev.prep.DirStackEntry;
 import dev.prep.FilterState;
 import js.app.AppOper;
@@ -15,11 +16,10 @@ import js.parsing.DFACache;
 import js.parsing.Lexer;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.*;
 
 public class PrepOper extends AppOper {
-
-  public static final boolean QUICK_TEST = false && alert("quick test is in effect");
 
   public static final String FILTER_FILENAME = ".filter";
   public static final String FILE_LIST_FILENAME = ".files";
@@ -61,22 +61,63 @@ public class PrepOper extends AppOper {
     return mConfig;
   }
 
+  private PrepOperType currOper() {
+    if (mOperType == null) {
+      var op = config().oper();
+      var d = getCandidateProjectDir();
+      var infoFile = Files.join(d, PROJECT_INFO_FILE);
+
+      pr("currOper, op:",op,"infoFile:",INDENT,Files.infoMap(infoFile));
+      switch (op) {
+        case NONE:
+          setError("No prep_oper_type specified");
+          break;
+        case INIT: {
+          Files.assertDoesNotExist(infoFile, "project info file already exists");
+        }
+        break;
+        case FILTER:
+          Files.assertExists(infoFile, "no project info file found");
+          break;
+        case RESTORE:
+          Files.assertDoesNotExist(infoFile, "project info file already exists");
+          break;
+        case AUTO:
+          if (infoFile.exists()) {
+            op = PrepOperType.FILTER;
+          } else {
+            op = PrepOperType.RESTORE;
+          }
+          break;
+      }
+      mOperType = op;
+    }
+    return mOperType;
+  }
+
+  private boolean oper(PrepOperType val) {
+    return val == currOper();
+  }
+
   @Override
   public void perform() {
     files().withDryRun(dryRun());
 
-    if (config().init()) {
+    if (oper(PrepOperType.INIT)) {
       doInit();
       return;
     }
+    log("arguments:",INDENT,config());
     log("Project directory:", projectDir());
     log("Cache directory:", cacheDir());
-    log("Operation:", saving() ? "SAVE" : "RESTORE");
-    if (saving()) {
-      doSave();
-    } else {
-      checkState(!QUICK_TEST);
-      doRestore();
+    log("Operation:", currOper());
+    switch (currOper()) {
+      case FILTER:
+        doSaveAndPrepare();
+        break;
+      case RESTORE:
+        doRestore();
+        break;
     }
   }
 
@@ -84,9 +125,17 @@ public class PrepOper extends AppOper {
     projectDir();
   }
 
-  private boolean saving() {
-    projectDir();
-    return mSaving;
+
+  private File getCandidateProjectDir() {
+    var c = config().projectRootForTesting();
+    if (Files.empty(c)) {
+      c = Files.currentDirectory();
+      if (c.toString().endsWith("/Users/jeff/github_projects/dev"))
+        die("WTF, shouldn't be operating on our own source directory");
+    } else {
+      Files.assertDirectoryExists(c, "project_root_for_testing");
+    }
+    return c;
   }
 
   /**
@@ -94,39 +143,53 @@ public class PrepOper extends AppOper {
    */
   private File projectDir() {
     if (mProjectDir == null) {
-      checkState(mSaving == null);
-      var c = config().projectRootForTesting();
-      if (Files.empty(c)) {
-        c = Files.currentDirectory();
-        if (c.toString().endsWith("/Users/jeff/github_projects/dev"))
-          die("WTF, shouldn't be operating on our own source directory");
-      } else {
-        Files.assertDirectoryExists(c, "project_root_for_testing");
-      }
-      mProjectDir = c;
+       mProjectDir = getCandidateProjectDir();
 
-      var infoFile = Files.join(c, PROJECT_INFO_FILE);
+      var infoFile = Files.join(mProjectDir, PROJECT_INFO_FILE);
 
-      if (config().init()) {
-        checkState(!infoFile.exists(), "did not expect there to already be a project info file:", INDENT, Files.infoMap(infoFile));
-        var content =
-            Files.readString(this.getClass(), "prep_default.txt");
-        files().writeString(infoFile, content);
-      } else {
-        // Look for the project info file.
-        // If it doesn't exist, we are doing a restore operation
-        if (!infoFile.exists()) {
-          mSaving = false;
-        } else {
-          mSaving = true;
+      switch (currOper()) {
+        case INIT: {
+          checkState(!infoFile.exists(), "did not expect there to already be a project info file:", INDENT, Files.infoMap(infoFile));
+          var content =
+              Files.readString(this.getClass(), "prep_default.txt");
+          files().writeString(infoFile, content);
+        }
+        break;
+        case FILTER:
+        {
           mProjectInfoFileContent = Files.readString(infoFile);
           if (mProjectInfoFileContent.trim().isEmpty()) {
             log("project file is empty, using default");
             mProjectInfoFileContent =
                 Files.readString(this.getClass(), "prep_default.txt");
           }
+          pr("project info file:", INDENT, mProjectInfoFileContent);
         }
+          break;
+        case RESTORE:
+          break;
       }
+//      if (oper(PrepOperType.INIT)) {
+//        checkState(!infoFile.exists(), "did not expect there to already be a project info file:", INDENT, Files.infoMap(infoFile));
+//        var content =
+//            Files.readString(this.getClass(), "prep_default.txt");
+//        files().writeString(infoFile, content);
+//      } else {
+//        // Look for the project info file.
+//        // If it doesn't exist, we are doing a restore operation
+//        if (!infoFile.exists()) {
+//          mSaving = false;
+//        } else {
+//          mSaving = true;
+//          mProjectInfoFileContent = Files.readString(infoFile);
+//          if (mProjectInfoFileContent.trim().isEmpty()) {
+//            log("project file is empty, using default");
+//            mProjectInfoFileContent =
+//                Files.readString(this.getClass(), "prep_default.txt");
+//          }
+//          pr("project info file:", INDENT, mProjectInfoFileContent);
+//        }
+//      }
     }
     return mProjectDir;
   }
@@ -172,7 +235,7 @@ public class PrepOper extends AppOper {
 
   private static final List<String> ALWAYS_DELETE_THESE_FILES = arrayList(FILTER_FILENAME, PROJECT_INFO_FILE, FILE_LIST_FILENAME);
 
-  private void doSave() {
+  private void doSaveAndPrepare() {
     boolean changesMade = false;
     var initialState = prepareState();
     List<DirStackEntry> dirStack = arrayList();
@@ -183,7 +246,7 @@ public class PrepOper extends AppOper {
 
       var filterFile = new File(entry.directory(), FILTER_FILENAME);
       if (filterFile.exists()) {
-        var content = files().readString(filterFile);
+        var content = Files.readString(filterFile);
         state = processFilterFile(content, state);
         entry = entry.withState(state);
       }
@@ -191,7 +254,7 @@ public class PrepOper extends AppOper {
       // Examine the files (or subdirectories) within this directory (without recursing).
       // If an explict file list exists, parse that for the list of files instead.
 
-      List<File> listOfFiles = null;
+      List<File> listOfFiles;
       {
         var explicitFileList = new File(entry.directory(), FILE_LIST_FILENAME);
         if (explicitFileList.exists()) {
@@ -205,9 +268,6 @@ public class PrepOper extends AppOper {
           }
           listOfFiles = arrayList();
           for (var x : setOfFiles) {
-            if (QUICK_TEST) {
-              pr("...explicit file candidate:", INDENT, Files.infoMap(x));
-            }
             if (x.exists()) {
               listOfFiles.add(x);
             }
@@ -223,22 +283,27 @@ public class PrepOper extends AppOper {
 
         if (ALWAYS_DELETE_THESE_FILES.contains(justTheName) || state.deleteFilenames().contains(justTheName)) {
           log("...filtering entire file or dir:", justTheName);
-          if (QUICK_TEST) {
-            pr("!!! NOT deleting:", INDENT, Files.infoMap(sourceFileOrDir));
-            continue;
-          }
           saveFileOrDir(sourceFileOrDir);
           if (sourceFileOrDir.isDirectory()) {
             var expr = sourceFileOrDir.toString();
             checkArgument(expr.length() >= 25);
-            files().deleteDirectory(sourceFileOrDir, expr.substring(18));
+            if (!dryRun())
+              files().deleteDirectory(sourceFileOrDir, expr.substring(18));
+          } else {
+            if (!dryRun()) files().deleteFile(sourceFileOrDir);
           }
-          else
-            files().deleteFile(sourceFileOrDir);
           changesMade = true;
           continue;
         }
 
+        // If the file (or dir) is a symlink, don't process it
+        try {
+          if (!sourceFileOrDir.getAbsolutePath().equals(sourceFileOrDir.getCanonicalPath())) {
+            continue;
+          }
+        } catch (IOException e) {
+          throw new RuntimeException(e);
+        }
         if (!sourceFileOrDir.isDirectory()) {
           var sourceFile = sourceFileOrDir;
           var ext = Files.getExtension(sourceFile);
@@ -248,14 +313,15 @@ public class PrepOper extends AppOper {
             var rel = Files.relativeToContainingDirectory(sourceFile, projectDir());
             log("file:", rel);
             var currText = Files.readString(sourceFile);
-            applyFilter(currText, dfa);
+            pr("applying filter to:", sourceFile);
+            var verbose = sourceFile.getName().equals("program.rs");
+            applyFilter(currText, dfa, verbose);
 
             if (mMatchesWithinFile != 0) {
               changesMade = true;
 
-              if (QUICK_TEST) {
-                pr("!!! NOT saving modified version of:", sourceFile);
-              } else {
+              if (!dryRun()) {
+
                 saveFileOrDir(sourceFile);
                 // Write new filtered form
                 var filteredContent = mNewText.toString();
@@ -266,15 +332,10 @@ public class PrepOper extends AppOper {
           }
         } else {
           // We need to descend to the directory, which might be more than one level deep
-
           var relPath = Files.relativeToContainingDirectory(sourceFileOrDir, entry.directory());
-          if (QUICK_TEST)
-            pr("relPath:", relPath);
           var newEnt = entry;
           for (var subdirName : split(relPath.toString(), '/')) {
             newEnt = newEnt.withDirectory(subdirName);
-            if (QUICK_TEST)
-              pr("subdirName:", subdirName);
           }
           push(dirStack, newEnt);
         }
@@ -287,7 +348,7 @@ public class PrepOper extends AppOper {
   }
 
   private void saveFileOrDir(File absSourceFileOrDir) {
-    checkState(!QUICK_TEST);
+    if (dryRun()) return;
     // determine relative path from project directory
     var relativePath = Files.relativeToContainingDirectory(absSourceFileOrDir, projectDir()).toString();
 
@@ -376,19 +437,22 @@ public class PrepOper extends AppOper {
 
   private static final char ERASE_CHAR = 0x7f;
 
-  private void applyFilter(String currText, DFA dfa) {
+  private void applyFilter(String currText, DFA dfa, boolean verbose) {
 
     mNewText = new StringBuilder(currText);
     mMatchesWithinFile = 0;
 
     var s = new Lexer(dfa).withText(currText).withNoSkip().withAcceptUnknownTokens();
 
-    if (false && alert("setting verbosity"))
+    if (verbose)
       s.setVerbose();
 
     int cursor = 0;
     while (s.hasNext()) {
       var tk = s.read();
+      if (verbose) {
+        pr("===token:", dfa.tokenName(tk.id()), "text:", tk.text());
+      }
       var len = tk.text().length();
       if (!tk.isUnknown()) {
         if (verbose())
@@ -430,26 +494,23 @@ public class PrepOper extends AppOper {
         eraseFound = true;
       } else {
         lineContainedChars = true;
-        for (int j = 0; j < bufferedSpaceCount; j++) {
-          out.append(' ');
-        }
+        out.append(spaces(bufferedSpaceCount));
         bufferedSpaceCount = 0;
         out.append(c);
       }
     }
     mNewText.setLength(0);
     mNewText.append(out);
+    pr("!!! new text:", INDENT, mNewText);
   }
 
   private PrepConfig mConfig;
   private File mProjectDir;
   private File mCacheDir;
-  private Boolean mSaving;
 
   private int mMatchesWithinFile;
   private StringBuilder mNewText;
 
-  private Set<String> mActiveExtensions;
 
   /**
    * Set up the initial filter state.
@@ -459,26 +520,25 @@ public class PrepOper extends AppOper {
    */
   private FilterState prepareState() {
     var text = projectInfoFileContent();
-
-    mActiveExtensions = hashSet();
+    Set<String> activeExtensions = hashSet();
 
     for (var x : split(text, '\n')) {
 
       var extensionPrefix = ">>>";
       if (x.startsWith(extensionPrefix)) {
 
-        mActiveExtensions.clear();
+        activeExtensions.clear();
         x = chompPrefix(x, extensionPrefix);
 
         var extList = split(x, ',');
         for (var ext : extList) {
           checkArgument(ext.matches("[a-zA-Z]+"), "illegal extension:", ext);
-          mActiveExtensions.add(ext);
+          activeExtensions.add(ext);
         }
         continue;
       }
 
-      for (var ext : mActiveExtensions) {
+      for (var ext : activeExtensions) {
         var buffer = extensionBuffer(ext);
         buffer.append(x);
         buffer.append('\n');
@@ -495,6 +555,7 @@ public class PrepOper extends AppOper {
       for (var ent : mRXPContentForFileExtensionMap.entrySet()) {
         String ext = ent.getKey();
         String rxp = ent.getValue().toString();
+        pr("constructing dfa for ext:", ext, "rxp:", INDENT, rxp);
         var dfa = dfaCache.forTokenDefinitions(rxp);
         mDFAForFileExtensionMap.put(ext, dfa);
       }
@@ -533,6 +594,6 @@ public class PrepOper extends AppOper {
 
   private Map<String, DFA> mDFAForFileExtensionMap = hashMap();
 
-
+  private PrepOperType mOperType;
 }
 

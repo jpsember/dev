@@ -39,6 +39,7 @@ public class PrepOperTest extends DevTestBase {
     prepareDirectories();
     // ----------------------------------------------------------------------------------------------
     prepareApp();
+   addArg("oper","filter");
     runApp();
     // ----------------------------------------------------------------------------------------------
     assertGenerated();
@@ -54,6 +55,7 @@ public class PrepOperTest extends DevTestBase {
 
     // ----------------------------------------------------------------------------------------------
     prepareApp();
+    addArg("oper","filter");
     runApp();
     // ----------------------------------------------------------------------------------------------
     assertGenerated();
@@ -64,6 +66,7 @@ public class PrepOperTest extends DevTestBase {
     prepareDirectories();
     // ----------------------------------------------------------------------------------------------
     prepareApp();
+    addArg("oper","filter");
     runApp();
 
     var f1 =
@@ -75,6 +78,7 @@ public class PrepOperTest extends DevTestBase {
     checkState(!f2.exists());
 
     prepareApp();
+    addArg("oper","restore");
     runApp();
     // ----------------------------------------------------------------------------------------------
     assertGenerated();
@@ -90,6 +94,7 @@ public class PrepOperTest extends DevTestBase {
     Files.assertExists(existingFilter, "existing project info file for restoreWithoutSave");
     files().deleteFile(existingFilter);
     try {
+      addArg("oper","restore");
       runApp();
     } catch (App.AppErrorException e) {
       checkArgument(e.toString().contains("is there a .prep_project file"));
@@ -101,7 +106,7 @@ public class PrepOperTest extends DevTestBase {
     prepareDirectories();
     // ----------------------------------------------------------------------------------------------
     prepareApp();
-    prepareInit();
+     prepareInit();
     runApp();
 
     assertGenerated();
@@ -109,11 +114,12 @@ public class PrepOperTest extends DevTestBase {
 
   private void prepareInit() {
     // Delete some things that wouldn't be there if an init is being performed
+    addArg("oper","init");
 
     var existingFilter = new File(sourceDir(), PrepOper.PROJECT_INFO_FILE);
     files().deleteFile(existingFilter);
 
-    addArg("init");
+//    addArg("init");
 
   }
 
@@ -125,6 +131,7 @@ public class PrepOperTest extends DevTestBase {
     runApp();
 
     prepareApp();
+    addArg("oper","filter");
     runApp();
     assertGenerated();
   }
@@ -156,6 +163,7 @@ public class PrepOperTest extends DevTestBase {
     prepareDirectories();
     repFilter(relPath, concatExprs);
     prepareApp();
+    addArg("oper","filter");
     runApp();
     assertGenerated();
   }
@@ -171,7 +179,6 @@ public class PrepOperTest extends DevTestBase {
   }
 
   private void prepareApp() {
-    loadTools();
     clearArgs();
     setOper("prep");
     addArg("project_root_for_testing", sourceDir());
