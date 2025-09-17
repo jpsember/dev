@@ -47,6 +47,19 @@ public class PrepOperTest extends DevTestBase {
 
 
   @Test
+  public void filterDryRun() {
+    prepareDirectories();
+    // ----------------------------------------------------------------------------------------------
+    prepareApp();
+    addArg("oper","filter");
+    addArg("--dryrun");
+    runApp();
+    // ----------------------------------------------------------------------------------------------
+    assertGenerated();
+  }
+
+
+  @Test
   public void saveWithFileList() {
     prepareDirectories();
 
