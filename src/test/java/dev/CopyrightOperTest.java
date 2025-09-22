@@ -14,6 +14,24 @@ public class CopyrightOperTest extends DevTestBase {
     proc("sd_java");
   }
 
+  @Test
+  public void javaRemove() {
+    addArg("remove_message");
+    java();
+  }
+
+  @Test
+  public void rust() {
+    provideArg("file_extensions", "rs");
+    provideArg("copyright_text_file", generatedFile("header.txt"));
+    proc("sd_rust");
+  }
+
+  @Test
+  public void rustRemove() {
+    addArg("remove_message");
+    rust();
+  }
 
   private void proc(String subdirName) {
     // class {

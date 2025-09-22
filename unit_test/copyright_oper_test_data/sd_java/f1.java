@@ -1,4 +1,5 @@
-/*
+/**
+ * This is an existing comment that will be replaced
  **/
 package js.file;
 

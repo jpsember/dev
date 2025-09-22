@@ -1,12 +1,8 @@
 package dev.gen;
 
 import java.io.File;
-import java.util.ArrayList;
-import java.util.List;
 import js.data.AbstractData;
-import js.data.DataUtil;
 import js.file.Files;
-import js.json.JSList;
 import js.json.JSMap;
 
 public class CopyrightConfig implements AbstractData {
@@ -15,7 +11,7 @@ public class CopyrightConfig implements AbstractData {
     return mSourceDir;
   }
 
-  public List<String> fileExtensions() {
+  public String fileExtensions() {
     return mFileExtensions;
   }
 
@@ -51,12 +47,7 @@ public class CopyrightConfig implements AbstractData {
   public JSMap toJson() {
     JSMap m = new JSMap();
     m.putUnsafe(_0, mSourceDir.toString());
-    {
-      JSList j = new JSList();
-      for (String x : mFileExtensions)
-        j.add(x);
-      m.put(_1, j);
-    }
+    m.putUnsafe(_1, mFileExtensions);
     m.putUnsafe(_2, mCopyrightTextFile.toString());
     m.putUnsafe(_3, mHeaderRegEx);
     m.putUnsafe(_4, mRemoveMessage);
@@ -81,7 +72,7 @@ public class CopyrightConfig implements AbstractData {
         mSourceDir = new File(x);
       }
     }
-    mFileExtensions = DataUtil.parseListOfObjects(m.optJSList(_1), false);
+    mFileExtensions = m.opt(_1, "");
     {
       mCopyrightTextFile = Files.DEFAULT;
       String x = m.opt(_2, (String) null);
@@ -125,9 +116,7 @@ public class CopyrightConfig implements AbstractData {
     if (r == 0) {
       r = 1;
       r = r * 37 + mSourceDir.hashCode();
-      for (String x : mFileExtensions)
-        if (x != null)
-          r = r * 37 + x.hashCode();
+      r = r * 37 + mFileExtensions.hashCode();
       r = r * 37 + mCopyrightTextFile.hashCode();
       r = r * 37 + mHeaderRegEx.hashCode();
       r = r * 37 + (mRemoveMessage ? 1 : 0);
@@ -137,7 +126,7 @@ public class CopyrightConfig implements AbstractData {
   }
 
   protected File mSourceDir;
-  protected List<String> mFileExtensions;
+  protected String mFileExtensions;
   protected File mCopyrightTextFile;
   protected String mHeaderRegEx;
   protected boolean mRemoveMessage;
@@ -147,7 +136,7 @@ public class CopyrightConfig implements AbstractData {
 
     private Builder(CopyrightConfig m) {
       mSourceDir = m.mSourceDir;
-      mFileExtensions = DataUtil.mutableCopyOf(m.mFileExtensions);
+      mFileExtensions = m.mFileExtensions;
       mCopyrightTextFile = m.mCopyrightTextFile;
       mHeaderRegEx = m.mHeaderRegEx;
       mRemoveMessage = m.mRemoveMessage;
@@ -168,7 +157,7 @@ public class CopyrightConfig implements AbstractData {
     public CopyrightConfig build() {
       CopyrightConfig r = new CopyrightConfig();
       r.mSourceDir = mSourceDir;
-      r.mFileExtensions = DataUtil.immutableCopyOf(mFileExtensions);
+      r.mFileExtensions = mFileExtensions;
       r.mCopyrightTextFile = mCopyrightTextFile;
       r.mHeaderRegEx = mHeaderRegEx;
       r.mRemoveMessage = mRemoveMessage;
@@ -180,8 +169,8 @@ public class CopyrightConfig implements AbstractData {
       return this;
     }
 
-    public Builder fileExtensions(List<String> x) {
-      mFileExtensions = (x == null) ? new ArrayList(0) : x;
+    public Builder fileExtensions(String x) {
+      mFileExtensions = (x == null) ? "" : x;
       return this;
     }
 
@@ -206,7 +195,7 @@ public class CopyrightConfig implements AbstractData {
 
   private CopyrightConfig() {
     mSourceDir = Files.DEFAULT;
-    mFileExtensions = DataUtil.emptyList();
+    mFileExtensions = "";
     mCopyrightTextFile = Files.DEFAULT;
     mHeaderRegEx = "";
   }

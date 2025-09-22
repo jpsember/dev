@@ -1,6 +1,6 @@
 class {
     File source_dir;
-    *string file_extensions;
+    string file_extensions;  // comma-delimited list
     File copyright_text_file;
     string header_reg_ex;
     bool remove_message;
