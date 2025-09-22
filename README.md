@@ -43,3 +43,27 @@ https://serverfault.com/questions/407033/how-can-i-edit-the-welcome-message-when
 In the root home directory, type `touch ~/.hushlogin` to suppress these messages.
 
 
+### Prep operation
+
+
+This operation will operate on a software project directory tree, parsing regular expressions that define modification operations, such as:
+ + delete a particular function invocation or code section, e.g. `deb_print(x, "hello");`
+ + replace a particular section of code with a (currently commented-out) alternative, e.g.
+```
+      // {~ 
+      // This code will be replaced
+      //
+      do_algorithm_debug(data, "notes");
+      //
+      // ~|~  
+      //  // It will be replaced with this code (with first column of '//' deleted):
+      //  //
+      //  do_algorithm(data);
+      //
+      // ~} 
+```
+ + delete an entire file or subdirectory
+
+It will *read* a primary git branch, and construct a set of modifications to apply to a *different*, secondary git branch.
+The idea is that the secondary branch can be pushed (shared) as the 'production' version of the code, while leaving the primary
+branch available for development purposes.
