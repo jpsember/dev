@@ -17,7 +17,6 @@ import js.parsing.DFACache;
 import js.parsing.Lexer;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.*;
 
 public class PrepOper extends AppOper {
