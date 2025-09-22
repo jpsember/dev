@@ -4,9 +4,17 @@ enum PrepOperType {
 
 class prep_config {
     enum PrepOperType oper;
-    // bool init;   // Initialize a new project
+
+    string source_branch;
+    string target_branch;
 
     // ---- These are exposed only for unit tests
+
+    // If in testing mode, it doesn't use source/target branches; instead,
+    // it constructs a copy of the project directory ("xxx") in a sibling directory, "xxx-target", and
+    // applies the changes to that as if a call to `git branch` was made instead.
+
+    bool testing_mode;
 
     // If empty, uses a hidden file on the desktop
     //
@@ -25,20 +33,3 @@ class prep_config {
 
 }
 
-
-
-// The patterns are now found in the .prep_project file
-
-    // Pattern file.
-    //
-    // # comments
-    //
-    // >java       (extension)
-    // pattern
-    // pattern
-    //
-    // >rs
-    // pattern
-    // pattern
-    //
-    //     File pattern_file;

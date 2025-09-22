@@ -9,6 +9,7 @@ import dev.prep.FilterState;
 import js.app.AppOper;
 import js.app.HelpFormatter;
 import js.base.BasePrinter;
+import js.base.SystemCall;
 import js.file.DirWalk;
 import js.file.Files;
 import js.json.JSUtils;
@@ -107,6 +108,7 @@ public class PrepOper extends AppOper {
   @Override
   public void perform() {
     files().withDryRun(dryRun());
+    halt("current branch:", currentGitBranch());
 
     if (oper(PrepOperType.INIT)) {
       doInit();
@@ -568,6 +570,46 @@ public class PrepOper extends AppOper {
   private DFA dfaForExtension(String ext) {
     return mDFAForFileExtensionMap.get(ext);
   }
+
+  private String currentGitBranch() {
+    constructGitInfo();
+    return mCurrentGitBranch;
+  }
+
+  private void constructGitInfo() {
+    var x = mGitBranches;
+    if (x == null) {
+      var sc = new SystemCall();
+      sc.arg("git", "branch");
+      var res = sc.systemOut();
+      List<String> lines = arrayList();
+
+      String curr = "";
+      int index = INIT_INDEX;
+      for (var y : split(res, '\n')) {
+        index++;
+        pr("line:", index, quote(y));
+        y = y.trim();
+        if (y.isEmpty()) continue;
+        var y2 = chompPrefix(y, "*").trim();
+        pr("y:", quote(y), "y2:", quote(y2));
+        if (y2.length() < y.length()) {
+          curr = y2;
+        }
+        lines.add(y2);
+      }
+      checkState(curr != null, "can't determine current branch");
+      x = lines;
+      mCurrentGitBranch = curr;
+      mGitBranches = x;
+      pr("current branch:", mCurrentGitBranch);
+      pr("branches:", mGitBranches, mGitBranches.size());
+      die("quitting");
+    }
+  }
+
+  private List<String> mGitBranches;
+  private String mCurrentGitBranch;
 
   private Map<String, DFA> mDFAForFileExtensionMap = hashMap();
 

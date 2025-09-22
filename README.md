@@ -64,6 +64,6 @@ This operation will operate on a software project directory tree, parsing regula
 ```
  + delete an entire file or subdirectory
 
-It will *read* a primary git branch, and construct a set of modifications to apply to a *different*, secondary git branch.
-The idea is that the secondary branch can be pushed (shared) as the 'production' version of the code, while leaving the primary
+It will *read* a 'source' git branch, and construct a set of modifications to apply to a *different*, 'target' git branch.
+The idea is that the target branch can be pushed (shared) as the 'production' version of the code, while leaving the source
 branch available for development purposes.

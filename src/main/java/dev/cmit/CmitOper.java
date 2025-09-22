@@ -249,7 +249,7 @@ public class CmitOper extends AppOper {
       s.arg("--no-verify");
     {
       var a = config().additionalGitCommitArgs();
-      for (var x : split(a,' ')) {
+      for (var x : split(a, ' ')) {
         if (!x.isEmpty()) {
           s.arg(x);
         }
