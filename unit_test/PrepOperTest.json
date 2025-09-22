@@ -2,8 +2,8 @@
   "filterFileAndSubdir" : 7079,
           "filterPaths" : 7079,
         "pathValidator" : 6693,
-          "performInit" : 9772,
-  "performInitThenSave" : 1189,
+          "performInit" : 3011,
+  "performInitThenSave" : 7532,
                  "save" : 4916,
        "saveAndRestore" : 7157,
      "saveWithFileList" : 9914

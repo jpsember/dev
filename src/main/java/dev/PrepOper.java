@@ -521,10 +521,11 @@ public class PrepOper extends AppOper {
     // Construct DFAs from each extension
     {
       var dfaCache = DFACache.SHARED_INSTANCE;
-      if (false && verbose())
+      dfaCache.withCacheDir(Files.getDesktopFile("_prepoper_dfa_cache_"));
+      if (verbose())
         dfaCache.setVerbose();
 
-      log("Constructing dfas from rxp",CR,DASHES);
+      log("Constructing dfas from rxp", CR, DASHES);
       for (var ent : mRXPContentForFileExtensionMap.entrySet()) {
         String ext = ent.getKey();
         String rxp = ent.getValue().toString();

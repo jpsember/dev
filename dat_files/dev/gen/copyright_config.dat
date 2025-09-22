@@ -1,0 +1,7 @@
+class {
+    File source_dir;
+    *string file_extensions;
+    File copyright_text_file;
+    string header_reg_ex;
+    bool remove_message;
+}

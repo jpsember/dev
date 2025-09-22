@@ -1,5 +1,6 @@
 >>>gitignore,sh,java,rs,toml
 
+_TOENDOFLINE:  [^\n]*
 _LEFTSPACE: [\s\t]+
 _NONSEMI: [^;]+
 _TOSEMI: $_NONSEMI ;
@@ -34,7 +35,7 @@ PR: $_LEFTSPACE  pr \( $_TOSEMI
 #
 # (Note the escaped *)
 #
-USE_JEFFTOOLS: use \ws crate\:\:jefftools\:\:\*;
+USE_JEFFTOOLS: use \s+ crate\:\:jefftools\:\: $_TOENDOFLINE
 
 
 # Methods within jefftools.rs

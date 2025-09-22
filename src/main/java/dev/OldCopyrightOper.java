@@ -1,21 +1,44 @@
+/**
+ * MIT License
+ * 
+ * Copyright (c) 2022 Jeff Sember
+ * 
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ * 
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ * 
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ * 
+ **/
 package dev;
 
 import static js.base.Tools.*;
 
-import dev.gen.CopyrightConfig;
+import java.io.File;
+import java.util.List;
+import java.util.regex.Matcher;
+
 import js.app.AppOper;
-import js.app.HelpFormatter;
+import js.app.CmdLineArgs;
 import js.base.BasePrinter;
 import js.base.DateTimeTools;
 import js.file.DirWalk;
 import js.file.Files;
 import js.parsing.RegExp;
 
-import java.io.File;
-import java.util.List;
-import java.util.regex.Matcher;
-
-public class CopyrightOper extends AppOper {
+public final class OldCopyrightOper extends AppOper {
 
   @Override
   public String userCommand() {
@@ -24,53 +47,32 @@ public class CopyrightOper extends AppOper {
 
   @Override
   public String shortHelp() {
-    return "Inserts copyright message at top of source files";
+    return "add copyright messages to source files";
   }
 
   @Override
   protected void longHelp(BasePrinter b) {
-    var hf = new HelpFormatter();
-    hf.addItem("** this help is out of date**", "xxx");
-    b.pr(hf);
-    b.br();
-    b.pr("Inserts copyright message at top of source files");
-  }
-
-
-  @Override
-  public CopyrightConfig defaultArgs() {
-    return CopyrightConfig.DEFAULT_INSTANCE;
+    b.pr("[ sourcedir <dir> |  remove ]");
   }
 
   @Override
-  public CopyrightConfig config() {
-    if (mConfig == null) {
-      mConfig = super.config();
-    }
-    return mConfig;
+  protected void processAdditionalArgs() {
+    CmdLineArgs args = app().cmdLineArgs();
+    mSourceDirStr = args.nextArgIf("sourcedir", mSourceDirStr);
+    mRemoveFlag = args.nextArgIf("remove");
   }
-
-  private CopyrightConfig mConfig;
 
   @Override
   public void perform() {
-    File sourceDir = config().sourceDir();
-    if (Files.empty(sourceDir))
-      sourceDir = Files.currentDirectory();
-    Files.assertDirectoryExists(sourceDir, "source_dir");
+    halt("deprecated!");
+    File sourceDir = Files.currentDirectory();
+    if (!mSourceDirStr.isEmpty())
+      sourceDir = new File(mSourceDirStr);
+    checkArgument(sourceDir.isDirectory(), "can't find source directory:", sourceDir);
 
-    String licenseText;
-    if (Files.nonEmpty(config().copyrightTextFile())) {
-      licenseText = parseLicense(Files.readString(Files.assertExists(config().copyrightTextFile())));
-    } else {
-      licenseText = parseLicense(frag("mit_license.txt"));
-    }
+    String licenseText = readLicense("mit_license.txt");
 
-    var ext = config().fileExtensions();
-    if (ext.isEmpty()) {
-      ext = arrayList("java");
-    }
-    DirWalk w = new DirWalk(sourceDir).withExtensions(ext.toArray(new String[0]));
+    DirWalk w = new DirWalk(sourceDir).withExtensions("java");
 
     for (File sourceFile : w.files()) {
       // Omit 'gen' subdirectories, as we assume this is generated code
@@ -82,16 +84,8 @@ public class CopyrightOper extends AppOper {
 
       String result = orig;
 
-      var rgstr = config().headerRegEx();
-      if (rgstr.isEmpty()) {
-        if (ext.contains("java")) {
-          rgstr = "\\/\\*\\*(:?\\*|[^\\*\\/][^\\*]*\\*)*\\/\\n*";
-        }
-      }
-      checkArgument(nonEmpty(rgstr),"no header_reg_ex defined");
-
       // If there's a license at the start, delete it
-      Matcher matcher = RegExp.matcher(rgstr, orig);
+      Matcher matcher = RegExp.matcher("\\/\\*\\*(:?\\*|[^\\*\\/][^\\*]*\\*)*\\/\\n*", orig);
       if (matcher.find() && matcher.start() == 0) {
         result = result.substring(matcher.end());
       }
@@ -111,19 +105,20 @@ public class CopyrightOper extends AppOper {
       // ends with '/' and zero or more linefeeds
       //
 
-      if (!config().removeMessage())
+      if (!mRemoveFlag)
         result = licenseText + "\n" + result;
 
-      if (alert("NOT writing")) {
-        pr("********* write:",sourceFile);
-        continue;
-      }
       files().writeIfChanged(sourceFile, result);
     }
   }
 
-
-  private String parseLicense(String c) {
+  /**
+   * 
+   * @param resourceName
+   * @return
+   */
+  private String readLicense(String resourceName) {
+    String c = frag(resourceName);
     List<String> lines = split("\n" + c + "\n", '\n');
 
     StringBuilder sb = new StringBuilder();
@@ -159,5 +154,8 @@ public class CopyrightOper extends AppOper {
   private String frag(String resourceName) {
     return Files.readString(getClass(), "copyright/" + resourceName);
   }
+
+  private String mSourceDirStr = "";
+  private Boolean mRemoveFlag = false;
 
 }
