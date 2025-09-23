@@ -36,113 +36,24 @@ public class PrepOperTest extends DevTestBase {
 
   @Test
   public void save() {
-    prepareDirectories();
-    // ----------------------------------------------------------------------------------------------
     prepareApp();
     runApp();
-    // ----------------------------------------------------------------------------------------------
     assertGenerated();
   }
 
   @Test
   public void filterDryRun() {
-    prepareDirectories();
-    // ----------------------------------------------------------------------------------------------
     prepareApp();
-    addArg("--verbose");
-//    addArg("oper", "filter");
     addArg("--dryrun");
     runApp();
-    // ----------------------------------------------------------------------------------------------
     assertGenerated();
   }
 
   @Test
   public void saveWithFileList() {
-    prepareDirectories();
-
+    prepareApp();
     files().writeString(new File(sourceDir(), PrepOper.FILE_LIST_FILENAME), "subdir");
     files().writeString(new File(sourceDir(), "subdir/" + PrepOper.FILE_LIST_FILENAME), "c.java\nh2");
-
-    // ----------------------------------------------------------------------------------------------
-    prepareApp();
-//    addArg("oper", "filter");
-    runApp();
-    // ----------------------------------------------------------------------------------------------
-    assertGenerated();
-  }
-
-  @Test
-  public void saveAndRestore() {
-    prepareDirectories();
-    // ----------------------------------------------------------------------------------------------
-    prepareApp();
-//    addArg("oper", "filter");
-    runApp();
-
-    var f1 =
-        generatedFile("source/a.java");
-    var f2 =
-        generatedFile("source/d.java");
-
-    checkState(f1.exists());
-    checkState(!f2.exists());
-
-    prepareApp();
-//    addArg("oper", "restore");
-    runApp();
-    // ----------------------------------------------------------------------------------------------
-    assertGenerated();
-  }
-
-  @Test
-  public void restoreWithoutSave() {
-    prepareDirectories();
-    // ----------------------------------------------------------------------------------------------
-    prepareApp();
-    // Delete the project info file within the start directory, so it doesn't assume it's doing a save
-    var existingFilter = new File(sourceDir(), PrepOper.PROJECT_INFO_FILE);
-    Files.assertExists(existingFilter, "existing project info file for restoreWithoutSave");
-    files().deleteFile(existingFilter);
-    try {
-      addArg("oper", "restore");
-      runApp();
-    } catch (App.AppErrorException e) {
-      checkArgument(e.toString().contains("is there a .prep_project file"));
-    }
-  }
-
-  @Test
-  public void performInit() {
-    prepareDirectories();
-    // ----------------------------------------------------------------------------------------------
-    prepareApp();
-    prepareInit();
-    runApp();
-
-    assertGenerated();
-  }
-
-  private void prepareInit() {
-    // Delete some things that wouldn't be there if an init is being performed
-    addArg("oper", "init");
-
-    var existingFilter = new File(sourceDir(), PrepOper.PROJECT_INFO_FILE);
-    files().deleteFile(existingFilter);
-
-//    addArg("init");
-
-  }
-
-  @Test
-  public void performInitThenSave() {
-    prepareDirectories();
-    prepareApp();
-    prepareInit();
-    runApp();
-
-    prepareApp();
-    addArg("oper", "filter");
     runApp();
     assertGenerated();
   }
@@ -152,7 +63,6 @@ public class PrepOperTest extends DevTestBase {
   public void filterPaths() {
     auxFilt("", "d.java", "subdir/j2");
   }
-
 
   @Test
   public void filterFileAndSubdir() {
@@ -171,10 +81,8 @@ public class PrepOperTest extends DevTestBase {
   }
 
   private void auxFilt(String relPath, String... concatExprs) {
-    prepareDirectories();
     repFilter(relPath, concatExprs);
     prepareApp();
-    addArg("oper", "filter");
     runApp();
     assertGenerated();
   }
@@ -207,14 +115,6 @@ public class PrepOperTest extends DevTestBase {
     addArg("skip_pattern_search");
   }
 
-
-  private void prepareDirectories() {
-    todo("!no longer required");
-//    var src = testDataDir();
-//    var target = sourceDir();
-//    files().mkdirs(target);
-//    files().copyDirectory(src, target);
-  }
 
   private File sourceDir() {
     return new File(generatedDir(), "project");

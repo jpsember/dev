@@ -1,10 +1,7 @@
-{        "filterDryRun" : 2011,
-  "filterFileAndSubdir" : 7079,
-          "filterPaths" : 7079,
+{        "filterDryRun" : 4976,
+  "filterFileAndSubdir" : 1313,
+          "filterPaths" : 1313,
         "pathValidator" : 6693,
-          "performInit" : 3011,
-  "performInitThenSave" : 7532,
                  "save" : 1313,
-       "saveAndRestore" : 7157,
-     "saveWithFileList" : 9914
+     "saveWithFileList" : 1359
 }

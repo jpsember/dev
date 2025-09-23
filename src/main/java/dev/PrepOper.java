@@ -67,7 +67,6 @@ public class PrepOper extends AppOper {
     log("Project directory:", projectDir());
     log("Cache directory:", cacheDir());
     doFilter();
-    pr("edits map:", INDENT, mEditsMap);
   }
 
   /**
@@ -169,7 +168,6 @@ public class PrepOper extends AppOper {
   private FilterState processFilterFile(String content, FilterState currentState) {
     var newState = currentState.dup();
     for (var line : parseLinesFromTextFile(content)) {
-      todo("!the delete file should be expressed relative to current subdirectory");
       newState.addDeleteFile(line);
     }
     return newState;
@@ -250,7 +248,6 @@ public class PrepOper extends AppOper {
    * If an explict file list exists, parse that for the list of files instead.
    */
   private List<File> constructFilesWithinDir(File dir) {
-    pr("constructFilesWithinDir, dir:", dir);
     var explicitFileList = new File(dir, FILE_LIST_FILENAME);
     if (explicitFileList.exists()) {
       Set<File> setOfFiles = hashSet();
@@ -291,12 +288,12 @@ public class PrepOper extends AppOper {
     int cursor = 0;
     while (s.hasNext()) {
       var tk = s.read();
-      if (false && verbose) {
+      if (verbose) {
         log("=== token:", dfa.tokenName(tk.id()), JSUtils.valueToString(tk.text()));
       }
       var len = tk.text().length();
       if (!tk.isUnknown()) {
-        if (false) log("...found matching token");
+        log("...found matching token");
         mMatchesWithinFile++;
         for (int i = 0; i < len; i++)
           mNewText.setCharAt(i + cursor, ERASE_CHAR);
@@ -490,14 +487,10 @@ public class PrepOper extends AppOper {
   private void processEditsMap(JSMap editsMap) {
     for (var relPath : editsMap.keySet()) {
       var targetFile = new File(projectDir(), relPath);
-      pr("procEditsMap, targetFile:", INDENT, Files.infoMap(targetFile));
-      if (alert("!just in case test"))
-        checkState(targetFile.toString().contains("unit_test/generated"));
       var arg = editsMap.get(relPath);
       var i = arg.indexOf("::");
       var cmd = arg.substring(0, i);
       var content = arg.substring(i + 2);
-      pr("proc file:", targetFile, " cmd:", cmd, "with content:", INDENT, content);
 
       var ec = EditCode.valueOf(cmd);
       switch (ec) {
@@ -516,7 +509,6 @@ public class PrepOper extends AppOper {
           files().writeString(targetFile, content);
           break;
       }
-      pr("edit code:", ec);
     }
   }
 

@@ -32,9 +32,6 @@ public class DirStackEntry extends BaseObject {
 
   public DirStackEntry withDirectory(String subdirName) {
     var newdir = new File(mDir, subdirName);
-    todo("forget what's going on here");
-    pr("withDirectory:",subdirName,CR,"us:",INDENT,this.toJson());
-    pr("new dir:",Files.infoMap(newdir));
     Files.assertDirectoryExists(newdir, "withDirectory");
     var newState = mFilterState.descendInto(subdirName);
     return new DirStackEntry(newState, newdir);
