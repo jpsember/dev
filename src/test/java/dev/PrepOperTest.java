@@ -78,7 +78,7 @@ public class PrepOperTest extends DevTestBase {
     prepareDirectories();
     // ----------------------------------------------------------------------------------------------
     prepareApp();
-    addArg("oper", "filter");
+//    addArg("oper", "filter");
     runApp();
 
     var f1 =
@@ -193,11 +193,24 @@ public class PrepOperTest extends DevTestBase {
   private void prepareApp() {
     clearArgs();
     setOper("prep");
-    addArg("project_root_for_testing", sourceDir());
+//    addArg("testing_mode");
+    var sourceDir = testFile("project");
+    var sourceDirGen = Files.join(generatedDir(),"project");
+    files().copyDirectory(sourceDir, sourceDirGen);
+    var targetDirGen = Files.join(generatedDir(),"project" + PrepOper.TESTING_DIR_SUFFIX);
+    files().copyDirectory(sourceDir, targetDirGen);
+
+    addArg("project_dir", sourceDirGen);
+//    addArg("project_root_for_testing",sourceDirGen);
+
+//    addArg("testing_project_dir", sourceDirGen);
+
+    //addArg("project_root_for_testing", sourceDir());
     addArg("cache_dir", files().mkdirs(cacheDir()));
     addArg("cache_filename", "prep_oper");
     addArg("cache_path_expr", "xxx");
     addArg("skip_pattern_search");
+    pr("done prepare app");
   }
 
 

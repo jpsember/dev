@@ -1,10 +1,4 @@
-enum PrepOperType {
-    none, init, filter, restore, auto,
-}
-
 class prep_config {
-    enum PrepOperType oper;
-
     string source_branch;
     string target_branch;
 
@@ -14,7 +8,8 @@ class prep_config {
     // it constructs a copy of the project directory ("xxx") in a sibling directory, "xxx-target", and
     // applies the changes to that as if a call to `git branch` was made instead.
 
-    bool testing_mode;
+    //bool testing_mode;
+    File project_dir; //testing_project_dir;
 
     // If empty, uses a hidden file on the desktop
     //
@@ -27,9 +22,6 @@ class prep_config {
     string cache_path_expr;
 
     bool skip_pattern_search;
-
-    // If empty, uses current directory
-    File project_root_for_testing;
 
 }
 

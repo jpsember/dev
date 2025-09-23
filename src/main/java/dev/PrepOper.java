@@ -62,110 +62,159 @@ public class PrepOper extends AppOper {
     return mConfig;
   }
 
-  /**
-   * Determine the operation, if we haven't yet done so
-   */
-  private PrepOperType currOper() {
-    if (mOperType == null) {
-      var op = config().oper();
-      var d = getCandidateProjectDir();
-      var infoFile = Files.join(d, PROJECT_INFO_FILE);
+//  /**
+//   * Determine the operation, if we haven't yet done so
+//   */
+//  private PrepOperType currOper() {
+//    if (mOperType == null) {
+//      var op = config().oper();
+//      var d = getCandidateProjectDir();
+//      var infoFile = Files.join(d, PROJECT_INFO_FILE);
+//
+//      switch (op) {
+//        case NONE:
+//          setError("No prep_oper_type specified");
+//          break;
+//        case INIT: {
+//          Files.assertDoesNotExist(infoFile, "project info file already exists");
+//        }
+//        break;
+//        case FILTER:
+//          Files.assertExists(infoFile, "no project info file found");
+//          break;
+//        case RESTORE:
+//          Files.assertDoesNotExist(infoFile, "project info file already exists");
+//          break;
+//        case AUTO:
+//          if (infoFile.exists()) {
+//            op = PrepOperType.FILTER;
+//          } else {
+//            op = PrepOperType.RESTORE;
+//          }
+//          break;
+//      }
+//      mOperType = op;
+//    }
+//    return mOperType;
+//  }
 
-      switch (op) {
-        case NONE:
-          setError("No prep_oper_type specified");
-          break;
-        case INIT: {
-          Files.assertDoesNotExist(infoFile, "project info file already exists");
-        }
-        break;
-        case FILTER:
-          Files.assertExists(infoFile, "no project info file found");
-          break;
-        case RESTORE:
-          Files.assertDoesNotExist(infoFile, "project info file already exists");
-          break;
-        case AUTO:
-          if (infoFile.exists()) {
-            op = PrepOperType.FILTER;
-          } else {
-            op = PrepOperType.RESTORE;
-          }
-          break;
-      }
-      mOperType = op;
-    }
-    return mOperType;
-  }
-
-  /**
-   * Return true if operation matches a value
-   */
-  private boolean oper(PrepOperType val) {
-    return val == currOper();
-  }
+//  /**
+//   * Return true if operation matches a value
+//   */
+//  private boolean oper(PrepOperType val) {
+//    return val == currOper();
+//  }
 
   @Override
   public void perform() {
-    files().withDryRun(dryRun());
-    halt("current branch:", currentGitBranch());
 
-    if (oper(PrepOperType.INIT)) {
-      doInit();
-      return;
-    }
+    pr("config:", INDENT, config());
+    files().withDryRun(dryRun());
+//
+//    if (oper(PrepOperType.INIT)) {
+//      doInit();
+//      return;
+//    }
 
     log("arguments:", INDENT, config());
     log("Project directory:", projectDir());
     log("Cache directory:", cacheDir());
-    log("Operation:", currOper());
+//    log("Operation:", currOper());
 
-    switch (currOper()) {
-      case FILTER:
-        doFilter();
-        break;
-      case RESTORE:
-        doRestore();
-        break;
-      default:
-        throw badState("unsupported operation:", currOper());
-    }
+//    switch (currOper()) {
+//      case FILTER:
+    doFilter();
+//        break;
+//      case RESTORE:
+//        doRestore();
+//        break;
+//      default:
+//        throw badState("unsupported operation:", currOper());
+//    }
   }
 
-  private void doInit() {
-    var projectDir = getCandidateProjectDir();
-    var infoFile = Files.join(projectDir, PROJECT_INFO_FILE);
-    checkState(!infoFile.exists(), "did not expect there to already be a project info file:", INDENT, Files.infoMap(infoFile));
-    var content =
-        Files.readString(this.getClass(), "prep_default.txt");
-    if (!dryRun())
-      files().writeString(infoFile, content);
-  }
+//  private void doInit() {
+//    var projectDir = getCandidateProjectDir();
+//    var infoFile = Files.join(projectDir, PROJECT_INFO_FILE);
+//    checkState(!infoFile.exists(), "did not expect there to already be a project info file:", INDENT, Files.infoMap(infoFile));
+//    var content =
+//        Files.readString(this.getClass(), "prep_default.txt");
+//    if (!dryRun())
+//      files().writeString(infoFile, content);
+//  }
 
-  private File getCandidateProjectDir() {
-    var c = config().projectRootForTesting();
-    if (Files.empty(c)) {
-      c = Files.currentDirectory();
-      if (c.toString().endsWith("/Users/jeff/github_projects/dev"))
-        die("WTF, shouldn't be operating on our own source directory");
-    } else {
-      Files.assertDirectoryExists(c, "project_root_for_testing");
-    }
-    return c;
-  }
+//  private File getCandidateProjectDir() {
+//    var c = config().testingProjectDir();
+//    if (Files.empty(c)) {
+//
+//      c = Files.currentDirectory();
+//      if (c.toString().endsWith("/Users/jeff/github_projects/dev"))
+//        die("WTF, shouldn't be operating on our own source directory");
+//    } else {
+//      Files.assertDirectoryExists(c, "project_root_for_testing");
+//    }
+//    return c;
+//  }
 
   /**
    * Determine the project directory
    */
   private File projectDir() {
-    if (mCachedProjectDir == null) {
-      mCachedProjectDir = getCandidateProjectDir();
+    var x = mCachedProjectDir;
+    if (x == null) {
+      x = config().projectDir();
+      pr("...projectDir; config:",Files.infoMap(x));
+      if (Files.empty(x)) {
+        // Look for project directory
+        x = Files.currentDirectory();
+        while (true) {
+          pr("....looking for git in:",Files.infoMap(x));
+          if (Files.join(x, ".git").exists()) {
+            break;
+          }
+          x = Files.parent(x);
+        }
+        pr("...end of while loop:",Files.infoMap(x));
+      }
+//      halt("setting cached to:",x);
+      mCachedProjectDir = x;
     }
-    return mCachedProjectDir;
+
+    if (x.toString().endsWith("/Users/jeff/github_projects/dev")) {
+      die("WTF, shouldn't be operating on our own source directory");
+  }
+
+    return x;
+  }
+
+  private void selectSourceBranch() {
+    auxSelectBranch(0);
+  }
+  private void selectTargetBranch() {
+    auxSelectBranch(1);
+  }
+  private boolean inTestMode() {
+    return config().sourceBranch().startsWith("$");
+  }
+
+  public static final String TESTING_DIR_SUFFIX = "_target";
+  private void auxSelectBranch(int index) {
+    if (inTestMode()) {
+      var f = projectDir();
+      var p = Files.parent(f);
+      var nm = f.getName();
+      nm = chomp(nm,TESTING_DIR_SUFFIX);
+      if (index == 1)
+        nm = nm + TESTING_DIR_SUFFIX;
+      f = Files.join(p,nm)
+          ;
+      mCachedProjectDir = f;
+    } else {
+      todo("do sys call");
+    }
   }
 
   private File mCachedProjectDir;
-
 
   private String projectInfoFileContent() {
     var content = mCachedProjectInfoFileContent;
@@ -217,7 +266,13 @@ public class PrepOper extends AppOper {
   private static final List<String> ALWAYS_DELETE_THESE_FILES = arrayList(FILTER_FILENAME, PROJECT_INFO_FILE, FILE_LIST_FILENAME);
 
   private void doFilter() {
-    boolean changesMade = false;
+    selectSourceBranch();
+//    selectPrimaryBranch();
+//    pr("projectDir:", projectDir());
+//    halt();
+//    selectPrimaryBranch();
+
+//    boolean changesMade = false;
     var initialState = prepareState();
     List<DirStackEntry> dirStack = arrayList();
     dirStack.add(DirStackEntry.start(initialState, projectDir()));
@@ -273,7 +328,7 @@ public class PrepOper extends AppOper {
           } else {
             if (!dryRun()) files().deleteFile(sourceFileOrDir);
           }
-          changesMade = true;
+//          changesMade = true;
           continue;
         }
 
@@ -293,7 +348,7 @@ public class PrepOper extends AppOper {
             applyFilter(currText, dfa, verbose());
 
             if (mMatchesWithinFile != 0) {
-              changesMade = true;
+//              changesMade = true;
 
               if (!dryRun()) {
 
@@ -317,10 +372,56 @@ public class PrepOper extends AppOper {
       }
     }
 
-    if (!changesMade) {
-      setError("No filter matches found... did you mean to do a restore instead?");
-    }
+//    if (!changesMade) {
+//      setError("No filter matches found... did you mean to do a restore instead?");
+//    }
   }
+
+//  private File effectiveProjectDir(boolean targetFlag) {
+//    File f;
+//    if (config().testingMode()) {
+//      f = config().testingProjectDir();
+//      pr("testing project dir:", f);
+//      Files.assertDirectoryExists(f, "testing_project_dir (primary) not found");
+//      if (targetFlag) {
+//        var p = Files.parent(f);
+//        var nm = f.getName() + "_target";
+//        f = Files.join(p, nm);
+//        Files.assertDirectoryExists(f, "testing_project_dir (target) not found");
+//      }
+//    } else {
+//      f = Files.currentDirectory();
+//      while (true) {
+//        var c = new File(f, ".git");
+//        if (c.exists()) {
+//          break;
+//        }
+//        f = Files.parent(c);
+//      }
+//    }
+//
+////    private File getCandidateProjectDir() {
+////      var c = config().testingProjectDir();
+////      if (Files.empty(c)) {
+////
+////        c = Files.currentDirectory();
+//    if (f.toString().endsWith("/Users/jeff/github_projects/dev"))
+//      die("WTF, shouldn't be operating on our own source directory");
+////      } else {
+////        Files.assertDirectoryExists(c, "project_root_for_testing");
+////      }
+////      return c;
+//    halt("effectiveProjectDir:", f);
+//
+//
+//    return f;
+//  }
+
+//  private void selectPrimaryBranch() {
+//    if (config().testingMode()) {
+//
+//    }
+//  }
 
   private static boolean isSymLink(File f) {
     return !f.getAbsoluteFile().equals(Files.getCanonicalFile(f));
@@ -576,6 +677,11 @@ public class PrepOper extends AppOper {
     return mCurrentGitBranch;
   }
 
+  private void discardGitInfo() {
+    mGitBranches = null;
+    mCurrentGitBranch = null;
+  }
+
   private void constructGitInfo() {
     var x = mGitBranches;
     if (x == null) {
@@ -583,28 +689,20 @@ public class PrepOper extends AppOper {
       sc.arg("git", "branch");
       var res = sc.systemOut();
       List<String> lines = arrayList();
-
-      String curr = "";
-      int index = INIT_INDEX;
+      String currentBranch = "";
       for (var y : split(res, '\n')) {
-        index++;
-        pr("line:", index, quote(y));
         y = y.trim();
         if (y.isEmpty()) continue;
-        var y2 = chompPrefix(y, "*").trim();
-        pr("y:", quote(y), "y2:", quote(y2));
-        if (y2.length() < y.length()) {
-          curr = y2;
+        var trimmed = chompPrefix(y, "*").trim();
+        if (trimmed.length() < y.length()) {
+          currentBranch = trimmed;
         }
-        lines.add(y2);
+        lines.add(trimmed);
       }
-      checkState(curr != null, "can't determine current branch");
+      checkState(currentBranch != null, "can't determine current branch");
       x = lines;
-      mCurrentGitBranch = curr;
+      mCurrentGitBranch = currentBranch;
       mGitBranches = x;
-      pr("current branch:", mCurrentGitBranch);
-      pr("branches:", mGitBranches, mGitBranches.size());
-      die("quitting");
     }
   }
 
