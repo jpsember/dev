@@ -25,3 +25,6 @@ class prep_config {
 
 }
 
+enum edit_code {
+    modify, create, delete,
+}

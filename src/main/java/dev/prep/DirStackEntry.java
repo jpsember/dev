@@ -3,6 +3,7 @@ package dev.prep;
 import js.file.Files;
 
 import java.io.File;
+import static js.base.Tools.*;
 
 public class DirStackEntry {
 
@@ -29,6 +30,7 @@ public class DirStackEntry {
 
   public DirStackEntry withDirectory(String subdirName) {
     var newdir = new File(mDir, subdirName);
+    todo("forget what's going on here");
     Files.assertDirectoryExists(newdir, "withDirectory");
     var newState = mFilterState.descendInto(subdirName);
     return new DirStackEntry(newState, newdir);

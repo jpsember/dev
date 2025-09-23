@@ -2,6 +2,7 @@ package dev;
 
 import static js.base.Tools.*;
 
+import dev.gen.EditCode;
 import dev.gen.PrepConfig;
 import dev.gen.PrepOperType;
 import dev.prep.DirStackEntry;
@@ -12,6 +13,7 @@ import js.base.BasePrinter;
 import js.base.SystemCall;
 import js.file.DirWalk;
 import js.file.Files;
+import js.json.JSMap;
 import js.json.JSUtils;
 import js.parsing.DFA;
 import js.parsing.DFACache;
@@ -108,7 +110,7 @@ public class PrepOper extends AppOper {
   @Override
   public void perform() {
 
-    pr("config:", INDENT, config());
+//    pr("config:", INDENT, config());
     files().withDryRun(dryRun());
 //
 //    if (oper(PrepOperType.INIT)) {
@@ -163,18 +165,18 @@ public class PrepOper extends AppOper {
     var x = mCachedProjectDir;
     if (x == null) {
       x = config().projectDir();
-      pr("...projectDir; config:",Files.infoMap(x));
+      pr("...projectDir; config:", Files.infoMap(x));
       if (Files.empty(x)) {
         // Look for project directory
         x = Files.currentDirectory();
         while (true) {
-          pr("....looking for git in:",Files.infoMap(x));
+          pr("....looking for git in:", Files.infoMap(x));
           if (Files.join(x, ".git").exists()) {
             break;
           }
           x = Files.parent(x);
         }
-        pr("...end of while loop:",Files.infoMap(x));
+        pr("...end of while loop:", Files.infoMap(x));
       }
 //      halt("setting cached to:",x);
       mCachedProjectDir = x;
@@ -182,7 +184,7 @@ public class PrepOper extends AppOper {
 
     if (x.toString().endsWith("/Users/jeff/github_projects/dev")) {
       die("WTF, shouldn't be operating on our own source directory");
-  }
+    }
 
     return x;
   }
@@ -190,24 +192,27 @@ public class PrepOper extends AppOper {
   private void selectSourceBranch() {
     auxSelectBranch(0);
   }
+
   private void selectTargetBranch() {
     auxSelectBranch(1);
   }
+
   private boolean inTestMode() {
     return config().sourceBranch().startsWith("$");
   }
 
   public static final String TESTING_DIR_SUFFIX = "_target";
+
   private void auxSelectBranch(int index) {
     if (inTestMode()) {
       var f = projectDir();
       var p = Files.parent(f);
       var nm = f.getName();
-      nm = chomp(nm,TESTING_DIR_SUFFIX);
+      nm = chomp(nm, TESTING_DIR_SUFFIX);
       if (index == 1)
         nm = nm + TESTING_DIR_SUFFIX;
-      f = Files.join(p,nm)
-          ;
+      f = Files.join(p, nm)
+      ;
       mCachedProjectDir = f;
     } else {
       todo("do sys call");
@@ -267,12 +272,7 @@ public class PrepOper extends AppOper {
 
   private void doFilter() {
     selectSourceBranch();
-//    selectPrimaryBranch();
-//    pr("projectDir:", projectDir());
-//    halt();
-//    selectPrimaryBranch();
 
-//    boolean changesMade = false;
     var initialState = prepareState();
     List<DirStackEntry> dirStack = arrayList();
     dirStack.add(DirStackEntry.start(initialState, projectDir()));
@@ -319,15 +319,19 @@ public class PrepOper extends AppOper {
 
         if (ALWAYS_DELETE_THESE_FILES.contains(justTheName) || state.deleteFilenames().contains(justTheName)) {
           log("...filtering entire file or dir:", justTheName);
-          saveFileOrDir(sourceFileOrDir);
-          if (sourceFileOrDir.isDirectory()) {
-            var expr = sourceFileOrDir.toString();
-            checkArgument(expr.length() >= 25);
-            if (!dryRun())
-              files().deleteDirectory(sourceFileOrDir, expr.substring(18));
-          } else {
-            if (!dryRun()) files().deleteFile(sourceFileOrDir);
-          }
+
+          recordEdit(Files.relativeToContainingDirectory(sourceFileOrDir, projectDir()), EditCode.DELETE, "");
+
+
+//          saveFileOrDir(sourceFileOrDir);
+//          if (sourceFileOrDir.isDirectory()) {
+//            var expr = sourceFileOrDir.toString();
+//            checkArgument(expr.length() >= 25);
+//            if (!dryRun())
+//              files().zzzdeleteDirectory(sourceFileOrDir, expr.substring(18));
+//          } else {
+//            if (!dryRun()) files().zzzdeleteFile(sourceFileOrDir);
+//          }
 //          changesMade = true;
           continue;
         }
@@ -336,36 +340,42 @@ public class PrepOper extends AppOper {
         if (isSymLink(sourceFileOrDir))
           continue;
 
+        var rel = Files.relativeToContainingDirectory(sourceFileOrDir, projectDir());
+
         if (!sourceFileOrDir.isDirectory()) {
           var sourceFile = sourceFileOrDir;
           var ext = Files.getExtension(sourceFile);
 
           var dfa = dfaForExtension(ext);
           if (dfa != null) {
-            var rel = Files.relativeToContainingDirectory(sourceFile, projectDir());
             log("file:", rel);
             var currText = Files.readString(sourceFile);
             applyFilter(currText, dfa, verbose());
 
             if (mMatchesWithinFile != 0) {
 //              changesMade = true;
-
-              if (!dryRun()) {
-
-                saveFileOrDir(sourceFile);
-                // Write new filtered form
-                var filteredContent = mNewText.toString();
-                log("...writing filtered version of:", rel);
-                files().writeString(sourceFile, filteredContent);
-              }
+              var filteredContent = mNewText.toString();
+              recordEdit(rel, EditCode.MODIFY, filteredContent);
+//
+//              if (!dryRun()) {
+//
+//                saveFileOrDir(sourceFile);
+//                // Write new filtered form
+//                log("...writing filtered version of:", rel);
+//                files().writeString(sourceFile, filteredContent);
+//              }
             }
           }
         } else {
+          pr("need to descend to directory:",rel);
           // We need to descend to the directory, which might be more than one level deep
-          var relPath = Files.relativeToContainingDirectory(sourceFileOrDir, entry.directory());
+//          var relPath = Files.relativeToContainingDirectory(sourceFileOrDir, entry.directory());
+
           var newEnt = entry;
-          for (var subdirName : split(relPath.toString(), '/')) {
+          for (var subdirName : split(rel.toString(), '/')) {
+
             newEnt = newEnt.withDirectory(subdirName);
+            pr("subdirname:",subdirName,INDENT,"newEnt:",newEnt.directory());
           }
           push(dirStack, newEnt);
         }
@@ -407,10 +417,11 @@ public class PrepOper extends AppOper {
 ////        c = Files.currentDirectory();
 //    if (f.toString().endsWith("/Users/jeff/github_projects/dev"))
 //      die("WTF, shouldn't be operating on our own source directory");
-////      } else {
-////        Files.assertDirectoryExists(c, "project_root_for_testing");
-////      }
-////      return c;
+
+  /// /      } else {
+  /// /        Files.assertDirectoryExists(c, "project_root_for_testing");
+  /// /      }
+  /// /      return c;
 //    halt("effectiveProjectDir:", f);
 //
 //
@@ -422,70 +433,69 @@ public class PrepOper extends AppOper {
 //
 //    }
 //  }
-
   private static boolean isSymLink(File f) {
     return !f.getAbsoluteFile().equals(Files.getCanonicalFile(f));
   }
+//
+//  private void zzzzsaveFileOrDir(File absSourceFileOrDir) {
+//    if (dryRun()) return;
+//    // determine relative path from project directory
+//    var relativePath = Files.relativeToContainingDirectory(absSourceFileOrDir, projectDir()).toString();
+//
+//    var dest = new File(getSaveDir(), relativePath);
+//    log("...saving:", relativePath);
+//    files().mkdirs(Files.parent(dest));
+//    if (absSourceFileOrDir.isDirectory()) {
+//      files().copyDirectory(absSourceFileOrDir, dest);
+//    } else {
+//      files().copyFile(absSourceFileOrDir, dest);
+//    }
+//  }
 
-  private void saveFileOrDir(File absSourceFileOrDir) {
-    if (dryRun()) return;
-    // determine relative path from project directory
-    var relativePath = Files.relativeToContainingDirectory(absSourceFileOrDir, projectDir()).toString();
+//  private File getSaveDir() {
+//    if (mSaveDir == null) {
+//      var found = auxGetCacheDirs();
+//      while (found.size() > MAX_BACKUP_SETS || (!found.isEmpty() && SINGLE_SET)) {
+//        var oldest = found.remove(0);
+//        files().deleteDirectory(oldest, "prep_oper_cache");
+//      }
+//      int i = 0;
+//      if (!found.isEmpty()) {
+//        i = 1 + Integer.parseInt(last(found).getName());
+//      }
+//      var x = new File(cacheDir(), String.format("%08d", i));
+//      log("getSaveDir, candidate:", INDENT, Files.infoMap(x));
+//      mSaveDir = x;
+//    }
+//    return mSaveDir;
+//  }
 
-    var dest = new File(getSaveDir(), relativePath);
-    log("...saving:", relativePath);
-    files().mkdirs(Files.parent(dest));
-    if (absSourceFileOrDir.isDirectory()) {
-      files().copyDirectory(absSourceFileOrDir, dest);
-    } else {
-      files().copyFile(absSourceFileOrDir, dest);
-    }
-  }
+//  private File mSaveDir;
 
-  private File getSaveDir() {
-    if (mSaveDir == null) {
-      var found = auxGetCacheDirs();
-      while (found.size() > MAX_BACKUP_SETS || (!found.isEmpty() && SINGLE_SET)) {
-        var oldest = found.remove(0);
-        files().deleteDirectory(oldest, "prep_oper_cache");
-      }
-      int i = 0;
-      if (!found.isEmpty()) {
-        i = 1 + Integer.parseInt(last(found).getName());
-      }
-      var x = new File(cacheDir(), String.format("%08d", i));
-      log("getSaveDir, candidate:", INDENT, Files.infoMap(x));
-      mSaveDir = x;
-    }
-    return mSaveDir;
-  }
-
-  private File mSaveDir;
-
-  private void doRestore() {
-    var restDir = getRestoreDir();
-
-    if (Files.empty(restDir))
-      throw setError("No previously saved versions to restore; is there a .prep_project file in the current directory?");
-    var w = new DirWalk(restDir);
-    int restoreCount = 0;
-    for (var f : w.filesRelative()) {
-
-      File source = w.abs(f);
-      File dest = new File(projectDir(), f.getPath());
-      if (false) {
-        pr("...wanted to restore rel file:", f, CR, "source:", source, CR, "dest:", dest);
-        continue;
-      }
-      log("restoring:", INDENT, source, CR, dest);
-      files().mkdirs(Files.parent(dest));
-      files().copyFile(source, dest, true);
-      restoreCount++;
-    }
-    if (restoreCount == 0)
-      pr("*** No files were restored!");
-    log("# files restored:", restoreCount);
-  }
+//  private void doRestore() {
+//    var restDir = getRestoreDir();
+//
+//    if (Files.empty(restDir))
+//      throw setError("No previously saved versions to restore; is there a .prep_project file in the current directory?");
+//    var w = new DirWalk(restDir);
+//    int restoreCount = 0;
+//    for (var f : w.filesRelative()) {
+//
+//      File source = w.abs(f);
+//      File dest = new File(projectDir(), f.getPath());
+//      if (false) {
+//        pr("...wanted to restore rel file:", f, CR, "source:", source, CR, "dest:", dest);
+//        continue;
+//      }
+//      log("restoring:", INDENT, source, CR, dest);
+//      files().mkdirs(Files.parent(dest));
+//      files().copyFile(source, dest, true);
+//      restoreCount++;
+//    }
+//    if (restoreCount == 0)
+//      pr("*** No files were restored!");
+//    log("# files restored:", restoreCount);
+//  }
 
   /**
    * Construct a sorted list of all cache subdirectories found for the project
@@ -503,17 +513,17 @@ public class PrepOper extends AppOper {
     return found;
   }
 
-  private File getRestoreDir() {
-    if (mRestoreDir == null) {
-      var found = auxGetCacheDirs();
-      mRestoreDir = Files.DEFAULT;
-      if (!found.isEmpty())
-        mRestoreDir = last(found);
-    }
-    return mRestoreDir;
-  }
+//  private File getRestoreDir() {
+//    if (mRestoreDir == null) {
+//      var found = auxGetCacheDirs();
+//      mRestoreDir = Files.DEFAULT;
+//      if (!found.isEmpty())
+//        mRestoreDir = last(found);
+//    }
+//    return mRestoreDir;
+//  }
 
-  private File mRestoreDir;
+//  private File mRestoreDir;
 
   private static final char ERASE_CHAR = 0x7f;
 
@@ -527,12 +537,12 @@ public class PrepOper extends AppOper {
     int cursor = 0;
     while (s.hasNext()) {
       var tk = s.read();
-      if (verbose) {
+      if (false && verbose) {
         log("=== token:", dfa.tokenName(tk.id()), JSUtils.valueToString(tk.text()));
       }
       var len = tk.text().length();
       if (!tk.isUnknown()) {
-        log("...found matching token");
+        if (false)log("...found matching token");
         mMatchesWithinFile++;
         for (int i = 0; i < len; i++)
           mNewText.setCharAt(i + cursor, ERASE_CHAR);
@@ -622,21 +632,23 @@ public class PrepOper extends AppOper {
 
     // Construct DFAs from each extension
     {
+      var v = verbose() && false;
       var dfaCache = DFACache.SHARED_INSTANCE;
       dfaCache.withCacheDir(Files.getDesktopFile("_prepoper_dfa_cache_"));
-      if (verbose())
+      if (v)
         dfaCache.setVerbose();
 
       log("Constructing dfas from rxp", CR, DASHES);
       for (var ent : mRXPContentForFileExtensionMap.entrySet()) {
         String ext = ent.getKey();
         String rxp = ent.getValue().toString();
-        log("Constructing DFA for extension:", ext);
-        log("rxp file:", INDENT, rxp);
+     if (v)   log("Constructing DFA for extension:", ext);
+      if (v)  log("rxp file:", INDENT, rxp);
         var dfa = dfaCache.forTokenDefinitions(rxp);
-        if (verbose())
+        if (v) {
           log("dfa file:", INDENT, dfa.toJson().remove("graph"));
-        log(DASHES);
+          log(DASHES);
+        }
         mDFAForFileExtensionMap.put(ext, dfa);
       }
     }
@@ -711,6 +723,13 @@ public class PrepOper extends AppOper {
 
   private Map<String, DFA> mDFAForFileExtensionMap = hashMap();
 
-  private PrepOperType mOperType;
+
+  private void recordEdit(File relFile, EditCode code, String content) {
+    var s = code + "::" + content;
+    mEditsMap.put(relFile.toString(), s);
+  }
+
+
+  private JSMap mEditsMap = map();
 }
 
