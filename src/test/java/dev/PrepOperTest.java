@@ -193,11 +193,13 @@ public class PrepOperTest extends DevTestBase {
     clearArgs();
     setOper("prep");
     var sourceDir = testFile("project");
-    var sourceDirGen = Files.join(generatedDir(),"project");
+    var sourceDirGen = Files.join(generatedDir(), "project");
     files().copyDirectory(sourceDir, sourceDirGen);
-    var targetDirGen = Files.join(generatedDir(),"project" + PrepOper.TESTING_DIR_SUFFIX);
+    var targetDirGen = Files.join(generatedDir(), "project" + PrepOper.TESTING_DIR_SUFFIX);
     files().copyDirectory(sourceDir, targetDirGen);
 
+    addArg("source_branch", "$");
+    addArg("target_branch", "$");
     addArg("project_dir", sourceDirGen);
     addArg("cache_dir", files().mkdirs(cacheDir()));
     addArg("cache_filename", "prep_oper");

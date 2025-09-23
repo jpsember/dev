@@ -67,6 +67,7 @@ public class PrepOper extends AppOper {
     log("Project directory:", projectDir());
     log("Cache directory:", cacheDir());
     doFilter();
+    pr("edits map:", INDENT, mEditsMap);
   }
 
   /**
@@ -179,16 +180,18 @@ public class PrepOper extends AppOper {
 
   private void doFilter() {
     selectSourceBranch();
+    var editsMap = generateEditsMap();
+    selectTargetBranch();
+    processEditsMap(editsMap);
+  }
+
+  private JSMap generateEditsMap() {
 
     var initialState = prepareState();
     List<DirStackEntry> dirStack = arrayList();
     dirStack.add(DirStackEntry.start(initialState, projectDir()));
-
-
     while (!dirStack.isEmpty()) {
       var entry = pop(dirStack);
-//      pr(VERT_SP, "doFilter dirStack, popped:", INDENT, entry);
-
       var state = entry.filterState();
 
       var filterFile = new File(entry.directory(), FILTER_FILENAME);
@@ -196,7 +199,6 @@ public class PrepOper extends AppOper {
         var content = Files.readString(filterFile);
         state = processFilterFile(content, state);
         entry = entry.withState(state);
-//        pr("...processed filter file, entry now:", INDENT, entry);
       }
 
       // Examine the files (or subdirectories) within this directory (without recursing).
@@ -235,25 +237,12 @@ public class PrepOper extends AppOper {
             }
           }
         } else {
-//          pr(VERT_SP, "need to descend to directory:", justTheName, INDENT, "current dir:", entry.directory());
-
-          //  pr("current entry:",INDENT,entry);
-
-          // We need to descend to the directory, which might be more than one level deep
-//          var relPath = Files.relativeToContainingDirectory(sourceFileOrDir, entry.directory());
-
           var newEnt = entry.withDirectory(justTheName);
-//
-//
-//          for (var subdirName : split(rel.toString(), '/')) {
-//            pr("...newEnt is:",newEnt.directory(),"subdir:",subdirName);
-//            newEnt = newEnt.withDirectory(subdirName);
-//          pr("...newEnt now:", INDENT, newEnt);
-//          }
           push(dirStack, newEnt);
         }
       }
     }
+    return mEditsMap;
   }
 
   /**
@@ -261,7 +250,7 @@ public class PrepOper extends AppOper {
    * If an explict file list exists, parse that for the list of files instead.
    */
   private List<File> constructFilesWithinDir(File dir) {
-    pr("constructFilesWithinDir, dir:",dir);
+    pr("constructFilesWithinDir, dir:", dir);
     var explicitFileList = new File(dir, FILE_LIST_FILENAME);
     if (explicitFileList.exists()) {
       Set<File> setOfFiles = hashSet();
@@ -496,5 +485,40 @@ public class PrepOper extends AppOper {
   }
 
   private JSMap mEditsMap = map();
+
+
+  private void processEditsMap(JSMap editsMap) {
+    for (var relPath : editsMap.keySet()) {
+      var targetFile = new File(projectDir(), relPath);
+      pr("procEditsMap, targetFile:", INDENT, Files.infoMap(targetFile));
+      if (alert("!just in case test"))
+        checkState(targetFile.toString().contains("unit_test/generated"));
+      var arg = editsMap.get(relPath);
+      var i = arg.indexOf("::");
+      var cmd = arg.substring(0, i);
+      var content = arg.substring(i + 2);
+      pr("proc file:", targetFile, " cmd:", cmd, "with content:", INDENT, content);
+
+      var ec = EditCode.valueOf(cmd);
+      switch (ec) {
+        default:
+          throw notSupported("edit code:", ec, "for:", arg);
+        case DELETE:
+          if (targetFile.exists()) {
+            if (targetFile.isDirectory()) {
+              files().deleteDirectory(targetFile, "generated");
+            } else {
+              files().deleteFile(targetFile);
+            }
+          }
+          break;
+        case MODIFY:
+          files().writeString(targetFile, content);
+          break;
+      }
+      pr("edit code:", ec);
+    }
+  }
+
 }
 
