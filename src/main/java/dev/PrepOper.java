@@ -62,6 +62,10 @@ public class PrepOper extends AppOper {
 
   @Override
   public void perform() {
+    var c = config();
+    checkArgument(nonEmpty(c.sourceBranch()), "source_branch is empty");
+    checkArgument(nonEmpty(c.targetBranch()), "target_branch is empty");
+
     files().withDryRun(dryRun());
     log("arguments:", INDENT, config());
     log("Project directory:", projectDir());
@@ -121,7 +125,11 @@ public class PrepOper extends AppOper {
       f = Files.join(p, nm);
       mCachedProjectDir = f;
     } else {
-      todo("do sys call");
+      var sc = new SystemCall();
+      sc.withVerbose(verbose());
+      var br = (index == 0) ? config().sourceBranch() : config().targetBranch();
+      sc.arg("git", "checkout", br);
+      sc.assertSuccess();
     }
   }
 
