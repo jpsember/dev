@@ -8,7 +8,6 @@ import js.parsing.DFA;
 import js.parsing.Scanner;
 
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -16,8 +15,10 @@ import static js.base.Tools.*;
 
 public class FilterState extends BaseObject {
 
+  private FilterState() {
+  }
+
   public FilterState(Collection<String> deleteFilenames) {
-    this();
     for (var s : deleteFilenames)
       addDeleteFile(s);
   }
@@ -41,9 +42,6 @@ public class FilterState extends BaseObject {
     return fs;
   }
 
-  private FilterState() {
-    mDeleteFilenames = hashSet();
-  }
 
   public Set<String> deleteFilenames() {
     return mDeleteFilenames;
@@ -51,7 +49,7 @@ public class FilterState extends BaseObject {
 
   public FilterState dup() {
     var s = new FilterState();
-    s.mDeleteFilenames = new HashSet<>(mDeleteFilenames);
+    s.mDeleteFilenames.addAll(mDeleteFilenames);
     return s;
   }
 
@@ -66,7 +64,7 @@ public class FilterState extends BaseObject {
   }
 
   // This map should be considered immutable.  If changes are made, construct a new copy
-  private Set<String> mDeleteFilenames;
+  private final Set<String> mDeleteFilenames = hashSet();
 
   private static DFA sValidatorDFA = DFA.parse(Files.readString(FilterState.class, "filter_expr.dfa"));
 

@@ -1,9 +1,0 @@
-    abc
-    prif!(vb,
-        "abc",&def);
-    wxy
-    def
-    prif!(vb,"hij",
-        &def
-            );
-    tuv

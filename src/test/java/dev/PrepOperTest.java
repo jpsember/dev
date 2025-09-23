@@ -39,7 +39,6 @@ public class PrepOperTest extends DevTestBase {
     prepareDirectories();
     // ----------------------------------------------------------------------------------------------
     prepareApp();
-    addArg("oper", "filter");
     runApp();
     // ----------------------------------------------------------------------------------------------
     assertGenerated();
@@ -51,7 +50,7 @@ public class PrepOperTest extends DevTestBase {
     // ----------------------------------------------------------------------------------------------
     prepareApp();
     addArg("--verbose");
-    addArg("oper", "filter");
+//    addArg("oper", "filter");
     addArg("--dryrun");
     runApp();
     // ----------------------------------------------------------------------------------------------
@@ -67,7 +66,7 @@ public class PrepOperTest extends DevTestBase {
 
     // ----------------------------------------------------------------------------------------------
     prepareApp();
-    addArg("oper", "filter");
+//    addArg("oper", "filter");
     runApp();
     // ----------------------------------------------------------------------------------------------
     assertGenerated();
@@ -90,7 +89,7 @@ public class PrepOperTest extends DevTestBase {
     checkState(!f2.exists());
 
     prepareApp();
-    addArg("oper", "restore");
+//    addArg("oper", "restore");
     runApp();
     // ----------------------------------------------------------------------------------------------
     assertGenerated();
@@ -193,7 +192,6 @@ public class PrepOperTest extends DevTestBase {
   private void prepareApp() {
     clearArgs();
     setOper("prep");
-//    addArg("testing_mode");
     var sourceDir = testFile("project");
     var sourceDirGen = Files.join(generatedDir(),"project");
     files().copyDirectory(sourceDir, sourceDirGen);
@@ -201,28 +199,23 @@ public class PrepOperTest extends DevTestBase {
     files().copyDirectory(sourceDir, targetDirGen);
 
     addArg("project_dir", sourceDirGen);
-//    addArg("project_root_for_testing",sourceDirGen);
-
-//    addArg("testing_project_dir", sourceDirGen);
-
-    //addArg("project_root_for_testing", sourceDir());
     addArg("cache_dir", files().mkdirs(cacheDir()));
     addArg("cache_filename", "prep_oper");
     addArg("cache_path_expr", "xxx");
     addArg("skip_pattern_search");
-    pr("done prepare app");
   }
 
 
   private void prepareDirectories() {
-    var src = testDataDir();
-    var target = sourceDir();
-    files().mkdirs(target);
-    files().copyDirectory(src, target);
+    todo("!no longer required");
+//    var src = testDataDir();
+//    var target = sourceDir();
+//    files().mkdirs(target);
+//    files().copyDirectory(src, target);
   }
 
   private File sourceDir() {
-    return new File(generatedDir(), "source");
+    return new File(generatedDir(), "project");
   }
 
   private File cacheDir() {
