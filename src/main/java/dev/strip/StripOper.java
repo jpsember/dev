@@ -71,7 +71,7 @@ public class StripOper extends AppOper {
     log("arguments:", INDENT, config());
     log("Project directory:", projectDir());
     log("Cache directory:", cacheDir());
-    doFilter();
+    doStrip();
   }
 
   /**
@@ -185,7 +185,7 @@ public class StripOper extends AppOper {
   private static final List<String> ALWAYS_DELETE_THESE_FILES = arrayList(FILTER_FILENAME, PROJECT_INFO_FILE, FILE_LIST_FILENAME,
       STRIP_OPER_ARGS_FILE);
 
-  private void doFilter() {
+  private void doStrip() {
     selectSourceBranch();
     var editsMap = generateEditsMap();
     selectTargetBranch();
@@ -193,7 +193,6 @@ public class StripOper extends AppOper {
   }
 
   private JSMap generateEditsMap() {
-
     var initialState = prepareState();
     List<DirStackEntry> dirStack = arrayList();
     dirStack.add(DirStackEntry.start(initialState, projectDir()));
