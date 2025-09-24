@@ -140,11 +140,10 @@ public class StripOper extends AppOper {
     var content = mCachedProjectInfoFileContent;
     if (content == null) {
       var infoFile = Files.join(projectDir(), PROJECT_INFO_FILE);
-      content = Files.readString(infoFile);
-      if (content.trim().isEmpty()) {
-        log("project file is empty, using default");
-        content =
-            Files.readString(this.getClass(), "strip_default.txt");
+      if (infoFile.exists()) {
+        content = Files.readString(infoFile);
+      } else {
+        content = Files.readString(this.getClass(), "strip_default.txt");
       }
       mCachedProjectInfoFileContent = content;
     }
@@ -360,12 +359,10 @@ public class StripOper extends AppOper {
   /**
    * Set up the initial filter state.
    *
-   * We also parse the project info file, constructing the .rxp files for each supported file extension.
+   * We also parse the project info file (if one exists), constructing the .rxp files for each supported file extension.
    * Then we regenerate the .dfa files from those .rxp files (if they aren't cached already)
    */
   private FilterState prepareState() {
-    todo("!there doesn't have to be a project file, since we are using the git root directory; also, build dfas for particular file extensions using default values");
-
     var text = projectInfoFileContent();
     Set<String> activeExtensions = hashSet();
 
