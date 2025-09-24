@@ -15,6 +15,10 @@ public class StripConfig implements AbstractData {
     return mTargetBranch;
   }
 
+  public boolean defaults() {
+    return mDefaults;
+  }
+
   public File projectDir() {
     return mProjectDir;
   }
@@ -42,11 +46,12 @@ public class StripConfig implements AbstractData {
 
   protected static final String _0 = "source_branch";
   protected static final String _1 = "target_branch";
-  protected static final String _2 = "project_dir";
-  protected static final String _3 = "cache_dir";
-  protected static final String _4 = "cache_filename";
-  protected static final String _5 = "cache_path_expr";
-  protected static final String _6 = "skip_pattern_search";
+  protected static final String _2 = "defaults";
+  protected static final String _3 = "project_dir";
+  protected static final String _4 = "cache_dir";
+  protected static final String _5 = "cache_filename";
+  protected static final String _6 = "cache_path_expr";
+  protected static final String _7 = "skip_pattern_search";
 
   @Override
   public String toString() {
@@ -58,11 +63,12 @@ public class StripConfig implements AbstractData {
     JSMap m = new JSMap();
     m.putUnsafe(_0, mSourceBranch);
     m.putUnsafe(_1, mTargetBranch);
-    m.putUnsafe(_2, mProjectDir.toString());
-    m.putUnsafe(_3, mCacheDir.toString());
-    m.putUnsafe(_4, mCacheFilename.toString());
-    m.putUnsafe(_5, mCachePathExpr);
-    m.putUnsafe(_6, mSkipPatternSearch);
+    m.putUnsafe(_2, mDefaults);
+    m.putUnsafe(_3, mProjectDir.toString());
+    m.putUnsafe(_4, mCacheDir.toString());
+    m.putUnsafe(_5, mCacheFilename.toString());
+    m.putUnsafe(_6, mCachePathExpr);
+    m.putUnsafe(_7, mSkipPatternSearch);
     return m;
   }
 
@@ -79,29 +85,30 @@ public class StripConfig implements AbstractData {
   private StripConfig(JSMap m) {
     mSourceBranch = m.opt(_0, "");
     mTargetBranch = m.opt(_1, "");
+    mDefaults = m.opt(_2, false);
     {
       mProjectDir = Files.DEFAULT;
-      String x = m.opt(_2, (String) null);
+      String x = m.opt(_3, (String) null);
       if (x != null) {
         mProjectDir = new File(x);
       }
     }
     {
       mCacheDir = Files.DEFAULT;
-      String x = m.opt(_3, (String) null);
+      String x = m.opt(_4, (String) null);
       if (x != null) {
         mCacheDir = new File(x);
       }
     }
     {
-      mCacheFilename = _D4;
-      String x = m.opt(_4, (String) null);
+      mCacheFilename = _D5;
+      String x = m.opt(_5, (String) null);
       if (x != null) {
         mCacheFilename = new File(x);
       }
     }
-    mCachePathExpr = m.opt(_5, "");
-    mSkipPatternSearch = m.opt(_6, false);
+    mCachePathExpr = m.opt(_6, "");
+    mSkipPatternSearch = m.opt(_7, false);
   }
 
   public static Builder newBuilder() {
@@ -120,6 +127,8 @@ public class StripConfig implements AbstractData {
     if (!(mSourceBranch.equals(other.mSourceBranch)))
       return false;
     if (!(mTargetBranch.equals(other.mTargetBranch)))
+      return false;
+    if (!(mDefaults == other.mDefaults))
       return false;
     if (!(mProjectDir.equals(other.mProjectDir)))
       return false;
@@ -141,6 +150,7 @@ public class StripConfig implements AbstractData {
       r = 1;
       r = r * 37 + mSourceBranch.hashCode();
       r = r * 37 + mTargetBranch.hashCode();
+      r = r * 37 + (mDefaults ? 1 : 0);
       r = r * 37 + mProjectDir.hashCode();
       r = r * 37 + mCacheDir.hashCode();
       r = r * 37 + mCacheFilename.hashCode();
@@ -153,6 +163,7 @@ public class StripConfig implements AbstractData {
 
   protected String mSourceBranch;
   protected String mTargetBranch;
+  protected boolean mDefaults;
   protected File mProjectDir;
   protected File mCacheDir;
   protected File mCacheFilename;
@@ -165,6 +176,7 @@ public class StripConfig implements AbstractData {
     private Builder(StripConfig m) {
       mSourceBranch = m.mSourceBranch;
       mTargetBranch = m.mTargetBranch;
+      mDefaults = m.mDefaults;
       mProjectDir = m.mProjectDir;
       mCacheDir = m.mCacheDir;
       mCacheFilename = m.mCacheFilename;
@@ -188,6 +200,7 @@ public class StripConfig implements AbstractData {
       StripConfig r = new StripConfig();
       r.mSourceBranch = mSourceBranch;
       r.mTargetBranch = mTargetBranch;
+      r.mDefaults = mDefaults;
       r.mProjectDir = mProjectDir;
       r.mCacheDir = mCacheDir;
       r.mCacheFilename = mCacheFilename;
@@ -206,6 +219,11 @@ public class StripConfig implements AbstractData {
       return this;
     }
 
+    public Builder defaults(boolean x) {
+      mDefaults = x;
+      return this;
+    }
+
     public Builder projectDir(File x) {
       mProjectDir = (x == null) ? Files.DEFAULT : x;
       return this;
@@ -217,7 +235,7 @@ public class StripConfig implements AbstractData {
     }
 
     public Builder cacheFilename(File x) {
-      mCacheFilename = (x == null) ? _D4 : x;
+      mCacheFilename = (x == null) ? _D5 : x;
       return this;
     }
 
@@ -233,7 +251,7 @@ public class StripConfig implements AbstractData {
 
   }
 
-  private static final File _D4 = new File(".strip_oper_cache");
+  private static final File _D5 = new File(".strip_oper_cache");
 
   public static final StripConfig DEFAULT_INSTANCE = new StripConfig();
 
@@ -242,7 +260,7 @@ public class StripConfig implements AbstractData {
     mTargetBranch = "";
     mProjectDir = Files.DEFAULT;
     mCacheDir = Files.DEFAULT;
-    mCacheFilename = _D4;
+    mCacheFilename = _D5;
     mCachePathExpr = "";
   }
 

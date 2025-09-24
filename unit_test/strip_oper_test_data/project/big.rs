@@ -14,6 +14,16 @@ pub const FOO : usize = // {~
     {
         pr("do b");
         }  // ~}
+// -------turn "(a) and not (b)" with "(b)", with comment stripping ---------------
+// {~
+    if true {
+        pr("alternative with comments");
+    } else // ~|~
+    //    {
+    //    pr("this is the alternative");
+    //    // here are some comments
+    //    }
+    // ~}
 // ------------------------------------------------------
 
 // {~

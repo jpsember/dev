@@ -21,7 +21,14 @@ ALTERNATIVE: \# $_SKIP_SECTION  [\s\t]* \n?
 #    ....
 #    ....
 # .......    ~}
-
+#
+# or
+#
+# // {~ ....
+#    ....... ~|~
+#    ... text to retain ...
+#    .......    ~}
+#
 ALTERNATIVE: \/\/ $_SKIP_SECTION
 
 >>>java
@@ -43,3 +50,13 @@ USE_JEFFTOOLS: use \s+ crate\:\:jefftools\:\: $_TOENDOFLINE
 # Methods within jefftools.rs
 #
 DB_METHODS: $_LEFTSPACE  ( pr! | prif! | pr_to! | o! | load_tools | warning | fail | halt ) \( $_TOSEMI
+
+#
+# To do an 'alternative', do this:
+#
+#    // {~
+#    code in source...
+#    // ~|~
+#    // code to store in target
+#    // after stripping '//' prefixes
+#

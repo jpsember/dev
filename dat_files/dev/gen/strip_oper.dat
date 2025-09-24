@@ -2,13 +2,16 @@ class strip_config {
     string source_branch;
     string target_branch;
 
+    // If true, dumps default project configuration file and exits
+    //
+    bool defaults;
+
     // ---- These are exposed only for unit tests
 
     // If in testing mode, it doesn't use source/target branches; instead,
     // it constructs a copy of the project directory ("xxx") in a sibling directory, "xxx-target", and
     // applies the changes to that as if a call to `git branch` was made instead.
 
-    //bool testing_mode;
     File project_dir; //testing_project_dir;
 
     // If empty, uses a hidden file on the desktop

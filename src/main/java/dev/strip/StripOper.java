@@ -70,6 +70,12 @@ public class StripOper extends AppOper {
   @Override
   public void perform() {
     var c = config();
+
+    if (c.defaults()) {
+      var defContent = Files.readString(this.getClass(), "strip_default.txt");
+      pr(defContent);
+      return;
+    }
     checkArgument(nonEmpty(c.sourceBranch()), "source_branch is empty");
     checkArgument(nonEmpty(c.targetBranch()), "target_branch is empty");
 
@@ -326,14 +332,34 @@ public class StripOper extends AppOper {
               var k = i + SEPARATOR.length();
               erase(filteredText, k);
               var alt = tkText.substring(k, j);
-              // If the alternate text ends with '//' or '#' then trim that comment as well
-              alt = alt.stripTrailing();
-              String[] suffixes = {"//", "#"};
-              for (var x : suffixes) {
-                if (alt.endsWith(x)) {
-                  alt = alt.substring(0, alt.length() - x.length()).stripTrailing();
+
+              // Remove any comment prefixes such as '// ' or '# ' from the lines that follow
+              // (but no more than one such prefix per line, to allow embedded comments)
+              // Only do this if EVERY line contains such a prefix.
+              var lines = split(alt.trim(), '\n');
+              List<String> lines2 = arrayList();
+              String firstComment = null;
+              for (var x : lines) {
+                x = x.trim();
+                if (firstComment == null) {
+                  if (x.startsWith("#")) {
+                    firstComment = "#";
+                  } else if (x.startsWith("//")) {
+                    firstComment = "//";
+                  }
+                }
+                if (firstComment == null || !x.startsWith(firstComment)) {
+                  lines2 = null;
                   break;
                 }
+                x = chompPrefix(x, firstComment).trim();
+                lines2.add(x);
+              }
+
+              // pr("lines:", INDENT, lines, CR, "lines2:", CR, lines2);
+              if (lines2 != null) {
+                alt = String.join("\n", lines2) + "\n";
+                // filteredText.append("==== alt is:" + alt + "=====");
               }
               filteredText.append(alt);
               erase(filteredText, tkText.length() - j);
