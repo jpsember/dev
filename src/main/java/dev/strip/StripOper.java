@@ -225,7 +225,6 @@ public class StripOper extends AppOper {
 
         var justTheName = sourceFileOrDir.getName();
 
-
         if (ALWAYS_DELETE_THESE_FILES.contains(justTheName) || state.deleteFilenames().contains(justTheName)) {
           log("...filtering entire file or dir:", justTheName);
           recordEdit(Files.relativeToContainingDirectory(sourceFileOrDir, projectDir()), EditCode.DELETE, "");
@@ -237,15 +236,11 @@ public class StripOper extends AppOper {
         if (!sourceFileOrDir.isDirectory()) {
           var sourceFile = sourceFileOrDir;
           var ext = Files.getExtension(sourceFile);
-          pr("ext:", ext, "for:", sourceFile);
           var dfa = dfaForExtension(ext);
           if (dfa != null) {
-            pr("found dfa");
             log("file:", rel);
             var currText = Files.readString(sourceFile);
-            pr("...apply filter to:", sourceFile);
             applyFilter(currText, dfa, verbose());
-
             if (mMatchesWithinFile != 0) {
               var filteredContent = mNewText.toString();
               recordEdit(rel, EditCode.MODIFY, filteredContent);
@@ -318,19 +313,18 @@ public class StripOper extends AppOper {
 
         {
           var tn = dfa.tokenName(tk.id());
-          pr("token name:", tn);
-          todo("if token has specific name, apply if/then logic");
           if (tn.startsWith("ALTERNATIVE")) {
+            var SEPARATOR = "~|~";
+            var CLOSE = "~}";
+            todo("maybe have alternative include trailing whitespace including single linefeed");
             // If it contains '~|~', retain the text following that but before the ~},
             // subject to some possible additional manipulation
-            var PREF = "~|~";
-            var i = tkText.indexOf(PREF);
+            var i = tkText.indexOf(SEPARATOR);
             if (i >= 0) {
-              var j = tkText.indexOf("~}");
+              var j = tkText.indexOf(CLOSE);
               if (j < i)
                 throw tk.failWith("Failed to parse ALTERNATIVE");
-
-              var k = i + PREF.length();
+              var k = i + SEPARATOR.length();
               erase(filteredText, k);
               var alt = tkText.substring(k, j);
               filteredText.append(alt);
