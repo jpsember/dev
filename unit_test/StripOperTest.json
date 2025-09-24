@@ -1,7 +1,3 @@
-{        "filterDryRun" : 2224,
-  "filterFileAndSubdir" : 4462,
-          "filterPaths" : 4462,
-        "pathValidator" : 6693,
-     "saveWithFileList" : 6206,
-                "strip" : 4462
+{ "pathValidator" : 6693,
+          "strip" : 4462
 }

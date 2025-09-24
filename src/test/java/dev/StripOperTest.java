@@ -41,6 +41,22 @@ public class StripOperTest extends DevTestBase {
     assertGenerated();
   }
 
+
+
+  @Test
+  public void explicitFileList() {
+    prepareApp();
+
+    // Use an explicit file list
+
+    var fl = "d.java\n"+"subdir/h2\n";
+    var targ = Files.join(mProjectDirSource,".files");
+    files().writeString(targ,fl);
+
+    runApp();
+    assertGenerated();
+  }
+
   @Test
   public void filterDryRun() {
     prepareApp();
@@ -57,7 +73,6 @@ public class StripOperTest extends DevTestBase {
     runApp();
     assertGenerated();
   }
-
 
   @Test
   public void filterPaths() {
@@ -101,14 +116,14 @@ public class StripOperTest extends DevTestBase {
     clearArgs();
     setOper("strip");
     var sourceDir = testFile("project");
-    var sourceDirGen = Files.join(generatedDir(), "project");
-    files().copyDirectory(sourceDir, sourceDirGen);
-    var targetDirGen = Files.join(generatedDir(), "project" + StripOper.TESTING_DIR_SUFFIX);
-    files().copyDirectory(sourceDir, targetDirGen);
+      mProjectDirSource = Files.join(generatedDir(), "project");
+    files().copyDirectory(sourceDir, mProjectDirSource);
+     mProjectDirTarget = Files.join(generatedDir(), "project" + StripOper.TESTING_DIR_SUFFIX);
+    files().copyDirectory(sourceDir, mProjectDirTarget);
 
     addArg("source_branch", "$");
     addArg("target_branch", "$");
-    addArg("project_dir", sourceDirGen);
+    addArg("project_dir", mProjectDirSource);
     addArg("cache_dir", files().mkdirs(cacheDir()));
     addArg("cache_path_expr", "xxx");
     addArg("skip_pattern_search");
@@ -122,5 +137,8 @@ public class StripOperTest extends DevTestBase {
   private File cacheDir() {
     return new File(generatedDir(), "cache");
   }
+
+  private File mProjectDirSource;
+  private File mProjectDirTarget;
 
 }

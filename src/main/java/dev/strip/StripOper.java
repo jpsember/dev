@@ -205,13 +205,18 @@ public class StripOper extends AppOper {
   private JSMap generateEditsMap() {
     var initialState = prepareState();
     List<DirStackEntry> dirStack = arrayList();
-    dirStack.add(DirStackEntry.start(initialState, projectDir()));
+
+    var initialEnt = DirStackEntry.start(initialState, projectDir());
+    pr("InitialEntry:",INDENT,initialEnt);
+    dirStack.add(initialEnt);
     while (!dirStack.isEmpty()) {
       var entry = pop(dirStack);
       var state = entry.filterState();
+      pr(VERT_SP,"popped entry:",INDENT,entry);
 
       var filterFile = new File(entry.directory(), DELETE_FILES_LIST);
       if (filterFile.exists()) {
+        pr("...processing .filter file:",filterFile);
         var content = Files.readString(filterFile);
         state = processFilterFile(content, state);
         entry = entry.withState(state);
@@ -222,6 +227,8 @@ public class StripOper extends AppOper {
       // The result is a list of files or directories, relative to the current entry's directory
 
       var listOfFiles = constructFilesWithinDir(entry.directory());
+      pr("...constructed list of files within dir");
+      pr(listOfFiles);
       for (var sourceFileOrDir : listOfFiles) {
         // If the file (or dir) is a symlink, don't process it
         if (isSymLink(sourceFileOrDir))
@@ -229,8 +236,10 @@ public class StripOper extends AppOper {
 
         var justTheName = sourceFileOrDir.getName();
 
+        pr("...... file or dir:",INDENT,Files.infoMap(sourceFileOrDir));
+
         if (ALWAYS_DELETE_THESE_FILES.contains(justTheName) || state.deleteFilenames().contains(justTheName)) {
-          log("...filtering entire file or dir:", justTheName);
+          log("..........filtering entire file or dir:", justTheName);
           recordEdit(Files.relativeToContainingDirectory(sourceFileOrDir, projectDir()), EditCode.DELETE, "");
           continue;
         }
