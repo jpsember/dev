@@ -1,4 +1,4 @@
-class prep_config {
+class strip_config {
     string source_branch;
     string target_branch;
 
@@ -15,7 +15,7 @@ class prep_config {
     //
     File cache_dir;
 
-    File cache_filename = ".prep_oper_cache";
+    File cache_filename = ".strip_oper_cache";
 
     // A substring to insert in the cache path to distinguish from other projects.
     // If empty, uses something derived from the full project path.

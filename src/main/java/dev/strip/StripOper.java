@@ -1,11 +1,9 @@
-package dev;
+package dev.strip;
 
 import static js.base.Tools.*;
 
 import dev.gen.EditCode;
-import dev.gen.PrepConfig;
-import dev.prep.DirStackEntry;
-import dev.prep.FilterState;
+import dev.gen.StripConfig;
 import js.app.AppOper;
 import js.app.HelpFormatter;
 import js.base.BasePrinter;
@@ -21,15 +19,18 @@ import js.parsing.Lexer;
 import java.io.File;
 import java.util.*;
 
-public class PrepOper extends AppOper {
+public class StripOper extends AppOper {
 
   public static final String FILTER_FILENAME = ".filter";
   public static final String FILE_LIST_FILENAME = ".files";
-  public static final String PROJECT_INFO_FILE = ".prep_project";
+  public static final String PROJECT_INFO_FILE = ".strip_project";
+  public static final String STRIP_OPER_ARGS_FILE = "strip-args.json";
+
 
   @Override
   public String userCommand() {
-    return "prep";
+    todo("!can I combine .filter and .files somehow?");
+    return "strip";
   }
 
   @Override
@@ -48,12 +49,12 @@ public class PrepOper extends AppOper {
   }
 
   @Override
-  public PrepConfig defaultArgs() {
-    return PrepConfig.DEFAULT_INSTANCE;
+  public StripConfig defaultArgs() {
+    return StripConfig.DEFAULT_INSTANCE;
   }
 
   @Override
-  public PrepConfig config() {
+  public StripConfig config() {
     if (mConfig == null) {
       mConfig = super.config();
     }
@@ -143,7 +144,7 @@ public class PrepOper extends AppOper {
       if (content.trim().isEmpty()) {
         log("project file is empty, using default");
         content =
-            Files.readString(this.getClass(), "prep_default.txt");
+            Files.readString(this.getClass(), "strip_default.txt");
       }
       mCachedProjectInfoFileContent = content;
     }
@@ -182,7 +183,8 @@ public class PrepOper extends AppOper {
   }
 
 
-  private static final List<String> ALWAYS_DELETE_THESE_FILES = arrayList(FILTER_FILENAME, PROJECT_INFO_FILE, FILE_LIST_FILENAME);
+  private static final List<String> ALWAYS_DELETE_THESE_FILES = arrayList(FILTER_FILENAME, PROJECT_INFO_FILE, FILE_LIST_FILENAME,
+      STRIP_OPER_ARGS_FILE);
 
   private void doFilter() {
     selectSourceBranch();
@@ -348,7 +350,7 @@ public class PrepOper extends AppOper {
     mNewText.append(out);
   }
 
-  private PrepConfig mConfig;
+  private StripConfig mConfig;
   private File mCacheDir;
 
   private int mMatchesWithinFile;

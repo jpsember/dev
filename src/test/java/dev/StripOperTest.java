@@ -23,8 +23,8 @@
  **/
 package dev;
 
-import dev.prep.FilterState;
-import js.app.App;
+import dev.strip.FilterState;
+import dev.strip.StripOper;
 import js.file.Files;
 import org.junit.Test;
 
@@ -32,7 +32,7 @@ import java.io.File;
 
 import static js.base.Tools.*;
 
-public class PrepOperTest extends DevTestBase {
+public class StripOperTest extends DevTestBase {
 
   @Test
   public void save() {
@@ -52,8 +52,8 @@ public class PrepOperTest extends DevTestBase {
   @Test
   public void saveWithFileList() {
     prepareApp();
-    files().writeString(new File(sourceDir(), PrepOper.FILE_LIST_FILENAME), "subdir");
-    files().writeString(new File(sourceDir(), "subdir/" + PrepOper.FILE_LIST_FILENAME), "c.java\nh2");
+    files().writeString(new File(sourceDir(), StripOper.FILE_LIST_FILENAME), "subdir");
+    files().writeString(new File(sourceDir(), "subdir/" + StripOper.FILE_LIST_FILENAME), "c.java\nh2");
     runApp();
     assertGenerated();
   }
@@ -99,18 +99,17 @@ public class PrepOperTest extends DevTestBase {
 
   private void prepareApp() {
     clearArgs();
-    setOper("prep");
+    setOper("strip");
     var sourceDir = testFile("project");
     var sourceDirGen = Files.join(generatedDir(), "project");
     files().copyDirectory(sourceDir, sourceDirGen);
-    var targetDirGen = Files.join(generatedDir(), "project" + PrepOper.TESTING_DIR_SUFFIX);
+    var targetDirGen = Files.join(generatedDir(), "project" + StripOper.TESTING_DIR_SUFFIX);
     files().copyDirectory(sourceDir, targetDirGen);
 
     addArg("source_branch", "$");
     addArg("target_branch", "$");
     addArg("project_dir", sourceDirGen);
     addArg("cache_dir", files().mkdirs(cacheDir()));
-    addArg("cache_filename", "prep_oper");
     addArg("cache_path_expr", "xxx");
     addArg("skip_pattern_search");
   }

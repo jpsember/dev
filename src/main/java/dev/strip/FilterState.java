@@ -1,4 +1,4 @@
-package dev.prep;
+package dev.strip;
 
 import js.base.BaseObject;
 import js.file.Files;

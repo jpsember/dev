@@ -28,6 +28,7 @@ import static js.base.Tools.*;
 
 import dev.cmit.CmitOper;
 import dev.installer.MakeInstallerOper;
+import dev.strip.StripOper;
 import js.app.App;
 
 public class Main extends App {
@@ -70,7 +71,7 @@ public class Main extends App {
     registerOper(new InstallOper());
     registerOper(new UninstallOper());
     registerOper(new GetRepoOper());
-    registerOper(new PrepOper());
+    registerOper(new StripOper());
     registerOper(new CmitOper());
     registerOper(new NotebookOper());
     // --- insertion point for new operations (used by NewOperOper)

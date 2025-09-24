@@ -9,6 +9,6 @@ TOK="src/main/java/dev/"
 # Validates path elements in .filter files
 #
 dfa input dfas/filter_expr.rxp \
-    output "${DEST}prep/filter_expr.dfa" \
-    ids "${TOK}prep/FilterState.java" \
+    output "${DEST}strip/filter_expr.dfa" \
+    ids "${TOK}strip/FilterState.java" \
     "$@"

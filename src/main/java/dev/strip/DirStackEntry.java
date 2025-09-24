@@ -1,12 +1,10 @@
-package dev.prep;
+package dev.strip;
 
 import js.base.BaseObject;
 import js.file.Files;
 import js.json.JSMap;
 
 import java.io.File;
-
-import static js.base.Tools.*;
 
 public class DirStackEntry extends BaseObject {
 

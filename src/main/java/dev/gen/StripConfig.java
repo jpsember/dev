@@ -5,7 +5,7 @@ import js.data.AbstractData;
 import js.file.Files;
 import js.json.JSMap;
 
-public class PrepConfig implements AbstractData {
+public class StripConfig implements AbstractData {
 
   public String sourceBranch() {
     return mSourceBranch;
@@ -67,16 +67,16 @@ public class PrepConfig implements AbstractData {
   }
 
   @Override
-  public PrepConfig build() {
+  public StripConfig build() {
     return this;
   }
 
   @Override
-  public PrepConfig parse(Object obj) {
-    return new PrepConfig((JSMap) obj);
+  public StripConfig parse(Object obj) {
+    return new StripConfig((JSMap) obj);
   }
 
-  private PrepConfig(JSMap m) {
+  private StripConfig(JSMap m) {
     mSourceBranch = m.opt(_0, "");
     mTargetBranch = m.opt(_1, "");
     {
@@ -112,9 +112,9 @@ public class PrepConfig implements AbstractData {
   public boolean equals(Object object) {
     if (this == object)
       return true;
-    if (object == null || !(object instanceof PrepConfig))
+    if (object == null || !(object instanceof StripConfig))
       return false;
-    PrepConfig other = (PrepConfig) object;
+    StripConfig other = (StripConfig) object;
     if (other.hashCode() != hashCode())
       return false;
     if (!(mSourceBranch.equals(other.mSourceBranch)))
@@ -160,9 +160,9 @@ public class PrepConfig implements AbstractData {
   protected boolean mSkipPatternSearch;
   protected int m__hashcode;
 
-  public static final class Builder extends PrepConfig {
+  public static final class Builder extends StripConfig {
 
-    private Builder(PrepConfig m) {
+    private Builder(StripConfig m) {
       mSourceBranch = m.mSourceBranch;
       mTargetBranch = m.mTargetBranch;
       mProjectDir = m.mProjectDir;
@@ -184,8 +184,8 @@ public class PrepConfig implements AbstractData {
     }
 
     @Override
-    public PrepConfig build() {
-      PrepConfig r = new PrepConfig();
+    public StripConfig build() {
+      StripConfig r = new StripConfig();
       r.mSourceBranch = mSourceBranch;
       r.mTargetBranch = mTargetBranch;
       r.mProjectDir = mProjectDir;
@@ -233,11 +233,11 @@ public class PrepConfig implements AbstractData {
 
   }
 
-  private static final File _D4 = new File(".prep_oper_cache");
+  private static final File _D4 = new File(".strip_oper_cache");
 
-  public static final PrepConfig DEFAULT_INSTANCE = new PrepConfig();
+  public static final StripConfig DEFAULT_INSTANCE = new StripConfig();
 
-  private PrepConfig() {
+  private StripConfig() {
     mSourceBranch = "";
     mTargetBranch = "";
     mProjectDir = Files.DEFAULT;
