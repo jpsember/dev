@@ -11,7 +11,7 @@ _SKIP_SECTION:  \s* { $_TILDE
 
 >>>toml,sh,gitignore
 
-SKIP_SECTION: \# $_SKIP_SECTION
+ALTERNATIVE: \# $_SKIP_SECTION
 
 >>>java,rs
 
@@ -20,7 +20,7 @@ SKIP_SECTION: \# $_SKIP_SECTION
 #    ....
 # .......    ~}
 
-SKIP_SECTION: \/\/ $_SKIP_SECTION
+ALTERNATIVE: \/\/ $_SKIP_SECTION
 
 >>>java
 

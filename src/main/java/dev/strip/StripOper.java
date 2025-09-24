@@ -225,6 +225,7 @@ public class StripOper extends AppOper {
 
         var justTheName = sourceFileOrDir.getName();
 
+
         if (ALWAYS_DELETE_THESE_FILES.contains(justTheName) || state.deleteFilenames().contains(justTheName)) {
           log("...filtering entire file or dir:", justTheName);
           recordEdit(Files.relativeToContainingDirectory(sourceFileOrDir, projectDir()), EditCode.DELETE, "");
@@ -236,11 +237,13 @@ public class StripOper extends AppOper {
         if (!sourceFileOrDir.isDirectory()) {
           var sourceFile = sourceFileOrDir;
           var ext = Files.getExtension(sourceFile);
-
+          pr("ext:", ext, "for:", sourceFile);
           var dfa = dfaForExtension(ext);
           if (dfa != null) {
+            pr("found dfa");
             log("file:", rel);
             var currText = Files.readString(sourceFile);
+            pr("...apply filter to:", sourceFile);
             applyFilter(currText, dfa, verbose());
 
             if (mMatchesWithinFile != 0) {
@@ -289,33 +292,64 @@ public class StripOper extends AppOper {
     return !f.getAbsoluteFile().equals(Files.getCanonicalFile(f));
   }
 
-
   private static final char ERASE_CHAR = 0x7f;
 
   private void applyFilter(String currText, DFA dfa, boolean verbose) {
 
-    mNewText = new StringBuilder(currText);
+    var filteredText = new StringBuilder();
     mMatchesWithinFile = 0;
 
     var s = new Lexer(dfa).withText(currText).withNoSkip().withAcceptUnknownTokens();
 
-    int cursor = 0;
     while (s.hasNext()) {
       var tk = s.read();
+      var tkText = tk.text();
       if (verbose) {
-        log("=== token:", dfa.tokenName(tk.id()), JSUtils.valueToString(tk.text()));
+        log("=== token:", dfa.tokenName(tk.id()), JSUtils.valueToString(tkText));
       }
-      var len = tk.text().length();
-      if (!tk.isUnknown()) {
+      var len = tkText.length();
+
+      if (tk.isUnknown()) {
+        // This text is to be left alone
+        filteredText.append(tkText);
+      } else {
         log("...found matching token");
         mMatchesWithinFile++;
-        for (int i = 0; i < len; i++)
-          mNewText.setCharAt(i + cursor, ERASE_CHAR);
+
+        {
+          var tn = dfa.tokenName(tk.id());
+          pr("token name:", tn);
+          todo("if token has specific name, apply if/then logic");
+          if (tn.startsWith("ALTERNATIVE")) {
+            // If it contains '~|~', retain the text following that but before the ~},
+            // subject to some possible additional manipulation
+            var PREF = "~|~";
+            var i = tkText.indexOf(PREF);
+            if (i >= 0) {
+              var j = tkText.indexOf("~}");
+              if (j < i)
+                throw tk.failWith("Failed to parse ALTERNATIVE");
+
+              var k = i + PREF.length();
+              erase(filteredText, k);
+              var alt = tkText.substring(k, j);
+              filteredText.append(alt);
+              erase(filteredText, tkText.length() - j);
+              continue;
+            }
+          }
+        }
+        erase(filteredText, len);
       }
-      cursor += len;
     }
+
+    mNewText = filteredText;
     if (mMatchesWithinFile != 0)
       pass2();
+  }
+
+  private static void erase(StringBuilder target, int len) {
+    target.append(String.valueOf(ERASE_CHAR).repeat(len));
   }
 
   private void pass2() {
