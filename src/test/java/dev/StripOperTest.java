@@ -35,7 +35,7 @@ import static js.base.Tools.*;
 public class StripOperTest extends DevTestBase {
 
   @Test
-  public void strip() {rv();
+  public void strip() {
     prepareApp();
     runApp();
     assertGenerated();

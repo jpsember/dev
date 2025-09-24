@@ -316,7 +316,6 @@ public class StripOper extends AppOper {
           if (tn.startsWith("ALTERNATIVE")) {
             var SEPARATOR = "~|~";
             var CLOSE = "~}";
-            todo("maybe have alternative include trailing whitespace including single linefeed");
             // If it contains '~|~', retain the text following that but before the ~},
             // subject to some possible additional manipulation
             var i = tkText.indexOf(SEPARATOR);
@@ -327,6 +326,15 @@ public class StripOper extends AppOper {
               var k = i + SEPARATOR.length();
               erase(filteredText, k);
               var alt = tkText.substring(k, j);
+              // If the alternate text ends with '//' or '#' then trim that comment as well
+              alt = alt.stripTrailing();
+              String[] suffixes = {"//", "#"};
+              for (var x : suffixes) {
+                if (alt.endsWith(x)) {
+                  alt = alt.substring(0, alt.length() - x.length()).stripTrailing();
+                  break;
+                }
+              }
               filteredText.append(alt);
               erase(filteredText, tkText.length() - j);
               continue;

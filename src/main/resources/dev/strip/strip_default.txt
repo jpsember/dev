@@ -8,10 +8,12 @@ _SKIP_SECTION:  \s* { $_TILDE
   # Anything but ~}
   ( .*  -- ( .* ( $_TILDE } ) .* ) )
   ( $_TILDE } )
+  # Optional whitespace up to and including the next newline(?):
+  ([\s\t]*\n?)
 
 >>>toml,sh,gitignore
 
-ALTERNATIVE: \# $_SKIP_SECTION
+ALTERNATIVE: \# $_SKIP_SECTION  [\s\t]* \n?
 
 >>>java,rs
 
