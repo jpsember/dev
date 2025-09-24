@@ -41,17 +41,15 @@ public class StripOper extends AppOper {
 
   @Override
   public String shortHelp() {
-    return "prepare repository for commit";
+    return "copy source branch to target, stripping out development code";
   }
 
   @Override
   protected void longHelp(BasePrinter b) {
     var hf = new HelpFormatter();
-    hf.addItem(" oper (init | filter | restore | auto)", "Operation");
     hf.addItem("** this help is out of date**[ pattern_file <hhhhhhh> ]", "file describing deletion patterns");
     b.pr(hf);
     b.br();
-    b.pr("Prepares source files for commit by deleting particular content");
   }
 
   @Override
