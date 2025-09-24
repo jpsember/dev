@@ -92,7 +92,7 @@ public class StripOperTest extends DevTestBase {
     if (!relPath.isEmpty()) {
       path = new File(path, relPath);
     }
-    path = new File(path, ".filter");
+    path = new File(path, ".delete");
     var newContent = String.join("\n", concatExprs);
     files().writeString(path, newContent);
   }

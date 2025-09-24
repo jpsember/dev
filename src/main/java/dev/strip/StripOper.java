@@ -21,15 +21,21 @@ import java.util.*;
 
 public class StripOper extends AppOper {
 
-  public static final String FILTER_FILENAME = ".filter";
+  // If present within a directory, a list of files (or directories) to delete from that directory (within the target branch)
+  public static final String DELETE_FILES_LIST = ".delete";
+
+  // If present within a directory, uses this list of files (or directories) to examine;
+  // otherwise, examines all of them
   public static final String FILE_LIST_FILENAME = ".files";
+
+  // Defines the regular expressions to apply filter to.  If missing, uses default list
   public static final String PROJECT_INFO_FILE = ".strip_project";
+
   public static final String STRIP_OPER_ARGS_FILE = "strip-args.json";
 
 
   @Override
   public String userCommand() {
-    todo("!can I combine .filter and .files somehow?");
     return "strip";
   }
 
@@ -182,7 +188,7 @@ public class StripOper extends AppOper {
   }
 
 
-  private static final List<String> ALWAYS_DELETE_THESE_FILES = arrayList(FILTER_FILENAME, PROJECT_INFO_FILE, FILE_LIST_FILENAME,
+  private static final List<String> ALWAYS_DELETE_THESE_FILES = arrayList(DELETE_FILES_LIST, PROJECT_INFO_FILE, FILE_LIST_FILENAME,
       STRIP_OPER_ARGS_FILE);
 
   private void doStrip() {
@@ -200,7 +206,7 @@ public class StripOper extends AppOper {
       var entry = pop(dirStack);
       var state = entry.filterState();
 
-      var filterFile = new File(entry.directory(), FILTER_FILENAME);
+      var filterFile = new File(entry.directory(), DELETE_FILES_LIST);
       if (filterFile.exists()) {
         var content = Files.readString(filterFile);
         state = processFilterFile(content, state);
