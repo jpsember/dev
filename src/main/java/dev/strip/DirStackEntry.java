@@ -19,7 +19,7 @@ public class DirStackEntry extends BaseObject {
     return r;
   }
 
-  public DirStackEntry(FilterState state, File directory) {
+  private DirStackEntry(FilterState state, File directory) {
     this.mDir = directory;
     this.mFilterState = state;
   }
@@ -28,11 +28,14 @@ public class DirStackEntry extends BaseObject {
     return new DirStackEntry(newFilterState, mDir);
   }
 
-  public DirStackEntry withDirectory(String subdirName) {
-    var newdir = new File(mDir, subdirName);
-    Files.assertDirectoryExists(newdir, "withDirectory");
-    var newState = mFilterState.descendInto(subdirName);
-    return new DirStackEntry(newState, newdir);
+  public DirStackEntry withSubDirectory(File subdir) {
+    // Verify that subdirectory is strictly within the current directory
+    Files.assertAbsolute(subdir);
+    File rel = Files.relativeToContainingDirectory(subdir, mDir);
+//    var newdir = subdir; //new File(mDir, subdirName);
+    Files.assertDirectoryExists(subdir, "withDirectory");
+    var newState = mFilterState.descendInto(rel);
+    return new DirStackEntry(newState, subdir);
   }
 
   public File directory() {

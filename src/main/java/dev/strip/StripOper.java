@@ -28,7 +28,8 @@ public class StripOper extends AppOper {
   // otherwise, examines all of them
   public static final String FILE_LIST_FILENAME = ".files";
 
-  // Defines the regular expressions to apply filter to.  If missing, uses default list
+  // If there is a file with this name in the project root directory, it defines the regular expressions
+  // to apply the filter to.  If missing, the default file will be used
   public static final String PROJECT_INFO_FILE = ".strip_project";
 
   public static final String STRIP_OPER_ARGS_FILE = "strip-args.json";
@@ -70,8 +71,7 @@ public class StripOper extends AppOper {
     var c = config();
 
     if (c.defaults()) {
-      var defContent = Files.readString(this.getClass(), "strip_default.txt");
-      pr(defContent);
+      pr(defaultExpressionsContent());
       return;
     }
     checkArgument(nonEmpty(c.sourceBranch()), "source_branch is empty");
@@ -153,7 +153,7 @@ public class StripOper extends AppOper {
       if (infoFile.exists()) {
         content = Files.readString(infoFile);
       } else {
-        content = Files.readString(this.getClass(), "strip_default.txt");
+        content = defaultExpressionsContent();
       }
       mCachedProjectInfoFileContent = content;
     }
@@ -161,6 +161,10 @@ public class StripOper extends AppOper {
   }
 
   private String mCachedProjectInfoFileContent;
+
+  private String defaultExpressionsContent() {
+    return Files.readString(this.getClass(), "strip_default.txt");
+  }
 
   /**
    * Determine the project cache directory.  This is where it will store
@@ -183,10 +187,10 @@ public class StripOper extends AppOper {
     return mCacheDir;
   }
 
-  private FilterState processFilterFile(String content, FilterState currentState) {
+  private FilterState processFilterFile(File currentDirAbs, String content, FilterState currentState) {
     var newState = currentState.dup();
     for (var line : parseLinesFromTextFile(content)) {
-      newState.addDeleteFile(line);
+      newState.addDeleteFileAbs(Files.join(currentDirAbs,line)); //addDeleteFile(line);
     }
     return newState;
   }
@@ -207,18 +211,18 @@ public class StripOper extends AppOper {
     List<DirStackEntry> dirStack = arrayList();
 
     var initialEnt = DirStackEntry.start(initialState, projectDir());
-    pr("InitialEntry:",INDENT,initialEnt);
+    pr("InitialEntry:", INDENT, initialEnt);
     dirStack.add(initialEnt);
     while (!dirStack.isEmpty()) {
       var entry = pop(dirStack);
       var state = entry.filterState();
-      pr(VERT_SP,"popped entry:",INDENT,entry);
+      pr(VERT_SP, "popped entry:", INDENT, entry);
 
       var filterFile = new File(entry.directory(), DELETE_FILES_LIST);
       if (filterFile.exists()) {
-        pr("...processing .filter file:",filterFile);
+        pr("...processing .filter file:", filterFile);
         var content = Files.readString(filterFile);
-        state = processFilterFile(content, state);
+        state = processFilterFile(entry.directory(), content, state);
         entry = entry.withState(state);
       }
 
@@ -226,33 +230,35 @@ public class StripOper extends AppOper {
       // If an explict file list exists, parse that for the list of files instead.
       // The result is a list of files or directories, relative to the current entry's directory
 
-      var listOfFiles = constructFilesWithinDir(entry.directory());
+      var listOfFiles = constructFilesWithinDirAbs(entry.directory());
       pr("...constructed list of files within dir");
       pr(listOfFiles);
-      for (var sourceFileOrDir : listOfFiles) {
+      for (var abs : listOfFiles) {
         // If the file (or dir) is a symlink, don't process it
-        if (isSymLink(sourceFileOrDir))
+        if (isSymLink(abs))
           continue;
 
-        var justTheName = sourceFileOrDir.getName();
+        var justTheName = abs.getName();
 
-        pr("...... file or dir:",INDENT,Files.infoMap(sourceFileOrDir));
+        pr("...... file or dir:", INDENT, Files.infoMap(abs));
 
-        if (ALWAYS_DELETE_THESE_FILES.contains(justTheName) || state.deleteFilenames().contains(justTheName)) {
-          log("..........filtering entire file or dir:", justTheName);
-          recordEdit(Files.relativeToContainingDirectory(sourceFileOrDir, projectDir()), EditCode.DELETE, "");
+
+        var rel = Files.relativeToContainingDirectory(abs, projectDir());
+
+        if (ALWAYS_DELETE_THESE_FILES.contains(justTheName) || state.deleteFilesAbs().contains(abs)) {
+          log("..........filtering entire file or dir:", rel);
+          recordEdit(rel, EditCode.DELETE, "");
           continue;
         }
 
-        var rel = Files.relativeToContainingDirectory(sourceFileOrDir, projectDir());
 
-        if (!sourceFileOrDir.isDirectory()) {
-          var sourceFile = sourceFileOrDir;
-          var ext = Files.getExtension(sourceFile);
+        if (!abs.isDirectory()) {
+//          var sourceFile = abs;
+          var ext = Files.getExtension(abs);
           var dfa = dfaForExtension(ext);
           if (dfa != null) {
             log("file:", rel);
-            var currText = Files.readString(sourceFile);
+            var currText = Files.readString(abs);
             applyFilter(currText, dfa, verbose());
             if (mMatchesWithinFile != 0) {
               var filteredContent = mNewText.toString();
@@ -260,7 +266,7 @@ public class StripOper extends AppOper {
             }
           }
         } else {
-          var newEnt = entry.withDirectory(justTheName);
+          var newEnt = entry.withSubDirectory(abs);
           push(dirStack, newEnt);
         }
       }
@@ -272,7 +278,7 @@ public class StripOper extends AppOper {
    * Get list of files (or subdirectories) within a directory to extend the filter traversal to.
    * If an explict file list exists, parse that for the list of files instead.
    */
-  private List<File> constructFilesWithinDir(File dir) {
+  private List<File> constructFilesWithinDirAbs(File dir) {
     var explicitFileList = new File(dir, FILE_LIST_FILENAME);
     if (explicitFileList.exists()) {
       Set<File> setOfFiles = hashSet();
@@ -488,7 +494,7 @@ public class StripOper extends AppOper {
     }
 
     Set<String> deleteFilenames = hashSet();
-    return new FilterState(deleteFilenames);
+    return new FilterState(projectDir(), deleteFilenames);
   }
 
   private StringBuilder extensionBuffer(String ext) {

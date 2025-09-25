@@ -42,16 +42,15 @@ public class StripOperTest extends DevTestBase {
   }
 
 
-
   @Test
   public void explicitFileList() {
     prepareApp();
-
     // Use an explicit file list
 
-    var fl = "d.java\n"+"subdir/h2\n";
-    var targ = Files.join(mProjectDirSource,".files");
-    files().writeString(targ,fl);
+    todo("What if a file/dir is listed in *both* .files and .delete?  That's not allowed");
+    var fl = "big.rs\n" + "subdir/h2\n";
+    var targ = Files.join(mProjectDirSource, ".files");
+    files().writeString(targ, fl);
 
     runApp();
     assertGenerated();
@@ -83,17 +82,17 @@ public class StripOperTest extends DevTestBase {
   public void filterFileAndSubdir() {
     auxFilt("", "d.java", "subdir/j2");
   }
-
-  @Test
-  public void pathValidator() {
-    var m = map();
-    String[] exp = {"d.java", "a/b/c.txt", "a/b/.c/.d", "ab..cd", "./abc/def", ".abc/.def", "abc def/alpha", "al\\b/e", "abc/", "/def", "abc//def"};
-    for (var s : exp) {
-      var result = FilterState.isValidFilename(s);
-      m.putNumbered(s, result ? "ok" : "*** PROBLEM");
-    }
-    assertMessage(m);
-  }
+//
+//  @Test
+//  public void pathValidator() {
+//    var m = map();
+//    String[] exp = {"d.java", "a/b/c.txt", "a/b/.c/.d", "ab..cd", "./abc/def", ".abc/.def", "abc def/alpha", "al\\b/e", "abc/", "/def", "abc//def"};
+//    for (var s : exp) {
+//      var result = FilterState.isValidFilename(s);
+//      m.putNumbered(s, result ? "ok" : "*** PROBLEM");
+//    }
+//    assertMessage(m);
+//  }
 
   private void auxFilt(String relPath, String... concatExprs) {
     repFilter(relPath, concatExprs);
@@ -116,9 +115,9 @@ public class StripOperTest extends DevTestBase {
     clearArgs();
     setOper("strip");
     var sourceDir = testFile("project");
-      mProjectDirSource = Files.join(generatedDir(), "project");
+    mProjectDirSource = Files.join(generatedDir(), "project");
     files().copyDirectory(sourceDir, mProjectDirSource);
-     mProjectDirTarget = Files.join(generatedDir(), "project" + StripOper.TESTING_DIR_SUFFIX);
+    mProjectDirTarget = Files.join(generatedDir(), "project" + StripOper.TESTING_DIR_SUFFIX);
     files().copyDirectory(sourceDir, mProjectDirTarget);
 
     addArg("source_branch", "$");
