@@ -44,7 +44,7 @@ PR: $_LEFTSPACE  pr \( $_TOSEMI
 #
 # (Note the escaped *)
 #
-USE_JEFFTOOLS: use \s+ crate\:\:jefftools\:\: $_TOENDOFLINE
+USE_JEFFTOOLS: use \s+ crate\:\:util\:\: $_TOENDOFLINE
 
 
 # Methods within jefftools.rs
