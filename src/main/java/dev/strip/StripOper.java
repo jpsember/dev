@@ -568,7 +568,7 @@ public class StripOper extends AppOper {
         case DELETE:
           if (targetFile.exists()) {
             if (targetFile.isDirectory()) {
-              files().deleteDirectory(targetFile, "generated");
+              files().deleteDirectory(targetFile);
             } else {
               files().deleteFile(targetFile);
             }
