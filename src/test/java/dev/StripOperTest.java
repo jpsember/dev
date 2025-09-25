@@ -23,7 +23,6 @@
  **/
 package dev;
 
-import dev.strip.FilterState;
 import dev.strip.StripOper;
 import js.file.Files;
 import org.junit.Test;

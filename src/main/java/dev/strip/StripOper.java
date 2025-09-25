@@ -189,7 +189,6 @@ public class StripOper extends AppOper {
 
   private FilterState processFilterFile(FilterState current, String content) {
     Set<File> filtFiles = hashSet();
-//    var newState = current.dup();
     for (var line : parseLinesFromTextFile(content)) {
       filtFiles.add(Files.join(current.directory(), line));
     }
@@ -209,20 +208,15 @@ public class StripOper extends AppOper {
 
   private JSMap generateEditsMap() {
     var initialState = prepareState();
-    pr("InitialEntry:", INDENT, initialState);
     List<FilterState> dirStack = arrayList();
     dirStack.add(initialState);
 
     while (!dirStack.isEmpty()) {
       var state = pop(dirStack);
-      pr(VERT_SP, "popped state:", INDENT, state);
-
       var filterFile = new File(state.directory(), DELETE_FILES_LIST);
       if (filterFile.exists()) {
-        pr("...processing .delete file:", filterFile);
         var content = Files.readString(filterFile);
         state = processFilterFile(state, content);
-        pr("...modified state:", INDENT, state);
       }
 
       // Examine the files (or subdirectories) within this directory (without recursing).
@@ -231,15 +225,10 @@ public class StripOper extends AppOper {
 
       var listOfFiles = constructFilesWithinDirAbs(state.directory());
 
-      pr("...constructed list of files within dir");
-      pr(listOfFiles);
-
       for (var abs : listOfFiles) {
         // If the file (or dir) is a symlink, don't process it
         if (isSymLink(abs))
           continue;
-
-        pr("...... file or dir:", abs);
 
         var relativeToProject = Files.relativeToContainingDirectory(abs, projectDir());
 
@@ -291,11 +280,9 @@ public class StripOper extends AppOper {
           listOfFiles.add(x);
         }
       }
-      pr(VERT_SP, "explicit list of files:", INDENT, listOfFiles);
       return listOfFiles;
     } else {
       var walk = new DirWalk(dir).withRecurse(false).includeDirectories().omitNames(".DS_Store");
-      pr(VERT_SP, "all files in directory:", INDENT, walk.files());
       return walk.files();
     }
   }
@@ -367,10 +354,8 @@ public class StripOper extends AppOper {
                 lines2.add(x);
               }
 
-              // pr("lines:", INDENT, lines, CR, "lines2:", CR, lines2);
               if (lines2 != null) {
                 alt = String.join("\n", lines2) + "\n";
-                // filteredText.append("==== alt is:" + alt + "=====");
               }
               filteredText.append(alt);
               erase(filteredText, tkText.length() - j);
