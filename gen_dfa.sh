@@ -6,9 +6,4 @@ set -eu
 DEST="src/main/resources/dev/"
 TOK="src/main/java/dev/"
 
-# Validates path elements in .delete files
-#
-dfa input dfas/filter_expr.rxp \
-    output "${DEST}strip/filter_expr.dfa" \
-    ids "${TOK}strip/FilterState.java" \
-    "$@"
+

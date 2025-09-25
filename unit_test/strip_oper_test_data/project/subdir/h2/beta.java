@@ -1,3 +1,3 @@
 // Filtered...
-    checkState("xyz");
+    pr("xyz");
 // ^^^^^

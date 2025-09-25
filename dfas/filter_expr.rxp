@@ -1,7 +1,0 @@
-_PATHCHAR: [a-zA-Z0-9_\-]
-_DOT: \.
-
-_PATHWORD: ($_DOT $_PATHCHAR+) | ($_PATHCHAR+ ($_DOT $_PATHCHAR+)* $_DOT?)
-_PATHSEP: \/
-
-REL_PATH:  $_PATHWORD ($_PATHSEP $_PATHWORD)*

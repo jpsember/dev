@@ -209,66 +209,62 @@ public class StripOper extends AppOper {
 
   private JSMap generateEditsMap() {
     var initialState = prepareState();
+    pr("InitialEntry:", INDENT, initialState);
     List<FilterState> dirStack = arrayList();
+    dirStack.add(initialState);
 
-    var initialEnt = new FilterState(projectDir(), arrayList());
-    //DirStackEntry.start(initialState, projectDir());
-    pr("InitialEntry:", INDENT, initialEnt);
-    dirStack.add(initialEnt);
     while (!dirStack.isEmpty()) {
       var state = pop(dirStack);
-//      var state = entry.filterState();
       pr(VERT_SP, "popped state:", INDENT, state);
 
       var filterFile = new File(state.directory(), DELETE_FILES_LIST);
       if (filterFile.exists()) {
-        pr("...processing .filter file:", filterFile);
+        pr("...processing .delete file:", filterFile);
         var content = Files.readString(filterFile);
         state = processFilterFile(state, content);
+        pr("...modified state:", INDENT, state);
       }
 
       // Examine the files (or subdirectories) within this directory (without recursing).
-      // If an explict file list exists, parse that for the list of files instead.
+      // If an explicit file list exists, parse that for the list of files instead.
       // The result is a list of files or directories, relative to the current entry's directory
 
       var listOfFiles = constructFilesWithinDirAbs(state.directory());
+
       pr("...constructed list of files within dir");
       pr(listOfFiles);
+
       for (var abs : listOfFiles) {
         // If the file (or dir) is a symlink, don't process it
         if (isSymLink(abs))
           continue;
 
-        var justTheName = abs.getName();
+        pr("...... file or dir:", abs);
 
-        pr("...... file or dir:", INDENT, Files.infoMap(abs));
+        var relativeToProject = Files.relativeToContainingDirectory(abs, projectDir());
 
-
-        var rel = Files.relativeToContainingDirectory(abs, projectDir());
-
-        if (ALWAYS_DELETE_THESE_FILES.contains(justTheName) || state.deleteFilesAbs().contains(abs)) {
-          log("..........filtering entire file or dir:", rel);
-          recordEdit(rel, EditCode.DELETE, "");
+        if (ALWAYS_DELETE_THESE_FILES.contains(abs.getName()) || state.deleteFilesAbs().contains(abs)) {
+          log("..........filtering entire file or dir:", relativeToProject);
+          recordEdit(relativeToProject, EditCode.DELETE, "");
           continue;
         }
 
 
         if (!abs.isDirectory()) {
-//          var sourceFile = abs;
           var ext = Files.getExtension(abs);
           var dfa = dfaForExtension(ext);
           if (dfa != null) {
-            log("file:", rel);
+            log("file:", relativeToProject);
             var currText = Files.readString(abs);
             applyFilter(currText, dfa, verbose());
             if (mMatchesWithinFile != 0) {
               var filteredContent = mNewText.toString();
-              recordEdit(rel, EditCode.MODIFY, filteredContent);
+              recordEdit(relativeToProject, EditCode.MODIFY, filteredContent);
             }
           }
         } else {
           var newEnt = state.descendInto(abs);
-//          var newEnt = entry.withSubDirectory(abs);
+          log("...descending into dir");
           push(dirStack, newEnt);
         }
       }
@@ -284,8 +280,6 @@ public class StripOper extends AppOper {
     var explicitFileList = new File(dir, FILE_LIST_FILENAME);
     if (explicitFileList.exists()) {
       Set<File> setOfFiles = hashSet();
-      for (var x : ALWAYS_DELETE_THESE_FILES)
-        setOfFiles.add(new File(dir, x));
       for (var line : parseLinesFromTextFile(Files.readString(explicitFileList))) {
         var candidateFile = new File(dir, line);
         if (candidateFile.exists())
@@ -297,9 +291,11 @@ public class StripOper extends AppOper {
           listOfFiles.add(x);
         }
       }
+      pr(VERT_SP, "explicit list of files:", INDENT, listOfFiles);
       return listOfFiles;
     } else {
       var walk = new DirWalk(dir).withRecurse(false).includeDirectories().omitNames(".DS_Store");
+      pr(VERT_SP, "all files in directory:", INDENT, walk.files());
       return walk.files();
     }
   }

@@ -49,11 +49,14 @@ public class FilterState extends BaseObject {
   @Override
   public JSMap toJson() {
     var m = map();
+    m.put("dir", directory().toString());
     List<String> lst = arrayList();
-    for (var x : mDeleteFilesAbs)
-      lst.add(x.toString());
-    lst.sort(null);
-    m.put("delete_files", JSList.with(lst));
+    if (!mDeleteFilesAbs.isEmpty()) {
+      for (var x : mDeleteFilesAbs)
+        lst.add(x.toString());
+      lst.sort(null);
+      m.put("x_del", JSList.with(lst));
+    }
     return m;
   }
 }
