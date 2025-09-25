@@ -4,11 +4,10 @@ import js.base.BaseObject;
 import js.file.Files;
 import js.json.JSList;
 import js.json.JSMap;
-import js.parsing.DFA;
-import js.parsing.Lexer;
 
 import java.io.File;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -16,35 +15,38 @@ import static js.base.Tools.*;
 
 public class FilterState extends BaseObject {
 
-  private FilterState() {
+//  private FilterState(FilterState source) {
+//    mDirectoryAbs = source.mDirectoryAbs;
+//    mDeleteFilesAbs.addAll(source.mDeleteFilesAbs);
+//  }
+
+  public File directory() {
+    return mDirectoryAbs;
   }
 
-  public FilterState(File containerDir, Collection<String> deleteFilenamesRel) {
-    for (var s : deleteFilenamesRel)
-      addDeleteFileAbs(Files.join(containerDir, s));
+  public FilterState(File containerDir, Collection<File> deleteFilenamesAbs) {
+    mDirectoryAbs = Files.assertAbsolute(containerDir);
+    for (var s : deleteFilenamesAbs)
+      addDeleteFileAbs(s);
   }
 
   /**
    * Construct a new FilterState by descending into a subdirectory of the current state's directory
    */
-  public FilterState descendInto(File relativeSubdir) {
+  public FilterState descendInto(File absSubdir) {
     todo("can we have the directory in this FilterState as well?");
     todo("this is clunky and doesn't work");
-    log("descendInto:", relativeSubdir);
-    Files.assertRelative(relativeSubdir);
-    var fs = this.dup();
+    var rel = Files.relativeToContainingDirectory(absSubdir, this.directory());
+    log("descendInto:", rel);
+    var fs = new FilterState(absSubdir, this.deleteFilesAbs());
+//    var fs = this.dup();
+//    fs.mDirectoryAbs = absSubdir;
     log("...returning:", INDENT, fs);
     return fs;
   }
 
   public Set<File> deleteFilesAbs() {
     return mDeleteFilesAbs;
-  }
-
-  public FilterState dup() {
-    var s = new FilterState();
-    s.mDeleteFilesAbs.addAll(mDeleteFilesAbs);
-    return s;
   }
 
   public void addDeleteFileAbs(File fileAbs) {
@@ -58,8 +60,10 @@ public class FilterState extends BaseObject {
 //    return filename;
 //  }
 
+  private final File mDirectoryAbs;
+
   // This map should be considered immutable.  If changes are made, construct a new copy
-  private final Set<File> mDeleteFilesAbs = hashSet();
+  private final  Set<File> mDeleteFilesAbs = hashSet();
 
 //  private static DFA sValidatorDFA = DFA.parse(Files.readString(FilterState.class, "filter_expr.dfa"));
 

@@ -6,6 +6,7 @@ import js.json.JSMap;
 
 import java.io.File;
 
+@Deprecated
 public class DirStackEntry extends BaseObject {
 
 

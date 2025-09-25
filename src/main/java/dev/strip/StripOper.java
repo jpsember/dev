@@ -187,12 +187,13 @@ public class StripOper extends AppOper {
     return mCacheDir;
   }
 
-  private FilterState processFilterFile(File currentDirAbs, String content, FilterState currentState) {
-    var newState = currentState.dup();
+  private FilterState processFilterFile(FilterState current, String content) {
+    Set<File> filtFiles = hashSet();
+//    var newState = current.dup();
     for (var line : parseLinesFromTextFile(content)) {
-      newState.addDeleteFileAbs(Files.join(currentDirAbs,line)); //addDeleteFile(line);
+      filtFiles.add(Files.join(current.directory(), line));
     }
-    return newState;
+    return new FilterState(current.directory(), filtFiles);
   }
 
 
@@ -208,29 +209,29 @@ public class StripOper extends AppOper {
 
   private JSMap generateEditsMap() {
     var initialState = prepareState();
-    List<DirStackEntry> dirStack = arrayList();
+    List<FilterState> dirStack = arrayList();
 
-    var initialEnt = DirStackEntry.start(initialState, projectDir());
+    var initialEnt = new FilterState(projectDir(), arrayList());
+    //DirStackEntry.start(initialState, projectDir());
     pr("InitialEntry:", INDENT, initialEnt);
     dirStack.add(initialEnt);
     while (!dirStack.isEmpty()) {
-      var entry = pop(dirStack);
-      var state = entry.filterState();
-      pr(VERT_SP, "popped entry:", INDENT, entry);
+      var state = pop(dirStack);
+//      var state = entry.filterState();
+      pr(VERT_SP, "popped state:", INDENT, state);
 
-      var filterFile = new File(entry.directory(), DELETE_FILES_LIST);
+      var filterFile = new File(state.directory(), DELETE_FILES_LIST);
       if (filterFile.exists()) {
         pr("...processing .filter file:", filterFile);
         var content = Files.readString(filterFile);
-        state = processFilterFile(entry.directory(), content, state);
-        entry = entry.withState(state);
+        state = processFilterFile(state, content);
       }
 
       // Examine the files (or subdirectories) within this directory (without recursing).
       // If an explict file list exists, parse that for the list of files instead.
       // The result is a list of files or directories, relative to the current entry's directory
 
-      var listOfFiles = constructFilesWithinDirAbs(entry.directory());
+      var listOfFiles = constructFilesWithinDirAbs(state.directory());
       pr("...constructed list of files within dir");
       pr(listOfFiles);
       for (var abs : listOfFiles) {
@@ -266,7 +267,8 @@ public class StripOper extends AppOper {
             }
           }
         } else {
-          var newEnt = entry.withSubDirectory(abs);
+          var newEnt = state.descendInto(abs);
+//          var newEnt = entry.withSubDirectory(abs);
           push(dirStack, newEnt);
         }
       }
@@ -493,8 +495,7 @@ public class StripOper extends AppOper {
       }
     }
 
-    Set<String> deleteFilenames = hashSet();
-    return new FilterState(projectDir(), deleteFilenames);
+    return new FilterState(projectDir(), arrayList());
   }
 
   private StringBuilder extensionBuffer(String ext) {
