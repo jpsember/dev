@@ -26,6 +26,8 @@ class strip_config {
 
     bool skip_pattern_search;
 
+    bool include_symlinks;
+
     string include_extensions = "txt,java,rs,py,md,sh";
 }
 

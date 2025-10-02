@@ -228,6 +228,13 @@ public class StripOper extends AppOper {
       var listOfFiles = constructFilesWithinDirAbs(state.directory());
 
       for (var abs : listOfFiles) {
+
+        if (!config().includeSymlinks()) {
+          // If the file (or dir) is a symlink, don't process it
+          if (isSymLink(abs))
+            continue;
+        }
+
         var relativeToProject = Files.relativeToContainingDirectory(abs, projectDir());
 
         if (ALWAYS_DELETE_THESE_FILES.contains(abs.getName()) || state.deleteFilesAbs().contains(abs)) {
@@ -291,6 +298,9 @@ public class StripOper extends AppOper {
     }
   }
 
+  private static boolean isSymLink(File f) {
+    return !f.getAbsoluteFile().equals(Files.getCanonicalFile(f));
+  }
 
   public static JSMap niceList(Collection<File> lst) {
     var m = map();
@@ -576,6 +586,11 @@ public class StripOper extends AppOper {
   private Set<String> mInclExt;
 
   private void processEditsMap(JSMap editsMap) {
+    if (dryRun()) {
+      if (!inTestMode())
+        pr("dry run; edits map:", INDENT, editsMap);
+      return;
+    }
     for (var relPath : editsMap.keySet()) {
       var targetFile = new File(projectDir(), relPath);
       var arg = editsMap.get(relPath);
