@@ -39,6 +39,10 @@ public class StripConfig implements AbstractData {
     return mSkipPatternSearch;
   }
 
+  public String includeExtensions() {
+    return mIncludeExtensions;
+  }
+
   @Override
   public Builder toBuilder() {
     return new Builder(this);
@@ -52,6 +56,7 @@ public class StripConfig implements AbstractData {
   protected static final String _5 = "cache_filename";
   protected static final String _6 = "cache_path_expr";
   protected static final String _7 = "skip_pattern_search";
+  protected static final String _8 = "include_extensions";
 
   @Override
   public String toString() {
@@ -69,6 +74,7 @@ public class StripConfig implements AbstractData {
     m.putUnsafe(_5, mCacheFilename.toString());
     m.putUnsafe(_6, mCachePathExpr);
     m.putUnsafe(_7, mSkipPatternSearch);
+    m.putUnsafe(_8, mIncludeExtensions);
     return m;
   }
 
@@ -109,6 +115,7 @@ public class StripConfig implements AbstractData {
     }
     mCachePathExpr = m.opt(_6, "");
     mSkipPatternSearch = m.opt(_7, false);
+    mIncludeExtensions = m.opt(_8, "txt,java,rs,py,md,sh");
   }
 
   public static Builder newBuilder() {
@@ -140,6 +147,8 @@ public class StripConfig implements AbstractData {
       return false;
     if (!(mSkipPatternSearch == other.mSkipPatternSearch))
       return false;
+    if (!(mIncludeExtensions.equals(other.mIncludeExtensions)))
+      return false;
     return true;
   }
 
@@ -156,6 +165,7 @@ public class StripConfig implements AbstractData {
       r = r * 37 + mCacheFilename.hashCode();
       r = r * 37 + mCachePathExpr.hashCode();
       r = r * 37 + (mSkipPatternSearch ? 1 : 0);
+      r = r * 37 + mIncludeExtensions.hashCode();
       m__hashcode = r;
     }
     return r;
@@ -169,6 +179,7 @@ public class StripConfig implements AbstractData {
   protected File mCacheFilename;
   protected String mCachePathExpr;
   protected boolean mSkipPatternSearch;
+  protected String mIncludeExtensions;
   protected int m__hashcode;
 
   public static final class Builder extends StripConfig {
@@ -182,6 +193,7 @@ public class StripConfig implements AbstractData {
       mCacheFilename = m.mCacheFilename;
       mCachePathExpr = m.mCachePathExpr;
       mSkipPatternSearch = m.mSkipPatternSearch;
+      mIncludeExtensions = m.mIncludeExtensions;
     }
 
     @Override
@@ -206,6 +218,7 @@ public class StripConfig implements AbstractData {
       r.mCacheFilename = mCacheFilename;
       r.mCachePathExpr = mCachePathExpr;
       r.mSkipPatternSearch = mSkipPatternSearch;
+      r.mIncludeExtensions = mIncludeExtensions;
       return r;
     }
 
@@ -249,6 +262,11 @@ public class StripConfig implements AbstractData {
       return this;
     }
 
+    public Builder includeExtensions(String x) {
+      mIncludeExtensions = (x == null) ? "txt,java,rs,py,md,sh" : x;
+      return this;
+    }
+
   }
 
   private static final File _D5 = new File(".strip_cache");
@@ -262,6 +280,7 @@ public class StripConfig implements AbstractData {
     mCacheDir = Files.DEFAULT;
     mCacheFilename = _D5;
     mCachePathExpr = "";
+    mIncludeExtensions = "txt,java,rs,py,md,sh";
   }
 
 }

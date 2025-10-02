@@ -46,12 +46,9 @@ public class StripOperTest extends DevTestBase {
   public void explicitFileList() {
     prepareApp();
     // Use an explicit file list
-
-    todo("What if a file/dir is listed in *both* .files and .delete?  That's not allowed");
     var fl = "big.rs\n" + "subdir/h2\n";
     var targ = Files.join(mProjectDirSource, ".files");
     files().writeString(targ, fl);
-
     runApp();
     assertGenerated();
   }
@@ -82,17 +79,6 @@ public class StripOperTest extends DevTestBase {
   public void filterFileAndSubdir() {
     auxFilt("", "d.java", "subdir/j2");
   }
-//
-//  @Test
-//  public void pathValidator() {
-//    var m = map();
-//    String[] exp = {"d.java", "a/b/c.txt", "a/b/.c/.d", "ab..cd", "./abc/def", ".abc/.def", "abc def/alpha", "al\\b/e", "abc/", "/def", "abc//def"};
-//    for (var s : exp) {
-//      var result = FilterState.isValidFilename(s);
-//      m.putNumbered(s, result ? "ok" : "*** PROBLEM");
-//    }
-//    assertMessage(m);
-//  }
 
   private void auxFilt(String relPath, String... concatExprs) {
     repFilter(relPath, concatExprs);
@@ -120,12 +106,15 @@ public class StripOperTest extends DevTestBase {
     mProjectDirTarget = Files.join(generatedDir(), "project" + StripOper.TESTING_DIR_SUFFIX);
     files().copyDirectory(sourceDir, mProjectDirTarget);
 
-    // Delete any files that start with 'omitted' or have the extension '.md'
+    // Delete any files that start with 'omitted', '.', or have the extension '.md'
     // from the generated target directory, to
     // simulate the situation where they didn't already exist
-    var dw = new DirWalk(mProjectDirTarget).withRecurse(true).omitPrefixes(".");
+    var dw = new DirWalk(mProjectDirTarget).withRecurse(true);
     for (var w : dw.files()) {
-      if (Files.basename(w).startsWith("omitted") || Files.getExtension(w).equals("md")) {
+      var b = w.getName();
+      if (b.startsWith("omitted") || b.endsWith(".md")
+          || StripOper.ALWAYS_DELETE_THESE_FILES.contains(b)
+      ) {
         files().deleteFile(w);
       }
     }

@@ -196,7 +196,7 @@ public class StripOper extends AppOper {
   }
 
 
-  private static final List<String> ALWAYS_DELETE_THESE_FILES = arrayList(DELETE_FILES_LIST, PROJECT_INFO_FILE, EXPLICIT_FILES_LIST,
+  public /* for tests */ static final List<String> ALWAYS_DELETE_THESE_FILES = arrayList(DELETE_FILES_LIST, PROJECT_INFO_FILE, EXPLICIT_FILES_LIST,
       STRIP_OPER_ARGS_FILE);
 
   private void doStrip() {
@@ -228,13 +228,6 @@ public class StripOper extends AppOper {
       var listOfFiles = constructFilesWithinDirAbs(state.directory());
 
       for (var abs : listOfFiles) {
-
-//        alert("maybe don't omit sym links?");
-//
-//        // If the file (or dir) is a symlink, don't process it
-//        if (isSymLink(abs))
-//          continue;
-
         var relativeToProject = Files.relativeToContainingDirectory(abs, projectDir());
 
         if (ALWAYS_DELETE_THESE_FILES.contains(abs.getName()) || state.deleteFilesAbs().contains(abs)) {
@@ -244,19 +237,21 @@ public class StripOper extends AppOper {
         }
 
         if (!abs.isDirectory()) {
-          todo("copy entire file even if no editing called for");
           var ext = Files.getExtension(abs);
           var dfa = dfaForExtension(ext);
           if (dfa != null) {
             log("file:", relativeToProject);
             var currText = Files.readString(abs);
-            applyFilter(currText, dfa, verbose() && !alert("disabling verbosity"));
+            applyFilter(currText, dfa, verbose());
             if (mMatchesWithinFile != 0) {
               var filteredContent = mNewText.toString();
               recordEdit(relativeToProject, EditCode.MODIFY, filteredContent);
             }
           } else {
-            todo("!!!! NOT yet doing anything with:", abs.getName());
+            if (hasIncludeExtension(ext)) {
+              var currText = Files.readString(abs);
+              recordEdit(relativeToProject, EditCode.MODIFY, currText);
+            }
           }
         } else {
           var newEnt = state.descendInto(abs);
@@ -289,15 +284,20 @@ public class StripOper extends AppOper {
       }
       return listOfFiles;
     } else {
-      var walk = new DirWalk(dir).withRecurse(false).includeDirectories().omitNames(".DS_Store");
-      if (!alert("try omitting all '.' files"))
-        walk.omitPrefixes(".");
+      var walk = new DirWalk(dir).withRecurse(false).includeDirectories() //
+          .omitPrefixes(".") // also omits .DS_Store
+          ;
       return walk.files();
     }
   }
 
-  private static boolean isSymLink(File f) {
-    return !f.getAbsoluteFile().equals(Files.getCanonicalFile(f));
+
+  public static JSMap niceList(Collection<File> lst) {
+    var m = map();
+    for (var f : lst) {
+      m.putNumbered(f.getName());
+    }
+    return m;
   }
 
   private static final char ERASE_CHAR = 0x7f;
@@ -561,6 +561,19 @@ public class StripOper extends AppOper {
 
   private JSMap mEditsMap = map();
 
+
+  private boolean hasIncludeExtension(String ext) {
+    var s = mInclExt;
+    if (s == null) {
+      s = hashSet();
+      s.addAll(split(
+          config().includeExtensions(), ','));
+      mInclExt = s;
+    }
+    return s.contains(ext);
+  }
+
+  private Set<String> mInclExt;
 
   private void processEditsMap(JSMap editsMap) {
     for (var relPath : editsMap.keySet()) {

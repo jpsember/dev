@@ -26,6 +26,7 @@ class strip_config {
 
     bool skip_pattern_search;
 
+    string include_extensions = "txt,java,rs,py,md,sh";
 }
 
 enum edit_code {
