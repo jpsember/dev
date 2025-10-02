@@ -24,6 +24,7 @@
 package dev;
 
 import dev.strip.StripOper;
+import js.file.DirWalk;
 import js.file.Files;
 import org.junit.Test;
 
@@ -66,8 +67,8 @@ public class StripOperTest extends DevTestBase {
   @Test
   public void saveWithFileList() {
     prepareApp();
-    files().writeString(new File(sourceDir(), StripOper.FILE_LIST_FILENAME), "subdir");
-    files().writeString(new File(sourceDir(), "subdir/" + StripOper.FILE_LIST_FILENAME), "c.java\nh2");
+    files().writeString(new File(sourceDir(), StripOper.EXPLICIT_FILES_LIST), "subdir");
+    files().writeString(new File(sourceDir(), "subdir/" + StripOper.EXPLICIT_FILES_LIST), "c.java\nh2");
     runApp();
     assertGenerated();
   }
@@ -118,6 +119,16 @@ public class StripOperTest extends DevTestBase {
     files().copyDirectory(sourceDir, mProjectDirSource);
     mProjectDirTarget = Files.join(generatedDir(), "project" + StripOper.TESTING_DIR_SUFFIX);
     files().copyDirectory(sourceDir, mProjectDirTarget);
+
+    // Delete any files that start with 'omitted' or have the extension '.md'
+    // from the generated target directory, to
+    // simulate the situation where they didn't already exist
+    var dw = new DirWalk(mProjectDirTarget).withRecurse(true).omitPrefixes(".");
+    for (var w : dw.files()) {
+      if (Files.basename(w).startsWith("omitted") || Files.getExtension(w).equals("md")) {
+        files().deleteFile(w);
+      }
+    }
 
     addArg("source_branch", "$");
     addArg("target_branch", "$");

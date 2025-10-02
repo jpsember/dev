@@ -26,7 +26,7 @@ public class StripOper extends AppOper {
 
   // If present within a directory, uses this list of files (or directories) to examine;
   // otherwise, examines all of them
-  public static final String FILE_LIST_FILENAME = ".files";
+  public static final String EXPLICIT_FILES_LIST = ".files";
 
   // If there is a file with this name in the project root directory, it defines the regular expressions
   // to apply the filter to.  If missing, the default file will be used
@@ -187,16 +187,16 @@ public class StripOper extends AppOper {
     return mCacheDir;
   }
 
-  private FilterState processFilterFile(FilterState current, String content) {
-    Set<File> filtFiles = hashSet();
+  private FilterState processDeleteList(FilterState current, String content) {
+    Set<File> deleteFiles = hashSet();
     for (var line : parseLinesFromTextFile(content)) {
-      filtFiles.add(Files.join(current.directory(), line));
+      deleteFiles.add(Files.join(current.directory(), line));
     }
-    return new FilterState(current.directory(), filtFiles);
+    return new FilterState(current.directory(), deleteFiles);
   }
 
 
-  private static final List<String> ALWAYS_DELETE_THESE_FILES = arrayList(DELETE_FILES_LIST, PROJECT_INFO_FILE, FILE_LIST_FILENAME,
+  private static final List<String> ALWAYS_DELETE_THESE_FILES = arrayList(DELETE_FILES_LIST, PROJECT_INFO_FILE, EXPLICIT_FILES_LIST,
       STRIP_OPER_ARGS_FILE);
 
   private void doStrip() {
@@ -213,10 +213,12 @@ public class StripOper extends AppOper {
 
     while (!dirStack.isEmpty()) {
       var state = pop(dirStack);
-      var filterFile = new File(state.directory(), DELETE_FILES_LIST);
-      if (filterFile.exists()) {
-        var content = Files.readString(filterFile);
-        state = processFilterFile(state, content);
+
+      // If there's a .delete list, parse it and add those files to the delete list
+      var deleteListFile = new File(state.directory(), DELETE_FILES_LIST);
+      if (deleteListFile.exists()) {
+        var content = Files.readString(deleteListFile);
+        state = processDeleteList(state, content);
       }
 
       // Examine the files (or subdirectories) within this directory (without recursing).
@@ -226,6 +228,9 @@ public class StripOper extends AppOper {
       var listOfFiles = constructFilesWithinDirAbs(state.directory());
 
       for (var abs : listOfFiles) {
+
+        alert("maybe don't omit sym links?");
+
         // If the file (or dir) is a symlink, don't process it
         if (isSymLink(abs))
           continue;
@@ -238,18 +243,20 @@ public class StripOper extends AppOper {
           continue;
         }
 
-
         if (!abs.isDirectory()) {
+          todo("copy entire file even if no editing called for");
           var ext = Files.getExtension(abs);
           var dfa = dfaForExtension(ext);
           if (dfa != null) {
             log("file:", relativeToProject);
             var currText = Files.readString(abs);
-            applyFilter(currText, dfa, verbose());
+            applyFilter(currText, dfa, verbose() && !alert("disabling verbosity"));
             if (mMatchesWithinFile != 0) {
               var filteredContent = mNewText.toString();
               recordEdit(relativeToProject, EditCode.MODIFY, filteredContent);
             }
+          } else {
+            todo("!!!! NOT yet doing anything with:", abs.getName());
           }
         } else {
           var newEnt = state.descendInto(abs);
@@ -266,7 +273,7 @@ public class StripOper extends AppOper {
    * If an explict file list exists, parse that for the list of files instead.
    */
   private List<File> constructFilesWithinDirAbs(File dir) {
-    var explicitFileList = new File(dir, FILE_LIST_FILENAME);
+    var explicitFileList = new File(dir, EXPLICIT_FILES_LIST);
     if (explicitFileList.exists()) {
       Set<File> setOfFiles = hashSet();
       for (var line : parseLinesFromTextFile(Files.readString(explicitFileList))) {
@@ -283,6 +290,8 @@ public class StripOper extends AppOper {
       return listOfFiles;
     } else {
       var walk = new DirWalk(dir).withRecurse(false).includeDirectories().omitNames(".DS_Store");
+      if (!alert("try omitting all '.' files"))
+        walk.omitPrefixes(".");
       return walk.files();
     }
   }
@@ -312,7 +321,7 @@ public class StripOper extends AppOper {
         // This text is to be left alone
         filteredText.append(tkText);
       } else {
-        log("...found matching token");
+        if (verbose) log("...found matching token");
         mMatchesWithinFile++;
 
         {

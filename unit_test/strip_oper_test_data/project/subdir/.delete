@@ -1,3 +1,3 @@
-j1
-q.txt
-j2/fox.txt
+delete_subdir
+delete_txt.txt
+subsubdir/deleted_grandchild.txt
