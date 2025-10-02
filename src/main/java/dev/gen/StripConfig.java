@@ -251,7 +251,7 @@ public class StripConfig implements AbstractData {
 
   }
 
-  private static final File _D5 = new File(".strip_oper_cache");
+  private static final File _D5 = new File(".strip_cache");
 
   public static final StripConfig DEFAULT_INSTANCE = new StripConfig();
 

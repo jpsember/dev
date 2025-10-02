@@ -40,13 +40,6 @@ PR: $_LEFTSPACE  pr \( $_TOSEMI
 
 >>>rs
 
-# Importing my tools
-#
-# (Note the escaped *)
-#
-#USE_JEFFTOOLS: use \s+ crate\:\:util\:\: $_TOENDOFLINE
-
-
 # Methods within jefftools.rs
 #
 DB_METHODS: $_LEFTSPACE  ( pr! | prif! | pr_to! | o! | load_tools | warning | fail | halt ) \( $_TOSEMI
