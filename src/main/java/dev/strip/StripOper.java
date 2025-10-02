@@ -229,11 +229,11 @@ public class StripOper extends AppOper {
 
       for (var abs : listOfFiles) {
 
-        alert("maybe don't omit sym links?");
-
-        // If the file (or dir) is a symlink, don't process it
-        if (isSymLink(abs))
-          continue;
+//        alert("maybe don't omit sym links?");
+//
+//        // If the file (or dir) is a symlink, don't process it
+//        if (isSymLink(abs))
+//          continue;
 
         var relativeToProject = Files.relativeToContainingDirectory(abs, projectDir());
 
