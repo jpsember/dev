@@ -74,8 +74,17 @@ public class StripOper extends AppOper {
       pr(defaultExpressionsContent());
       return;
     }
+
+    if (!inTestMode()) {
+      var b = currentGitBranch();
+      if (!b.startsWith("dev_")) {
+        setError("current git branch is:", quote(b), "; expected 'dev_' prefix");
+      }
+    }
+
     checkArgument(nonEmpty(c.sourceBranch()), "source_branch is empty");
     checkArgument(nonEmpty(c.targetBranch()), "target_branch is empty");
+
 
     files().withDryRun(dryRun());
     log("arguments:", INDENT, config());
