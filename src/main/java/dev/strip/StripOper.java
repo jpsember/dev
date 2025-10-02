@@ -590,8 +590,19 @@ public class StripOper extends AppOper {
 
   private void processEditsMap(JSMap editsMap) {
     if (dryRun()) {
-      if (!inTestMode())
+      if (!inTestMode()) {
         pr("dry run; edits map:", INDENT, editsMap);
+        var editsMapSuccinct = map();
+        for (var key : editsMap.keySet()
+        ) {
+          var value = editsMap.get(key);
+          var i = value.indexOf("::");
+          if (i > 0)
+            value = value.substring(0, i);
+          editsMapSuccinct.put(key, value);
+        }
+        pr("succinct version:", INDENT, editsMapSuccinct);
+      }
       return;
     }
     for (var relPath : editsMap.keySet()) {
