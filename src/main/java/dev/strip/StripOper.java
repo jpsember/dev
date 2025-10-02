@@ -278,7 +278,8 @@ public class StripOper extends AppOper {
     var explicitFileList = new File(dir, EXPLICIT_FILES_LIST);
     if (explicitFileList.exists()) {
       Set<File> setOfFiles = hashSet();
-      for (var line : parseLinesFromTextFile(Files.readString(explicitFileList))) {
+      var content = Files.readString(explicitFileList);
+      for (var line : parseLinesFromTextFile(content)) {
         var candidateFile = new File(dir, line);
         if (candidateFile.exists())
           setOfFiles.add(candidateFile);
@@ -289,6 +290,8 @@ public class StripOper extends AppOper {
           listOfFiles.add(x);
         }
       }
+      log("explicit files list encountered, content:", INDENT, content);
+      log("resulting files:", INDENT, niceList(listOfFiles));
       return listOfFiles;
     } else {
       var walk = new DirWalk(dir).withRecurse(false).includeDirectories() //
