@@ -234,5 +234,8 @@ pub fn compare_files(a: &JFile, b: &JFile) -> cmp::Ordering {
 
 pub const EXT_JSON: &str = "json";
 
-
+// Shouldn't affect these:
+use crate::util::math::{
+    angle_sep, distance_between, polar_angle, pt_distance_to_segment, FPoint, M_DEG,
+};
 
