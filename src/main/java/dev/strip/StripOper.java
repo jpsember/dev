@@ -77,8 +77,9 @@ public class StripOper extends AppOper {
 
     if (!inTestMode()) {
       var b = currentGitBranch();
-      if (!b.startsWith("dev_")) {
-        setError("current git branch is:", quote(b), "; expected 'dev_' prefix");
+      var pref = "dev-";
+      if (!b.startsWith(pref)) {
+        setError("current git branch is:", quote(b), "; expected", quote(pref), "prefix");
       }
     }
 
