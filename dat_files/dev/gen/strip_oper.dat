@@ -28,7 +28,7 @@ class strip_config {
 
     bool include_symlinks;
 
-    string include_extensions = "txt,java,rs,py,md,sh";
+    string exclude_extensions = "bin,obj";
 }
 
 enum edit_code {

@@ -43,8 +43,8 @@ public class StripConfig implements AbstractData {
     return mIncludeSymlinks;
   }
 
-  public String includeExtensions() {
-    return mIncludeExtensions;
+  public String excludeExtensions() {
+    return mExcludeExtensions;
   }
 
   @Override
@@ -61,7 +61,7 @@ public class StripConfig implements AbstractData {
   protected static final String _6 = "cache_path_expr";
   protected static final String _7 = "skip_pattern_search";
   protected static final String _8 = "include_symlinks";
-  protected static final String _9 = "include_extensions";
+  protected static final String _9 = "exclude_extensions";
 
   @Override
   public String toString() {
@@ -80,7 +80,7 @@ public class StripConfig implements AbstractData {
     m.putUnsafe(_6, mCachePathExpr);
     m.putUnsafe(_7, mSkipPatternSearch);
     m.putUnsafe(_8, mIncludeSymlinks);
-    m.putUnsafe(_9, mIncludeExtensions);
+    m.putUnsafe(_9, mExcludeExtensions);
     return m;
   }
 
@@ -122,7 +122,7 @@ public class StripConfig implements AbstractData {
     mCachePathExpr = m.opt(_6, "");
     mSkipPatternSearch = m.opt(_7, false);
     mIncludeSymlinks = m.opt(_8, false);
-    mIncludeExtensions = m.opt(_9, "txt,java,rs,py,md,sh");
+    mExcludeExtensions = m.opt(_9, "bin,obj");
   }
 
   public static Builder newBuilder() {
@@ -156,7 +156,7 @@ public class StripConfig implements AbstractData {
       return false;
     if (!(mIncludeSymlinks == other.mIncludeSymlinks))
       return false;
-    if (!(mIncludeExtensions.equals(other.mIncludeExtensions)))
+    if (!(mExcludeExtensions.equals(other.mExcludeExtensions)))
       return false;
     return true;
   }
@@ -175,7 +175,7 @@ public class StripConfig implements AbstractData {
       r = r * 37 + mCachePathExpr.hashCode();
       r = r * 37 + (mSkipPatternSearch ? 1 : 0);
       r = r * 37 + (mIncludeSymlinks ? 1 : 0);
-      r = r * 37 + mIncludeExtensions.hashCode();
+      r = r * 37 + mExcludeExtensions.hashCode();
       m__hashcode = r;
     }
     return r;
@@ -190,7 +190,7 @@ public class StripConfig implements AbstractData {
   protected String mCachePathExpr;
   protected boolean mSkipPatternSearch;
   protected boolean mIncludeSymlinks;
-  protected String mIncludeExtensions;
+  protected String mExcludeExtensions;
   protected int m__hashcode;
 
   public static final class Builder extends StripConfig {
@@ -205,7 +205,7 @@ public class StripConfig implements AbstractData {
       mCachePathExpr = m.mCachePathExpr;
       mSkipPatternSearch = m.mSkipPatternSearch;
       mIncludeSymlinks = m.mIncludeSymlinks;
-      mIncludeExtensions = m.mIncludeExtensions;
+      mExcludeExtensions = m.mExcludeExtensions;
     }
 
     @Override
@@ -231,7 +231,7 @@ public class StripConfig implements AbstractData {
       r.mCachePathExpr = mCachePathExpr;
       r.mSkipPatternSearch = mSkipPatternSearch;
       r.mIncludeSymlinks = mIncludeSymlinks;
-      r.mIncludeExtensions = mIncludeExtensions;
+      r.mExcludeExtensions = mExcludeExtensions;
       return r;
     }
 
@@ -280,8 +280,8 @@ public class StripConfig implements AbstractData {
       return this;
     }
 
-    public Builder includeExtensions(String x) {
-      mIncludeExtensions = (x == null) ? "txt,java,rs,py,md,sh" : x;
+    public Builder excludeExtensions(String x) {
+      mExcludeExtensions = (x == null) ? "bin,obj" : x;
       return this;
     }
 
@@ -298,7 +298,7 @@ public class StripConfig implements AbstractData {
     mCacheDir = Files.DEFAULT;
     mCacheFilename = _D5;
     mCachePathExpr = "";
-    mIncludeExtensions = "txt,java,rs,py,md,sh";
+    mExcludeExtensions = "bin,obj";
   }
 
 }

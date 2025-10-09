@@ -79,13 +79,20 @@ public class StripOper extends AppOper {
       var b = currentGitBranch();
       var pref = "dev-";
       if (!b.startsWith(pref)) {
-        setError("current git branch is:", quote(b), "; expected", quote(pref), "prefix");
+        var desired = "dev-" + b;
+        pr("*** current git branch is:", quote(b), "; attempting to switch to:", quote(desired));
+
+        var sc = new SystemCall();
+        sc.withVerbose(verbose());
+        sc.arg("git", "checkout", desired);
+        sc.assertSuccess();
+        pr("... switched, and quitting.  Rerun if desired.");
+        return;
       }
     }
 
     checkArgument(nonEmpty(c.sourceBranch()), "source_branch is empty");
     checkArgument(nonEmpty(c.targetBranch()), "target_branch is empty");
-
 
     files().withDryRun(dryRun());
     log("arguments:", INDENT, config());
@@ -214,6 +221,9 @@ public class StripOper extends AppOper {
     var editsMap = generateEditsMap();
     selectTargetBranch();
     processEditsMap(editsMap);
+    if (dryRun()) {
+      selectSourceBranch();
+    }
   }
 
   private JSMap generateEditsMap() {
@@ -237,6 +247,8 @@ public class StripOper extends AppOper {
 
       var listOfFiles = constructFilesWithinDirAbs(state.directory());
 
+      //pr("list of files:", niceList(listOfFiles));
+
       for (var abs : listOfFiles) {
 
         if (!config().includeSymlinks()) {
@@ -254,21 +266,28 @@ public class StripOper extends AppOper {
         }
 
         if (!abs.isDirectory()) {
+          var editMade = false;
           var ext = Files.getExtension(abs);
           var dfa = dfaForExtension(ext);
+          String currText = null;
           if (dfa != null) {
             log("file:", relativeToProject);
-            var currText = Files.readString(abs);
+            currText = Files.readString(abs);
             applyFilter(currText, dfa, verbose());
             if (mMatchesWithinFile != 0) {
-              var filteredContent = mNewText.toString();
-              recordEdit(relativeToProject, EditCode.MODIFY, filteredContent);
+              editMade = true;
+              currText = mNewText.toString();
             }
-          } else {
-            if (hasIncludeExtension(ext)) {
-              var currText = Files.readString(abs);
-              recordEdit(relativeToProject, EditCode.MODIFY, currText);
-            }
+          }
+
+          if (!editMade && !fileWithinExcludeList(abs)) {
+            editMade = true;
+          }
+
+          if (editMade) {
+            if (currText == null)
+              currText = Files.readString(abs);
+            recordEdit(relativeToProject, EditCode.MODIFY, currText);
           }
         } else {
           var newEnt = state.descendInto(abs);
@@ -350,10 +369,13 @@ public class StripOper extends AppOper {
         {
           var tn = dfa.tokenName(tk.id());
           if (tn.startsWith("ALTERNATIVE")) {
+
             var SEPARATOR = "~|~";
             var CLOSE = "~}";
+
             // If it contains '~|~', retain the text following that but before the ~},
             // subject to some possible additional manipulation
+
             var i = tkText.indexOf(SEPARATOR);
             if (i >= 0) {
               var j = tkText.indexOf(CLOSE);
@@ -363,32 +385,34 @@ public class StripOper extends AppOper {
               erase(filteredText, k);
               var alt = tkText.substring(k, j);
 
-              // Remove any comment prefixes such as '// ' or '# ' from the lines that follow
-              // (but no more than one such prefix per line, to allow embedded comments)
-              // Only do this if EVERY line contains such a prefix.
-              var lines = split(alt.trim(), '\n');
-              List<String> lines2 = arrayList();
-              String firstComment = null;
-              for (var x : lines) {
-                x = x.trim();
-                if (firstComment == null) {
-                  if (x.startsWith("#")) {
-                    firstComment = "#";
-                  } else if (x.startsWith("//")) {
-                    firstComment = "//";
-                  }
-                }
-                if (firstComment == null || !x.startsWith(firstComment)) {
-                  lines2 = null;
-                  break;
-                }
-                x = chompPrefix(x, firstComment).trim();
-                lines2.add(x);
-              }
-
-              if (lines2 != null) {
-                alt = String.join("\n", lines2) + "\n";
-              }
+//              pr("ALT text:",quote(alt));
+//              // Remove any comment prefixes such as '// ' or '# ' from the lines that follow
+//              // (but no more than one such prefix per line, to allow embedded comments)
+//              // Only do this if EVERY line contains such a prefix.
+//              var lines = split(alt.trim(), '\n');
+//              List<String> lines2 = arrayList();
+//              String firstComment = null;
+//              for (var x : lines) {
+//                x = x.trim();
+//                if (firstComment == null) {
+//                  if (x.startsWith("#")) {
+//                    firstComment = "#";
+//                  } else if (x.startsWith("//")) {
+//                    firstComment = "//";
+//                  }
+//                }
+//                if (firstComment == null || !x.startsWith(firstComment)) {
+//                  lines2 = null;
+//                  break;
+//                }
+//                x = chompPrefix(x, firstComment).trim();
+//                lines2.add(x);
+//              }
+//              pr(VERT_SP,"lines2:",lines2);
+//
+//              if (lines2 != null) {
+//                alt = String.join("\n", lines2) + "\n";
+//              }
               filteredText.append(alt);
               erase(filteredText, tkText.length() - j);
               continue;
@@ -585,18 +609,20 @@ public class StripOper extends AppOper {
   private JSMap mEditsMap = map();
 
 
-  private boolean hasIncludeExtension(String ext) {
-    var s = mInclExt;
+  private boolean fileWithinExcludeList(File f) {
+    var name = f.getName();
+    var s = mExcludeExtensionsSet;
     if (s == null) {
       s = hashSet();
       s.addAll(split(
-          config().includeExtensions(), ','));
-      mInclExt = s;
+          config().excludeExtensions(), ','));
+      mExcludeExtensionsSet = s;
     }
-    return s.contains(ext);
+    return s.contains(name);
+
   }
 
-  private Set<String> mInclExt;
+  private Set<String> mExcludeExtensionsSet;
 
   private void processEditsMap(JSMap editsMap) {
     if (dryRun()) {
