@@ -4,6 +4,8 @@ import static js.base.Tools.*;
 
 import dev.gen.[!config_class_name];
 import js.app.AppOper;
+import js.app.HelpFormatter;
+import js.base.BasePrinter;
 
 public class [!class_name] extends AppOper {
 
@@ -12,9 +14,18 @@ public class [!class_name] extends AppOper {
     return "[!user_command]";
   }
 
+
   @Override
-  public String getHelpDescription() {
+  public String shortHelp() {
     return "[!help_description]";
+  }
+
+  @Override
+  protected void longHelp(BasePrinter b) {
+    var hf = new HelpFormatter();
+    hf.addItem("***", "** no 'long' help available yet");
+    b.pr(hf);
+    b.br();
   }
 
   @Override
