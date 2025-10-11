@@ -5,6 +5,8 @@ public static final int ERROR_DFA_UNSUPPORTED_VERSION = 7900;
 // has occurred
 public static final int ERROR_FOO_BAR = 8200;
 
+// This is a REFERENCE to an error id, without a definition
+if ERROR_XRAY == 7 { }
 
 // Another error in class 8xxx
 public static final int ERROR_XRAY = 8210;

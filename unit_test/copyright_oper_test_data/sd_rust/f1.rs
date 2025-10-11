@@ -5,8 +5,8 @@ pub const ERROR_NO_RECORDS: usize = 1005;
 // Multiple columns in a .csv file look like they contain geometry (e.g. LINESTRINGs)
 pub const ERROR_MULTIPLE_GEOMETRY_COLUMNS: usize = 1002;
 
-
-
+// This is a REFERENCE to an error id, without a definition
+if ERROR_WTF == 7 { }
 
 use crate::app_error::*;
 use crate::match_util::*;

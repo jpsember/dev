@@ -23,7 +23,6 @@ public class CollectErrorsOper extends AppOper {
     return "collect-errs";
   }
 
-
   @Override
   public String shortHelp() {
     return "no help is available for operation";
@@ -52,55 +51,42 @@ public class CollectErrorsOper extends AppOper {
 
   @Override
   public void perform() {
-    var f = Files.assertDirectoryExists(config().input(), "input directory");
-
+    var inputDirectory = Files.assertDirectoryExists(config().input(), "input directory");
     var dfa = DFA.parse(Files.readString(getClass(), "collect_errors.dfa"));
-    var ext = arrayList("java", "rs", "py");
-    var dw = new DirWalk(f).withRecurse(true).withExtensions(ext);
+    var extensions = arrayList("java", "rs", "py");
+    var dirWalk = new DirWalk(inputDirectory).withRecurse(true).withExtensions(extensions);
 
-    for (var w : dw.files()) {
-      pr(VERT_SP,"Reading file:",w,CR,DASHES);
+    for (var sourceFile : dirWalk.files()) {
 
-      var txt = Files.readString(w);
-      var s = new Lexer(dfa);
-      s.withSkipId(T_SPACES);
-      s.withAcceptUnknownTokens();
-      s.withText(txt);
-      s.setVerbose();
+      var txt = Files.readString(sourceFile);
+      var scanner = new Lexer(dfa);
+      scanner.withSkipId(T_SPACES);
+      scanner.withAcceptUnknownTokens();
+      scanner.withText(txt);
+      scanner.setVerbose();
 
       List<String> comments = arrayList();
 
-      outer:
-      while (s.hasNext()) {
 
-        log("token:", INDENT, s.peek());
-        if (s.readIf(T_COMMENT)) {
-          comments.add(s.token().text());
-          continue;
-        }
+      // If a COMMENT is found, add to the comment buffer
+      // If a CR is found, clear the comments
+      // If something other than ERRCODE_xxxx, read and continue
 
-        if (s.readIf(T_CR)) {
+      while (scanner.hasNext()) {
+
+        Lexeme errCodeToken = null;
+        String idStr = null;
+        if (scanner.readIf(T_CR)) {
           comments.clear();
-          continue;
-        }
-
-        if (!s.readIf(T_ERRCODE)) {
-          s.read();
-          continue;
-        }
-        var errCodeToken = s.token(0);
-
-        pr(VERT_SP, "found errcode token:", errCodeToken);
-
-        // Read until newline or we find the integer error value
-
-        while (s.hasNext() && !s.peekIf(T_CR)) {
-          if (!s.readIf(T_INT)) {
-            s.read();
+        } else if (scanner.readIf(T_COMMENT)) {
+          comments.add(scanner.token().text());
+        } else if (!scanner.readIf(T_ERRCODE)) {
+          scanner.read();
+        } else {
+          errCodeToken = scanner.token(0);
+          idStr = findOptErrorNumber(scanner);
+          if (idStr == null)
             continue;
-          }
-          var idToken = s.token(0);
-          pr(VERT_SP, "found id token:", idToken);
 
           // Construct description of error from buffered comments
           var expr = new StringBuilder();
@@ -116,7 +102,6 @@ public class CollectErrorsOper extends AppOper {
           }
 
           var b = ErrInfo.newBuilder();
-          var idStr = idToken.text();
           b.id(Integer.parseInt(idStr));
           b.name(chompPrefix(errCodeToken.text(), "ERROR_"));
           b.description(desc);
@@ -125,11 +110,10 @@ public class CollectErrorsOper extends AppOper {
             setError("duplicate error number:", INDENT, b, CR, mInfoMap.get(b.id()));
           }
           mInfoMap.put(b.id(), b);
-          log("Storing:", s.token(0), INDENT, b);
-          pr(VERT_SP, "stored:", INDENT, b);
+          log("Storing:", scanner.token(0), INDENT, b);
 
           comments.clear();
-          continue outer;
+
         }
       }
     }
@@ -138,15 +122,12 @@ public class CollectErrorsOper extends AppOper {
     {
       var sb = new StringBuilder();
       ErrInfo prevEnt = null;
-
       for (var errInfo : mInfoMap.values()) {
         if (prevEnt != null && errInfo.id() / 1000 != prevEnt.id() / 1000)
           sb.append("\n");
         prevEnt = errInfo;
-
         sb.append(String.format("%5d %s", errInfo.id(), chompPrefix(errInfo.name(), "ERRCODE_")));
         sb.append('\n');
-
         for (var line : split(errInfo.description(), '\n')) {
           sb.append(spaces(6));
           sb.append(line);
@@ -158,14 +139,26 @@ public class CollectErrorsOper extends AppOper {
 
     var outputFile = config().output();
 
-
-    var disp = insertLeftMarginChars(result.toString());
     if (Files.empty(outputFile)) {
-      pr(disp);
+      System.out.println(result);
     } else {
-      log(disp);
+      log("\n", insertLeftMarginChars(result.toString()));
       files().writeIfChanged(outputFile, result);
     }
+  }
+
+  private String findOptErrorNumber(Lexer scanner) {
+    // Read until newline or we find the integer error value
+    while (true) {
+      if (!scanner.hasNext()) return null;
+      if (scanner.peekIf(T_CR)) return null;
+      if (scanner.readIf(T_EQUALS, T_INT)) break;
+      if (scanner.peekIf(T_EQUALS)) return null;
+      scanner.read();
+    }
+
+    var idToken = scanner.token(1);
+    return idToken.text();
   }
 
   private static String insertLeftMarginChars(String text) {
@@ -182,11 +175,12 @@ public class CollectErrorsOper extends AppOper {
   private Map<Integer, ErrInfo> mInfoMap = treeMap();
 
   // Token Ids generated by 'dev dfa' tool (DO NOT EDIT BELOW)
-  public int T_SPACES = 0;
-  public int T_CR = 1;
-  public int T_COMMENT = 2;
-  public int T_INT = 3;
-  public int T_ERRCODE = 4;
+  private static final int T_SPACES = 0;
+  private static final int T_CR = 1;
+  private static final int T_COMMENT = 2;
+  private static final int T_INT = 3;
+  private static final int T_EQUALS = 4;
+  private static final int T_ERRCODE = 5;
   // End of token Ids generated by 'dev dfa' tool (DO NOT EDIT ABOVE)
 
 }
