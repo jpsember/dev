@@ -30,8 +30,6 @@ import org.junit.Test;
 
 import java.io.File;
 
-import static js.base.Tools.*;
-
 public class StripOperTest extends DevTestBase {
 
   @Test

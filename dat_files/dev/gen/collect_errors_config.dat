@@ -1,4 +1,10 @@
-// Uncomment this deprecation flag and add some fields.
-class {
+class collect_errors_config {
     File input;
+    File output;
+}
+
+class err_info {
+    int id;
+    string name;
+    string description;
 }

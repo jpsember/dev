@@ -11,12 +11,17 @@ public class CollectErrorsConfig implements AbstractData {
     return mInput;
   }
 
+  public File output() {
+    return mOutput;
+  }
+
   @Override
   public Builder toBuilder() {
     return new Builder(this);
   }
 
   protected static final String _0 = "input";
+  protected static final String _1 = "output";
 
   @Override
   public String toString() {
@@ -27,6 +32,7 @@ public class CollectErrorsConfig implements AbstractData {
   public JSMap toJson() {
     JSMap m = new JSMap();
     m.putUnsafe(_0, mInput.toString());
+    m.putUnsafe(_1, mOutput.toString());
     return m;
   }
 
@@ -48,6 +54,13 @@ public class CollectErrorsConfig implements AbstractData {
         mInput = new File(x);
       }
     }
+    {
+      mOutput = Files.DEFAULT;
+      String x = m.opt(_1, (String) null);
+      if (x != null) {
+        mOutput = new File(x);
+      }
+    }
   }
 
   public static Builder newBuilder() {
@@ -65,6 +78,8 @@ public class CollectErrorsConfig implements AbstractData {
       return false;
     if (!(mInput.equals(other.mInput)))
       return false;
+    if (!(mOutput.equals(other.mOutput)))
+      return false;
     return true;
   }
 
@@ -74,18 +89,21 @@ public class CollectErrorsConfig implements AbstractData {
     if (r == 0) {
       r = 1;
       r = r * 37 + mInput.hashCode();
+      r = r * 37 + mOutput.hashCode();
       m__hashcode = r;
     }
     return r;
   }
 
   protected File mInput;
+  protected File mOutput;
   protected int m__hashcode;
 
   public static final class Builder extends CollectErrorsConfig {
 
     private Builder(CollectErrorsConfig m) {
       mInput = m.mInput;
+      mOutput = m.mOutput;
     }
 
     @Override
@@ -103,11 +121,17 @@ public class CollectErrorsConfig implements AbstractData {
     public CollectErrorsConfig build() {
       CollectErrorsConfig r = new CollectErrorsConfig();
       r.mInput = mInput;
+      r.mOutput = mOutput;
       return r;
     }
 
     public Builder input(File x) {
       mInput = (x == null) ? Files.DEFAULT : x;
+      return this;
+    }
+
+    public Builder output(File x) {
+      mOutput = (x == null) ? Files.DEFAULT : x;
       return this;
     }
 
@@ -117,6 +141,7 @@ public class CollectErrorsConfig implements AbstractData {
 
   private CollectErrorsConfig() {
     mInput = Files.DEFAULT;
+    mOutput = Files.DEFAULT;
   }
 
 }

@@ -1,0 +1,10 @@
+// alpha bravo
+public static final int ERRCODE_ECHO_DELTA = 7900;
+
+// Some other problem
+// has occurred
+public static final int ERRCODE_GOLF_HOTEL = 8200;
+
+44;
+88
+
