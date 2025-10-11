@@ -25,7 +25,7 @@ public class CollectErrorsOper extends AppOper {
 
   @Override
   public String shortHelp() {
-    return "no help is available for operation";
+    return "collect error codes into a table";
   }
 
   @Override

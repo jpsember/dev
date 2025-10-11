@@ -21,6 +21,11 @@ public class CollectErrorsOperTest extends DevTestBase {
     proc("sd_rust");
   }
 
+  @Test
+  public void python() {
+    proc("sd_python");
+  }
+
   private void proc(String subdirName) {
     var srcDir = new File("unit_test/copyright_oper_test_data");
     srcDir = Files.join(srcDir, subdirName);
