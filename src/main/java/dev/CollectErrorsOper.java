@@ -56,8 +56,11 @@ public class CollectErrorsOper extends AppOper {
     var extensions = arrayList("java", "rs", "py");
     var dirWalk = new DirWalk(inputDirectory).withRecurse(true).withExtensions(extensions);
 
-    for (var sourceFile : dirWalk.files()) {
+    var b = ErrInfo.newBuilder();
 
+    for (var sourceFile : dirWalk.files()) {
+      var fileType = extensions.indexOf(Files.getExtension(sourceFile));
+      checkArgument(fileType >= 0);
       var txt = Files.readString(sourceFile);
       var scanner = new Lexer(dfa);
       scanner.withSkipId(T_SPACES);
@@ -65,8 +68,7 @@ public class CollectErrorsOper extends AppOper {
       scanner.withText(txt);
       scanner.setVerbose();
 
-      List<String> comments = arrayList();
-
+      mCommentsBuffer.clear();
 
       // If a COMMENT is found, add to the comment buffer
       // If a CR is found, clear the comments
@@ -74,46 +76,54 @@ public class CollectErrorsOper extends AppOper {
 
       while (scanner.hasNext()) {
 
-        Lexeme errCodeToken = null;
-        String idStr = null;
+        mErrCodeToken = null;
         if (scanner.readIf(T_CR)) {
-          comments.clear();
+          mCommentsBuffer.clear();
         } else if (scanner.readIf(T_COMMENT)) {
-          comments.add(scanner.token().text());
-        } else if (!scanner.readIf(T_ERRCODE)) {
-          scanner.read();
+          mCommentsBuffer.add(scanner.token().text());
         } else {
-          errCodeToken = scanner.token(0);
-          idStr = findOptErrorNumber(scanner);
-          if (idStr == null)
-            continue;
-
-          // Construct description of error from buffered comments
-          var expr = new StringBuilder();
-          for (var c : comments) {
-            var c2 = chompPrefix(c, "# ");
-            if (c2 == c)
-              c2 = chompPrefix(c, "// ");
-            expr.append(c2);
+          switch (fileType) {
+            case 0: // java
+              //  public static final int ERRCODE_FOO_BAR = 8200;
+              if (scanner.readIf(T_PUBLIC, T_STATIC, T_FINAL, T_INT, T_ERRCODE, T_EQUALS, T_NUMBER, T_SEMICOLON)) {
+                mErrCodeToken = scanner.token(0);
+                b.name(extractErrName(scanner.token(4)));
+                b.id(Integer.parseInt(scanner.token(6).text()));
+                b.description(compileDescription());
+              }
+              break;
+            case 1: // rust
+              // pub const ERRCODE_MULTIPLE_GEOMETRY_COLUMNS: usize = 1002;
+              if (scanner.readIf(T_PUB, T_CONST, T_ERRCODE, T_COLON, T_USIZE, T_EQUALS, T_NUMBER, T_SEMICOLON)) {
+                mErrCodeToken = scanner.token(0);
+                b.name(extractErrName(scanner.token(2)));
+                b.id(Integer.parseInt(scanner.token(6).text()));
+                b.description(compileDescription());
+              }
+              break;
+            case 2: // py
+              // ERRCODE_NOT_IMPLEMENTED = 9999
+              if (scanner.readIf(T_ERRCODE, T_EQUALS, T_NUMBER)) {
+                mErrCodeToken = scanner.token(0);
+                b.name(extractErrName(scanner.token(0)));
+                b.id(Integer.parseInt(scanner.token(2).text()));
+                b.description(compileDescription());
+              }
+              break;
           }
-          var desc = expr.toString();
-          if (desc.isEmpty()) {
-            errCodeToken.failWith("no comment found");
+
+          if (b.id() == 0) {
+            scanner.read();
+          } else {
+            var rec = b.build();
+            if (mInfoMap.containsKey(rec.id())) {
+              setError("duplicate error number:", INDENT, rec, CR, mInfoMap.get(rec.id()));
+            }
+            mInfoMap.put(rec.id(), rec);
+            log("Storing:", scanner.token(0), INDENT, rec);
+            mCommentsBuffer.clear();
+            b.id(0);
           }
-
-          var b = ErrInfo.newBuilder();
-          b.id(Integer.parseInt(idStr));
-          b.name(chompPrefix(errCodeToken.text(), "ERROR_"));
-          b.description(desc);
-
-          if (mInfoMap.containsKey(b.id())) {
-            setError("duplicate error number:", INDENT, b, CR, mInfoMap.get(b.id()));
-          }
-          mInfoMap.put(b.id(), b);
-          log("Storing:", scanner.token(0), INDENT, b);
-
-          comments.clear();
-
         }
       }
     }
@@ -147,18 +157,26 @@ public class CollectErrorsOper extends AppOper {
     }
   }
 
-  private String findOptErrorNumber(Lexer scanner) {
-    // Read until newline or we find the integer error value
-    while (true) {
-      if (!scanner.hasNext()) return null;
-      if (scanner.peekIf(T_CR)) return null;
-      if (scanner.readIf(T_EQUALS, T_INT)) break;
-      if (scanner.peekIf(T_EQUALS)) return null;
-      scanner.read();
-    }
 
-    var idToken = scanner.token(1);
-    return idToken.text();
+  private String compileDescription() {
+    // Construct description of error from buffered comments
+    var expr = new StringBuilder();
+    for (var c : mCommentsBuffer) {
+      var c2 = chompPrefix(c, "# ");
+      if (c2 == c)
+        c2 = chompPrefix(c, "// ");
+      expr.append(c2);
+    }
+    var desc = expr.toString();
+    if (desc.isEmpty()) {
+      mErrCodeToken.failWith("no comment found");
+    }
+    return desc;
+  }
+
+  private String extractErrName(Lexeme lex) {
+    todo("dfa is only putting in 'private', not the rest");
+    return chompPrefix(lex.text(), "ERRCODE_");
   }
 
   private static String insertLeftMarginChars(String text) {
@@ -173,14 +191,25 @@ public class CollectErrorsOper extends AppOper {
 
   private CollectErrorsConfig mConfig;
   private Map<Integer, ErrInfo> mInfoMap = treeMap();
+  private Lexeme mErrCodeToken;
+  private List<String> mCommentsBuffer = arrayList();
 
   // Token Ids generated by 'dev dfa' tool (DO NOT EDIT BELOW)
-  private static final int T_SPACES = 0;
-  private static final int T_CR = 1;
-  private static final int T_COMMENT = 2;
-  private static final int T_INT = 3;
-  private static final int T_EQUALS = 4;
-  private static final int T_ERRCODE = 5;
+  public static final int T_SPACES = 0;
+  public static final int T_CR = 1;
+  public static final int T_COMMENT = 2;
+  public static final int T_NUMBER = 3;
+  public static final int T_EQUALS = 4;
+  public static final int T_ERRCODE = 5;
+  public static final int T_PUBLIC = 6;
+  public static final int T_STATIC = 7;
+  public static final int T_FINAL = 8;
+  public static final int T_INT = 9;
+  public static final int T_SEMICOLON = 10;
+  public static final int T_COLON = 11;
+  public static final int T_PUB = 12;
+  public static final int T_CONST = 13;
+  public static final int T_USIZE = 14;
   // End of token Ids generated by 'dev dfa' tool (DO NOT EDIT ABOVE)
 
 }

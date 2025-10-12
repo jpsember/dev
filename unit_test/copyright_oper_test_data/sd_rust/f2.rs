@@ -7,10 +7,10 @@ use std::path::{Path, PathBuf};
 
 
 // The .csv file did not have a column with the specified name
-pub const ERROR_CSV_FIELD_NOT_FOUND: usize = 2003;
+pub const ERRCODE_CSV_FIELD_NOT_FOUND: usize = 2003;
 
 // A column with the match id's column name already exists in the .csv file
-pub const ERROR_MATCH_ID_COLUMN_EXISTS: usize = 2004;
+pub const ERRCODE_MATCH_ID_COLUMN_EXISTS: usize = 2004;
 
 
 

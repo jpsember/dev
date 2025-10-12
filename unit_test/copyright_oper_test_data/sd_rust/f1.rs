@@ -1,12 +1,12 @@
 // Input data (e.g. a csv file) had no records, or
 // had invalid fields
-pub const ERROR_NO_RECORDS: usize = 1005;
+pub const ERRCODE_NO_RECORDS: usize = 1005;
 
 // Multiple columns in a .csv file look like they contain geometry (e.g. LINESTRINGs)
-pub const ERROR_MULTIPLE_GEOMETRY_COLUMNS: usize = 1002;
+pub const ERRCODE_MULTIPLE_GEOMETRY_COLUMNS: usize = 1002;
 
 // This is a REFERENCE to an error id, without a definition
-if ERROR_WTF == 7 { }
+if ERRCODE_WTF == 7 { }
 
 use crate::app_error::*;
 use crate::match_util::*;

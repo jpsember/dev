@@ -1,24 +1,24 @@
 from pathlib import Path
 
 # A bad argument was supplied
-ERROR_BAD_ARGUMENT = 5000
+ERRCODE_BAD_ARGUMENT = 5000
 # Argument was None
-ERROR_NONE_ARGUMENT = 5001
+ERRCODE_NONE_ARGUMENT = 5001
 # An illegal program state was encountered
-ERROR_ILLEGAL_STATE = 5002
+ERRCODE_ILLEGAL_STATE = 5002
 # The program was intentionally halted
-ERROR_INTENTIONAL_HALT = 5999
+ERRCODE_INTENTIONAL_HALT = 5999
 # Failed for an unspecified cause
-ERROR_UNKNOWN_FAILURE = 5998
+ERRCODE_UNKNOWN_FAILURE = 5998
 
 # The feature has not been implemented yet
-ERROR_NOT_IMPLEMENTED = 9999
+ERRCODE_NOT_IMPLEMENTED = 9999
 
 # An unexpected situation occurred within a unit test
-ERROR_FAILED_UNIT_TEST = 8000
+ERRCODE_FAILED_UNIT_TEST = 8000
 
 # An import failed
-ERROR_FAILED_IMPORT = 8001
+ERRCODE_FAILED_IMPORT = 8001
 
 
 def try_import(pkg_name, advice=None):
@@ -26,3 +26,11 @@ def try_import(pkg_name, advice=None):
 
     try:
         imp
+
+
+      # We want this to NOT generate an error
+             dash = "==============================================\n"
+             msg = f"*** Failed to import '{pkg_name}'\n*** Advice:\n{dash}{advice}\n{dash}
+             fail(msg, errcode=ERRCODE_FAILED_IMPORT, skip_count=2)
+             return msg
+

@@ -2,7 +2,27 @@
 SPACES: [\f\s\t]+
 CR: \n
 COMMENT: ($_HASH | //)  [^\n]* \n?
-INT: $_UNSIGNEDINT
+NUMBER: $_UNSIGNEDINT
 EQUALS: $_EQUALS
-ERRCODE: ERROR \_ $_ID
+ERRCODE: ERRCODE\_ $_ID
+PUBLIC: public
+STATIC: static
+FINAL: final
+INT: int
+SEMICOLON: \;
+COLON: $_COLON
+PUB: pub
+CONST: const
+USIZE: usize
 
+
+
+# Java:
+#  public static final int ERROR_FOO_BAR = 8200;
+#
+# Rust:
+#  pub const ERROR_MULTIPLE_GEOMETRY_COLUMNS: usize = 1002;
+#
+# Python:
+#  ERROR_NOT_IMPLEMENTED = 9999
+#
