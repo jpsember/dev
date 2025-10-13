@@ -342,6 +342,14 @@ public class StripOper extends AppOper {
     return m;
   }
 
+  public static JSMap niceStringList(Collection<String> lst) {
+    var m = map();
+    for (var f : lst) {
+      m.putNumbered(f);
+    }
+    return m;
+  }
+
   private static final char ERASE_CHAR = 0x7f;
 
   private void applyFilter(String currText, DFA dfa, boolean verbose) {
@@ -357,7 +365,7 @@ public class StripOper extends AppOper {
       if (verbose) {
         log("=== token:", dfa.tokenName(tk.id()), JSUtils.valueToString(tkText));
       }
-      var len = tkText.length();
+      var tokenTextLength = tkText.length();
 
       if (tk.isUnknown()) {
         // This text is to be left alone
@@ -367,59 +375,51 @@ public class StripOper extends AppOper {
         mMatchesWithinFile++;
 
         {
-          var tn = dfa.tokenName(tk.id());
-          if (tn.startsWith("ALTERNATIVE")) {
+          var tokenName = dfa.tokenName(tk.id());
+          if (tokenName.startsWith("ALTERNATIVE")) {
+            var extraLogging = false && tkText.contains("~|~");
+            if (extraLogging)
+              pr(VERT_SP, "filtering ALTERNATIVE:", INDENT, tk);
 
-            var SEPARATOR = "~|~";
-            var CLOSE = "~}";
+            // Build list of offsets to rows, for each row, plus one past the last row
+            List<Integer> rowOffsets = arrayList();
+            int i = 0;
+            while (true) {
+              rowOffsets.add(i);
+              if (i == tkText.length()) break;
+              var nextLinefeed = tkText.indexOf('\n', i);
+              if (nextLinefeed < 0) {
+                i = tkText.length();
+              } else {
+                i = nextLinefeed + 1;
+              }
+            }
 
-            // If it contains '~|~', retain the text following that but before the ~},
-            // subject to some possible additional manipulation
+            // This flag indicates whether we are within region starting with ~|~
+            var alternateRegion = false;
 
-            var i = tkText.indexOf(SEPARATOR);
-            if (i >= 0) {
-              var j = tkText.indexOf(CLOSE);
-              if (j < i)
-                throw tk.failWith("Failed to parse ALTERNATIVE");
-              var k = i + SEPARATOR.length();
-              erase(filteredText, k);
-              var alt = tkText.substring(k, j);
+            var lastRowNum = rowOffsets.size() - 1;
+            for (int rowNum = 0; rowNum < lastRowNum; rowNum++) {
+              var rowStart = rowOffsets.get(rowNum);
+              var rowEnd = rowOffsets.get(rowNum + 1);
+              var text = tkText.substring(rowStart, rowEnd);
 
-//              pr("ALT text:",quote(alt));
-//              // Remove any comment prefixes such as '// ' or '# ' from the lines that follow
-//              // (but no more than one such prefix per line, to allow embedded comments)
-//              // Only do this if EVERY line contains such a prefix.
-//              var lines = split(alt.trim(), '\n');
-//              List<String> lines2 = arrayList();
-//              String firstComment = null;
-//              for (var x : lines) {
-//                x = x.trim();
-//                if (firstComment == null) {
-//                  if (x.startsWith("#")) {
-//                    firstComment = "#";
-//                  } else if (x.startsWith("//")) {
-//                    firstComment = "//";
-//                  }
-//                }
-//                if (firstComment == null || !x.startsWith(firstComment)) {
-//                  lines2 = null;
-//                  break;
-//                }
-//                x = chompPrefix(x, firstComment).trim();
-//                lines2.add(x);
-//              }
-//              pr(VERT_SP,"lines2:",lines2);
-//
-//              if (lines2 != null) {
-//                alt = String.join("\n", lines2) + "\n";
-//              }
-              filteredText.append(alt);
-              erase(filteredText, tkText.length() - j);
-              continue;
+              if (!alternateRegion) {
+                if (text.contains("~|~")) {
+                  alternateRegion = true;
+                }
+              } else {
+                // The last row, which contains the ~}, is never included
+                if (rowNum < lastRowNum - 1) {
+                  filteredText.append(text);
+                  continue;
+                }
+              }
+              erase(filteredText, text.length());
             }
           }
         }
-        erase(filteredText, len);
+        erase(filteredText, tokenTextLength);
       }
     }
 

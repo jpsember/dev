@@ -1,21 +1,63 @@
 >>>gitignore,sh,java,rs,toml
 
-_TOENDOFLINE:  [^\n]*
+# _TOENDOFLINE:  [^\n]*
 _LEFTSPACE: [\s\t]+
 _NONSEMI: [^;]+
 _TOSEMI: $_NONSEMI ;
-_SKIP_SECTION:  \s* { $_TILDE
-  # Anything but ~}
-  ( .*  -- ( .* ( $_TILDE } ) .* ) )
-  ( $_TILDE } )
-  # Optional whitespace up to and including the next newline(?):
-  ([\s\t]*\n?)
 
->>>toml,sh,gitignore
+# _SKIP_SECTION:  \s* { $_TILDE
+#   # Anything but ~}
+#   ( .*  -- ( .* ( $_TILDE } ) .* ) )
+#   ( $_TILDE } )
+#   # Optional whitespace up to and including the next newline(?):
+#   ([\s\t]*\n?)
+#
 
-ALTERNATIVE: \# $_SKIP_SECTION  [\s\t]* \n?
 
->>>java,rs
+
+
+
+
+
+
+
+_OPENEX: \{ \~
+_CLOSEEX: \~ \}
+_ANY: .*
+_NOLF: [^\n]*
+_OPTLF: \n?
+
+
+ALTERNATIVE:  \
+   ( $_ANY -- (  $_ANY ( \n  | $_OPENEX ) $_ANY ) ) \
+        $_OPENEX   \
+        $_NOLF $_OPTLF \
+        (($_ANY -- (  $_ANY ( \n  | $_CLOSEEX ) $_ANY ) ) \n)* \
+        (( $_ANY -- (  $_ANY ( \n  | $_CLOSEEX ) $_ANY ) ) $_CLOSEEX $_NOLF $_OPTLF)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#>>>toml,sh,gitignore
+
+#ALTERNATIVE: \# $_SKIP_SECTION  [\s\t]* \n?
+
+#>>>java,rs
 
 # // {~ ....
 #    ....
@@ -29,7 +71,7 @@ ALTERNATIVE: \# $_SKIP_SECTION  [\s\t]* \n?
 #    ... text to retain ...
 #    .......    ~}
 #
-ALTERNATIVE: \/\/ $_SKIP_SECTION
+#ALTERNATIVE: \/\/ $_SKIP_SECTION
 
 >>>java
 

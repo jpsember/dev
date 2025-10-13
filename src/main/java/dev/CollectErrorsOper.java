@@ -128,6 +128,9 @@ public class CollectErrorsOper extends AppOper {
       }
     }
 
+    if (mInfoMap.isEmpty())
+      setError("No errors were found");
+
     String result;
     {
       var sb = new StringBuilder();
