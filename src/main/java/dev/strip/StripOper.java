@@ -630,46 +630,44 @@ public class StripOper extends AppOper {
     }
   }
 
-  public static void procExcludeToken(String tokenText, StringBuilder filterDestination) {
 
+  private static int startOfLineContaining(String text, String pattern) {
+    var i = text.indexOf(pattern);
+    if (i >= 0) {
+      i += pattern.length();
+      while (i > 0 && text.charAt(i - 1) != '\n')
+        i--;
+    }
+    return i;
+  }
+
+  private static int endOfLineContaining(String text, String pattern) {
+    var i = text.indexOf(pattern);
+    if (i >= 0) {
+      i += pattern.length();
+      while (i < text.length() && text.charAt(i - 1) != '\n')
+        i++;
+    }
+    return i;
+  }
+
+  public static void procExcludeToken(String tokenText, StringBuilder filterDestination) {
     var extraLogging = false && tokenText.contains("~|~");
     if (extraLogging)
-      pr(VERT_SP, "filtering ALTERNATIVE:", INDENT, tokenText);
+      pr(VERT_SP, "filtering ALTERNATIVE:", INDENT, quote(tokenText));
+    int altLoc = endOfLineContaining(tokenText, "~|~");
+    if (altLoc < 0) {
+      if (extraLogging) pr("...no ALTERNATIVE, erasing entire token");
+      erase(filterDestination, tokenText.length());
+    } else {
+      int loc2 = startOfLineContaining(tokenText, "~}");
+      checkState(loc2 >= altLoc);
+      if (extraLogging) pr("...ALTERNATIVE, retaining", altLoc, "...", loc2, quote(tokenText.substring(altLoc, loc2)));
 
-    // Build list of offsets to rows, for each row, plus one past the last row
-    List<Integer> rowOffsets = arrayList();
-    int i = 0;
-    while (true) {
-      rowOffsets.add(i);
-      if (i == tokenText.length()) break;
-      var nextLinefeed = tokenText.indexOf('\n', i);
-      if (nextLinefeed < 0) {
-        i = tokenText.length();
-      } else {
-        i = nextLinefeed + 1;
-      }
-    }
-
-    // This flag indicates whether we are within region starting with ~|~
-    var alternateRegion = false;
-
-    var lastRowNum = rowOffsets.size() - 1;
-    for (int rowNum = 0; rowNum < lastRowNum; rowNum++) {
-      var rowStart = rowOffsets.get(rowNum);
-      var rowEnd = rowOffsets.get(rowNum + 1);
-      var text = tokenText.substring(rowStart, rowEnd);
-      if (!alternateRegion) {
-        if (text.contains("~|~")) {
-          alternateRegion = true;
-        }
-      } else {
-        // The last row, which contains the ~}, is never included
-        if (rowNum < lastRowNum - 1) {
-          filterDestination.append(text);
-          continue;
-        }
-      }
-      erase(filterDestination, text.length());
+      erase(filterDestination, altLoc);
+      //checkState(tokenText.equals(tokenText.substring(altLoc, loc2)));
+      filterDestination.append(tokenText.substring(altLoc, loc2));
+      erase(filterDestination, tokenText.length() - loc2);
     }
   }
 
