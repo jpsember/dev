@@ -374,52 +374,13 @@ public class StripOper extends AppOper {
         if (verbose) log("...found matching token");
         mMatchesWithinFile++;
 
-        {
-          var tokenName = dfa.tokenName(tk.id());
-          if (tokenName.startsWith("ALTERNATIVE")) {
-            var extraLogging = false && tkText.contains("~|~");
-            if (extraLogging)
-              pr(VERT_SP, "filtering ALTERNATIVE:", INDENT, tk);
 
-            // Build list of offsets to rows, for each row, plus one past the last row
-            List<Integer> rowOffsets = arrayList();
-            int i = 0;
-            while (true) {
-              rowOffsets.add(i);
-              if (i == tkText.length()) break;
-              var nextLinefeed = tkText.indexOf('\n', i);
-              if (nextLinefeed < 0) {
-                i = tkText.length();
-              } else {
-                i = nextLinefeed + 1;
-              }
-            }
-
-            // This flag indicates whether we are within region starting with ~|~
-            var alternateRegion = false;
-
-            var lastRowNum = rowOffsets.size() - 1;
-            for (int rowNum = 0; rowNum < lastRowNum; rowNum++) {
-              var rowStart = rowOffsets.get(rowNum);
-              var rowEnd = rowOffsets.get(rowNum + 1);
-              var text = tkText.substring(rowStart, rowEnd);
-
-              if (!alternateRegion) {
-                if (text.contains("~|~")) {
-                  alternateRegion = true;
-                }
-              } else {
-                // The last row, which contains the ~}, is never included
-                if (rowNum < lastRowNum - 1) {
-                  filteredText.append(text);
-                  continue;
-                }
-              }
-              erase(filteredText, text.length());
-            }
-          }
+        var tokenName = dfa.tokenName(tk.id());
+        if (tokenName.startsWith("ALTERNATIVE")) {
+          procExcludeToken(tkText, filteredText);
+        } else {
+          erase(filteredText, tokenTextLength);
         }
-        erase(filteredText, tokenTextLength);
       }
     }
 
@@ -427,6 +388,7 @@ public class StripOper extends AppOper {
     if (mMatchesWithinFile != 0)
       pass2();
   }
+
 
   private static void erase(StringBuilder target, int len) {
     target.append(String.valueOf(ERASE_CHAR).repeat(len));
@@ -665,6 +627,49 @@ public class StripOper extends AppOper {
           files().writeString(targetFile, content);
           break;
       }
+    }
+  }
+
+  public static void procExcludeToken(String tokenText, StringBuilder filterDestination) {
+
+    var extraLogging = false && tokenText.contains("~|~");
+    if (extraLogging)
+      pr(VERT_SP, "filtering ALTERNATIVE:", INDENT, tokenText);
+
+    // Build list of offsets to rows, for each row, plus one past the last row
+    List<Integer> rowOffsets = arrayList();
+    int i = 0;
+    while (true) {
+      rowOffsets.add(i);
+      if (i == tokenText.length()) break;
+      var nextLinefeed = tokenText.indexOf('\n', i);
+      if (nextLinefeed < 0) {
+        i = tokenText.length();
+      } else {
+        i = nextLinefeed + 1;
+      }
+    }
+
+    // This flag indicates whether we are within region starting with ~|~
+    var alternateRegion = false;
+
+    var lastRowNum = rowOffsets.size() - 1;
+    for (int rowNum = 0; rowNum < lastRowNum; rowNum++) {
+      var rowStart = rowOffsets.get(rowNum);
+      var rowEnd = rowOffsets.get(rowNum + 1);
+      var text = tokenText.substring(rowStart, rowEnd);
+      if (!alternateRegion) {
+        if (text.contains("~|~")) {
+          alternateRegion = true;
+        }
+      } else {
+        // The last row, which contains the ~}, is never included
+        if (rowNum < lastRowNum - 1) {
+          filterDestination.append(text);
+          continue;
+        }
+      }
+      erase(filterDestination, text.length());
     }
   }
 
