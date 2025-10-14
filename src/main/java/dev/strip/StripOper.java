@@ -630,7 +630,6 @@ public class StripOper extends AppOper {
     }
   }
 
-
   private static int startOfLineContaining(String text, String pattern) {
     var i = text.indexOf(pattern);
     if (i >= 0) {
@@ -651,23 +650,16 @@ public class StripOper extends AppOper {
     return i;
   }
 
-  public static void procExcludeToken(String tokenText, StringBuilder filterDestination) {
-    var extraLogging = false && tokenText.contains("~|~");
-    if (extraLogging)
-      pr(VERT_SP, "filtering ALTERNATIVE:", INDENT, quote(tokenText));
+  private static void procExcludeToken(String tokenText, StringBuilder target) {
     int altLoc = endOfLineContaining(tokenText, "~|~");
     if (altLoc < 0) {
-      if (extraLogging) pr("...no ALTERNATIVE, erasing entire token");
-      erase(filterDestination, tokenText.length());
+      erase(target, tokenText.length());
     } else {
-      int loc2 = startOfLineContaining(tokenText, "~}");
-      checkState(loc2 >= altLoc);
-      if (extraLogging) pr("...ALTERNATIVE, retaining", altLoc, "...", loc2, quote(tokenText.substring(altLoc, loc2)));
-
-      erase(filterDestination, altLoc);
-      //checkState(tokenText.equals(tokenText.substring(altLoc, loc2)));
-      filterDestination.append(tokenText.substring(altLoc, loc2));
-      erase(filterDestination, tokenText.length() - loc2);
+      int endLoc = startOfLineContaining(tokenText, "~}");
+      checkState(endLoc >= altLoc);
+      erase(target, altLoc);
+      target.append(tokenText, altLoc, endLoc);
+      erase(target, tokenText.length() - endLoc);
     }
   }
 
