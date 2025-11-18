@@ -1,15 +1,13 @@
 >>>gitignore,sh,java,rs,toml
-
+# _TOENDOFLINE:  [^\n]*
 _LEFTSPACE: [\s\t]+
 _NONSEMI: [^;]+
 _TOSEMI: $_NONSEMI ;
-
 _OPENEX: \{ \~
 _CLOSEEX: \~ \}
 _ANY: .*
 _NOLF: [^\n]*
 _OPTLF: \n?
-
 ALTERNATIVE:  \
    ( $_ANY -- (  $_ANY ( \n  | $_OPENEX ) $_ANY ) ) \
         $_OPENEX   \
@@ -18,15 +16,12 @@ ALTERNATIVE:  \
         (( $_ANY -- (  $_ANY ( \n  | $_CLOSEEX ) $_ANY ) ) $_CLOSEEX $_NOLF $_OPTLF)
 
 >>>java
-
 #  pr("hello",(1+3));
 #
 PR: $_LEFTSPACE  pr \( $_TOSEMI
-
 >>>rs
-
+#
 DB_METHODS: $_LEFTSPACE  ( check_arg | pr! | prif! | pr_to! | o! | load_tools | warning | fail | halt ) \( $_TOSEMI
-
 #
 # To do an 'alternative', do this:
 #
@@ -35,4 +30,4 @@ DB_METHODS: $_LEFTSPACE  ( check_arg | pr! | prif! | pr_to! | o! | load_tools | 
 #    // ~|~
 #    // code to store in target
 #    // after stripping '//' prefixes
-#
+#    // ~}
