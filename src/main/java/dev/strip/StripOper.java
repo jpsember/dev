@@ -79,16 +79,19 @@ public class StripOper extends AppOper {
       var b = currentGitBranch();
       var pref = "dev-";
       if (!b.startsWith(pref) && !b.endsWith("-dev")) {
-        var desired = "dev-" + b;
-        pr("*** current git branch is:", quote(b), "; attempting to switch to:", quote(desired));
-
-        var sc = new SystemCall();
-        sc.withVerbose(verbose());
-        sc.arg("git", "checkout", desired);
-        sc.assertSuccess();
-        pr("... switched, and quitting.  Rerun if desired.");
-        return;
+        for (int pass = 0; pass < 2; pass++) {
+          var desired = (pass == 0) ? "dev-" + b : b + "-dev";
+          pr("*** current git branch is:", quote(b), "; attempting to switch to:", quote(desired));
+          var sc = new SystemCall();
+          sc.withVerbose(verbose());
+          sc.arg("git", "checkout", desired);
+          if (sc.exitCode() == 0) {
+            pr("... switched, and quitting.  Rerun if desired.");
+            return;
+          }
+        }
       }
+      setError("Couldn't switch to appropriate dev branch");
     }
 
     checkArgument(nonEmpty(c.sourceBranch()), "source_branch is empty");
