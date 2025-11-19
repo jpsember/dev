@@ -90,6 +90,14 @@ public class StripOper extends AppOper {
             pr("... switched, and quitting.  Rerun if desired.");
             return;
           }
+          var errMsg = sc.systemErr();
+          if (errMsg.contains("Please commit your changes")) {
+            pr("There are uncommitted changes in the current branch:", INDENT, errMsg);
+          } else if (errMsg.contains("did not match any file")) {
+            pr("No such branch:", INDENT, errMsg);
+          } else {
+            pr("Some other git error:", INDENT, errMsg);
+          }
         }
         setError("Couldn't switch to appropriate dev branch");
       }
@@ -166,11 +174,13 @@ public class StripOper extends AppOper {
   }
 
   private File mCachedProjectDir;
+  private File mTrueProjectInfoFile;
 
   private String projectInfoFileContent() {
     var content = mCachedProjectInfoFileContent;
     if (content == null) {
       var infoFile = Files.join(projectDir(), PROJECT_INFO_FILE);
+      mTrueProjectInfoFile = infoFile;
       if (infoFile.exists()) {
         content = Files.readString(infoFile);
       } else {
@@ -251,8 +261,6 @@ public class StripOper extends AppOper {
 
       var listOfFiles = constructFilesWithinDirAbs(state.directory());
 
-      //pr("list of files:", niceList(listOfFiles));
-
       for (var abs : listOfFiles) {
 
         if (!config().includeSymlinks()) {
@@ -263,6 +271,11 @@ public class StripOper extends AppOper {
 
         var relativeToProject = Files.relativeToContainingDirectory(abs, projectDir());
 
+        if (abs.getName().equals(PROJECT_INFO_FILE)) {
+          if (mTrueProjectInfoFile != null && !abs.equals(mTrueProjectInfoFile)) {
+            setError("Encountered an unused project info file:", INDENT, abs);
+          }
+        }
         if (ALWAYS_DELETE_THESE_FILES.contains(abs.getName()) || state.deleteFilesAbs().contains(abs)) {
           log("..........filtering entire file or dir:", relativeToProject);
           recordEdit(relativeToProject, EditCode.DELETE, "");
@@ -327,9 +340,7 @@ public class StripOper extends AppOper {
       log("resulting files:", INDENT, niceList(listOfFiles));
       return listOfFiles;
     } else {
-      var walk = new DirWalk(dir).withRecurse(false).includeDirectories() //
-          .omitPrefixes(".") // also omits .DS_Store
-          ;
+      var walk = new DirWalk(dir).withRecurse(false).includeDirectories();
       return walk.files();
     }
   }
@@ -568,6 +579,7 @@ public class StripOper extends AppOper {
   private Map<String, DFA> mDFAForFileExtensionMap = hashMap();
 
   private void recordEdit(File relFile, EditCode code, String content) {
+    log("record edit:", code, relFile);
     var s = code + "::" + content;
     mEditsMap.put(relFile.toString(), s);
   }
