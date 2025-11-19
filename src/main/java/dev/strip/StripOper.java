@@ -272,8 +272,9 @@ public class StripOper extends AppOper {
         var relativeToProject = Files.relativeToContainingDirectory(abs, projectDir());
 
         if (abs.getName().equals(PROJECT_INFO_FILE)) {
-          if (mTrueProjectInfoFile != null && !abs.equals(mTrueProjectInfoFile)) {
-            setError("Encountered an unused project info file:", INDENT, abs);
+          checkNotNull(mTrueProjectInfoFile);
+          if (!abs.equals(mTrueProjectInfoFile)) {
+            setError("Encountered an unused project info file:", INDENT, abs, OUTDENT, "The effective one was found at:", INDENT, mTrueProjectInfoFile);
           }
         }
         if (ALWAYS_DELETE_THESE_FILES.contains(abs.getName()) || state.deleteFilesAbs().contains(abs)) {
