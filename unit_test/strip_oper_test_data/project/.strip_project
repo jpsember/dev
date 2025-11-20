@@ -21,7 +21,7 @@ ALTERNATIVE:  \
 PR: $_LEFTSPACE  pr \( $_TOSEMI
 >>>rs
 #
-DB_METHODS: $_LEFTSPACE  ( check_arg | pr! | prif! | pr_to! | o! | load_tools | warning | fail | halt ) \( $_TOSEMI
+DB_METHODS: $_LEFTSPACE  ( check_state | check_arg | pr! | prif! | pr_to! | o! | load_tools | warning | fail | halt ) \( $_TOSEMI
 #
 # To do an 'alternative', do this:
 #
