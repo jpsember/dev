@@ -175,23 +175,10 @@ public class StripOper extends AppOper {
   }
 
   private File mCachedProjectDir;
-  private File mTrueProjectInfoFile;
 
-  private String projectInfoFileContent() {
-   	log("reading project info file");
-    String content;
-    var infoFile = Files.join(projectDir(), PROJECT_INFO_FILE);
-    mTrueProjectInfoFile = infoFile;
-    log("project info file:", INDENT, Files.infoMap(infoFile));
-    if (infoFile.exists()) {
-      content = Files.readString(infoFile);
-    } else {
-      log("no file found, using default");
-      content = defaultExpressionsContent();
-    }
-    return content;
+  private File projectInfoFilePath() {
+    return Files.join(projectDir(), PROJECT_INFO_FILE);
   }
-
 
   private String defaultExpressionsContent() {
     return Files.readString(this.getClass(), "strip_default.txt");
@@ -272,9 +259,9 @@ public class StripOper extends AppOper {
         var relativeToProject = Files.relativeToContainingDirectory(abs, projectDir());
 
         if (abs.getName().equals(PROJECT_INFO_FILE)) {
-          checkNotNull(mTrueProjectInfoFile);
-          if (!abs.equals(mTrueProjectInfoFile)) {
-            setError("Encountered an unused project info file:", INDENT, abs, OUTDENT, "The effective one was found at:", INDENT, mTrueProjectInfoFile);
+          var truePath = projectInfoFilePath();
+          if (!abs.equals(truePath)) {
+            setError("Encountered an unused project info file:", INDENT, abs, OUTDENT, "The effective one would be at:", INDENT, truePath);
           }
         }
         if (ALWAYS_DELETE_THESE_FILES.contains(abs.getName()) || state.deleteFilesAbs().contains(abs)) {
@@ -510,6 +497,21 @@ public class StripOper extends AppOper {
 
     return dfaMap;
   }
+
+  private String projectInfoFileContent() {
+    log("reading project info file");
+    String content;
+    var infoFile = projectInfoFilePath();
+    log("project info file:", INDENT, Files.infoMap(infoFile));
+    if (infoFile.exists()) {
+      content = Files.readString(infoFile);
+    } else {
+      log("no file found, using default");
+      content = defaultExpressionsContent();
+    }
+    return content;
+  }
+
 
   /**
    * Set up the initial filter state.
