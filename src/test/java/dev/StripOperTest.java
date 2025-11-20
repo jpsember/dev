@@ -23,22 +23,76 @@
  **/
 package dev;
 
+import static js.base.Tools.*;
+
 import dev.strip.StripOper;
 import js.file.DirWalk;
 import js.file.Files;
+import js.parsing.DFA;
+import js.parsing.DFACache;
+import js.parsing.Lexer;
 import org.junit.Test;
 
 import java.io.File;
+import java.util.List;
 
 public class StripOperTest extends DevTestBase {
 
   @Test
   public void strip() {
+    rv();
     prepareApp();
     runApp();
     assertGenerated();
   }
 
+  @Test
+  public void small() {
+
+    prepareApp();
+    // Delete selected files
+    List<File> dirs = arrayList();
+    dirs.add(mProjectDirSource);
+    dirs.add(mProjectDirTarget);
+    for (var d : dirs) {
+      var dw = new DirWalk(d).withRecurse(true);
+      for (var f : dw.files()) {
+        if (!f.getName().equals("rust_3.rs")) {
+          files().deleteFile(f);
+        }
+      }
+    }
+    runApp();
+    assertGenerated();
+  }
+
+  @Test
+  public void tokens() {
+
+
+    var tokens = Files.readString(testFile("sample_tokens.rxp"));
+    var dfa = DFACache.SHARED_INSTANCE.forTokenDefinitions(tokens);
+
+    var s = new Lexer(dfa);
+    s.withAcceptUnknownTokens();
+    s.withText(Files.readString(testFile("sample_source.rs")));
+
+    var sb = new StringBuilder();
+    while (s.hasNext()) {
+      var tk = s.read();
+      var tx = tk.text();
+      tx = tx.replace('\n', '~');
+      var maxLen = 70;
+      var elips = "...";
+      var trimLen = maxLen - elips.length();
+      if (tx.length() >= trimLen) {
+        tx = tx.substring(0, trimLen) + elips;
+      }
+      sb.append(String.format("%15s : '%30s'\n", tk.name(), tx));
+    }
+    generateMessage(sb);
+    log(sb);
+  }
 
   @Test
   public void explicitFileList() {

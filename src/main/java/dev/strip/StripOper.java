@@ -37,6 +37,7 @@ public class StripOper extends AppOper {
 
   @Override
   public String userCommand() {
+    todo("!consider using git command: 'git switch -f dev-de-2299' to 'jump back' to the dev branch; verify current is the non-dev");
     return "strip";
   }
 
@@ -177,21 +178,20 @@ public class StripOper extends AppOper {
   private File mTrueProjectInfoFile;
 
   private String projectInfoFileContent() {
-    var content = mCachedProjectInfoFileContent;
-    if (content == null) {
-      var infoFile = Files.join(projectDir(), PROJECT_INFO_FILE);
-      mTrueProjectInfoFile = infoFile;
-      if (infoFile.exists()) {
-        content = Files.readString(infoFile);
-      } else {
-        content = defaultExpressionsContent();
-      }
-      mCachedProjectInfoFileContent = content;
+    pr("***************** reading project info file content");
+    String content;
+    var infoFile = Files.join(projectDir(), PROJECT_INFO_FILE);
+    mTrueProjectInfoFile = infoFile;
+    pr("project info file:", INDENT, Files.infoMap(infoFile));
+    if (infoFile.exists()) {
+      content = Files.readString(infoFile);
+    } else {
+      pr("**** no project info file found:", INDENT, Files.infoMap(infoFile));
+      content = defaultExpressionsContent();
     }
     return content;
   }
 
-  private String mCachedProjectInfoFileContent;
 
   private String defaultExpressionsContent() {
     return Files.readString(this.getClass(), "strip_default.txt");
@@ -452,6 +452,73 @@ public class StripOper extends AppOper {
   private int mMatchesWithinFile;
   private StringBuilder mNewText;
 
+  private Map<String, DFA> prepareRegEx() {
+    var dfaMap = mDFAForFileExtensionMap;
+    if (dfaMap == null) {
+      dfaMap = mDFAForFileExtensionMap = hashMap();
+
+      var text = projectInfoFileContent();
+      Set<String> activeExtensions = hashSet();
+
+      for (var x : split(text, '\n')) {
+
+        var extensionPrefix = ">>>";
+        if (x.startsWith(extensionPrefix)) {
+
+          activeExtensions.clear();
+          x = chompPrefix(x, extensionPrefix);
+
+          var extList = split(x, ',');
+          for (var ext : extList) {
+            checkArgument(ext.matches("[a-zA-Z]+"), "illegal extension:", ext);
+            activeExtensions.add(ext);
+          }
+          continue;
+        }
+
+        for (var ext : activeExtensions) {
+          var buffer = extensionBuffer(ext);
+          buffer.append(x);
+          buffer.append('\n');
+        }
+
+      }
+
+      // Construct DFAs from each extension
+      {
+        var v = verbose() && false;
+        var dfaCache = DFACache.SHARED_INSTANCE;
+        dfaCache.withCacheDir(Files.getDesktopFile("_prepoper_dfa_cache_"));
+        if (v)
+          dfaCache.setVerbose();
+
+        log("Constructing dfas from rxp", CR, DASHES);
+        for (var ent : mRXPContentForFileExtensionMap.entrySet()) {
+          String ext = ent.getKey();
+          String rxp = ent.getValue().toString();
+          if (v) log("Constructing DFA for extension:", ext);
+          if (v) log("rxp file:", INDENT, rxp);
+          var dfa = dfaCache.forTokenDefinitions(rxp);
+          if (v) {
+            log("dfa file:", INDENT, dfa.toJson().remove("graph"));
+            log(DASHES);
+          }
+
+
+          if (!alert("not printing this debug stuff")) {
+            pr("extension:", INDENT, ext);
+            pr("rxp:", CR, rxp);
+            pr("dfa:", CR);
+            pr(dfa.toJson());
+          }
+
+          dfaMap.put(ext, dfa);
+        }
+      }
+    }
+
+    return dfaMap;
+  }
 
   /**
    * Set up the initial filter state.
@@ -460,56 +527,6 @@ public class StripOper extends AppOper {
    * Then we regenerate the .dfa files from those .rxp files (if they aren't cached already)
    */
   private FilterState prepareState() {
-    var text = projectInfoFileContent();
-    Set<String> activeExtensions = hashSet();
-
-    for (var x : split(text, '\n')) {
-
-      var extensionPrefix = ">>>";
-      if (x.startsWith(extensionPrefix)) {
-
-        activeExtensions.clear();
-        x = chompPrefix(x, extensionPrefix);
-
-        var extList = split(x, ',');
-        for (var ext : extList) {
-          checkArgument(ext.matches("[a-zA-Z]+"), "illegal extension:", ext);
-          activeExtensions.add(ext);
-        }
-        continue;
-      }
-
-      for (var ext : activeExtensions) {
-        var buffer = extensionBuffer(ext);
-        buffer.append(x);
-        buffer.append('\n');
-      }
-
-    }
-
-    // Construct DFAs from each extension
-    {
-      var v = verbose() && false;
-      var dfaCache = DFACache.SHARED_INSTANCE;
-      dfaCache.withCacheDir(Files.getDesktopFile("_prepoper_dfa_cache_"));
-      if (v)
-        dfaCache.setVerbose();
-
-      log("Constructing dfas from rxp", CR, DASHES);
-      for (var ent : mRXPContentForFileExtensionMap.entrySet()) {
-        String ext = ent.getKey();
-        String rxp = ent.getValue().toString();
-        if (v) log("Constructing DFA for extension:", ext);
-        if (v) log("rxp file:", INDENT, rxp);
-        var dfa = dfaCache.forTokenDefinitions(rxp);
-        if (v) {
-          log("dfa file:", INDENT, dfa.toJson().remove("graph"));
-          log(DASHES);
-        }
-        mDFAForFileExtensionMap.put(ext, dfa);
-      }
-    }
-
     return new FilterState(projectDir(), arrayList());
   }
 
@@ -537,7 +554,7 @@ public class StripOper extends AppOper {
   }
 
   private DFA dfaForExtension(String ext) {
-    return mDFAForFileExtensionMap.get(ext);
+    return prepareRegEx().get(ext);
   }
 
   private String currentGitBranch() {
@@ -577,7 +594,7 @@ public class StripOper extends AppOper {
   private List<String> mGitBranches;
   private String mCurrentGitBranch;
 
-  private Map<String, DFA> mDFAForFileExtensionMap = hashMap();
+  private Map<String, DFA> mDFAForFileExtensionMap;
 
   private void recordEdit(File relFile, EditCode code, String content) {
     log("record edit:", code, relFile);
