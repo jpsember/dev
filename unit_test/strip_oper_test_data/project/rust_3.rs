@@ -1,47 +1,7 @@
 let desk = file_home_dir()?.join("Desktop");
             check_state(desk.exists(), "Desktop for saving backups");
+)
 
-// Copyright (c), CommunityLogiq Software
-//
-use crate::dev_util::app_error::*;
-use crate::dev_util::file_util::*;
-use crate::dev_util::source_location_info::{new_source_location_info, SourceLocationInfo};
-use crate::dev_util::tools::*;
-use std::path::{Path, PathBuf};
-
-// ------------------------------------------------------------------
-// Error codes
-// ------------------------------------------------------------------
-
-pub const ERROR_NO_SUCH_SOURCE_LINE: usize = 20_000;
-
-// ------------------------------------------------------------------
-
-#[allow(unused)]
-pub fn validate_source_info(info: &SourceLocationInfo) -> Result<(), AppError> {
-    let msg: &str;
-    if info.origin.is_empty() {
-        msg = "No origin string";
-    } else if file_as_string(&info.source_file)?.starts_with("?") || !info.source_file.exists() {
-        msg = "Source file is undefined or doesn't exist";
-    } else if info.line_number <= 0 || info.column_number <= 0 {
-        msg = "Line or column number missing";
-    } else if info.function_name.is_empty()
-        || info.function_name.starts_with("?")
-        || info.function_name.contains("{")
-    {
-        msg = "Function name missing";
-    } else {
-        return Ok(());
-    }
-
-    Err(build_error(
-        ERROR_SOURCE_INFO,
-        &format!("{}; {}", msg, info),
-    ))
-}
-
-#[allow(unused)]
 pub fn caller() -> String {
     caller_n_str(1).to_string()
 }
@@ -272,3 +232,4 @@ impl SourceFile {
         Ok(was_mod)
     }
 }
+

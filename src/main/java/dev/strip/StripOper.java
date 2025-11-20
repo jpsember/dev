@@ -489,13 +489,12 @@ public class StripOper extends AppOper {
 
     // Construct DFAs from each extension
     {
-      var v = verbose() && true;
+      var v = verbose() && false;
       var dfaCache = DFACache.SHARED_INSTANCE;
-      var dir = Files.getDesktopFile("_prepoper_dfa_cache_");
-      dfaCache.withCacheDir(dir);
-      log("cache dir:", dir);
+      dfaCache.withCacheDir(Files.getDesktopFile("_prepoper_dfa_cache_"));
       if (v)
         dfaCache.setVerbose();
+
       log("Constructing dfas from rxp", CR, DASHES);
       for (var ent : mRXPContentForFileExtensionMap.entrySet()) {
         String ext = ent.getKey();
