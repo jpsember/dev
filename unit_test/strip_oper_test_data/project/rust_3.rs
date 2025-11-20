@@ -1,5 +1,4 @@
-// Copyright (c), CommunityLogiq Software
-//
+// Copyright //
 use crate::dev_util::app_error::*;
 use crate::dev_util::file_util::*;
 use crate::dev_util::source_location_info::{new_source_location_info, SourceLocationInfo};

@@ -178,15 +178,15 @@ public class StripOper extends AppOper {
   private File mTrueProjectInfoFile;
 
   private String projectInfoFileContent() {
-    pr("***************** reading project info file content");
+   	log("reading project info file");
     String content;
     var infoFile = Files.join(projectDir(), PROJECT_INFO_FILE);
     mTrueProjectInfoFile = infoFile;
-    pr("project info file:", INDENT, Files.infoMap(infoFile));
+    log("project info file:", INDENT, Files.infoMap(infoFile));
     if (infoFile.exists()) {
       content = Files.readString(infoFile);
     } else {
-      pr("**** no project info file found:", INDENT, Files.infoMap(infoFile));
+      log("no file found, using default");
       content = defaultExpressionsContent();
     }
     return content;
@@ -503,15 +503,6 @@ public class StripOper extends AppOper {
             log("dfa file:", INDENT, dfa.toJson().remove("graph"));
             log(DASHES);
           }
-
-
-          if (!alert("not printing this debug stuff")) {
-            pr("extension:", INDENT, ext);
-            pr("rxp:", CR, rxp);
-            pr("dfa:", CR);
-            pr(dfa.toJson());
-          }
-
           dfaMap.put(ext, dfa);
         }
       }

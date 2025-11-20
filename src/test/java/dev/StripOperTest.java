@@ -69,7 +69,6 @@ public class StripOperTest extends DevTestBase {
   @Test
   public void tokens() {
 
-
     var tokens = Files.readString(testFile("sample_tokens.rxp"));
     var dfa = DFACache.SHARED_INSTANCE.forTokenDefinitions(tokens);
 
